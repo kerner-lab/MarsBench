@@ -49,7 +49,6 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, ind):
         image = cv2.imread(self.image_path[ind], cv2.IMREAD_GRAYSCALE)
-        print(self.image_path[ind])
         image = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
         label = self.labels[ind]
 
@@ -283,8 +282,8 @@ def validate(model, val_loader):
 #Main Code begins
 #NUM_CLASSES = 15  #DoMars16k
 #NUM_CLASSES = 8   #Mars Content Classification Landmark
-#NUM_CLASSES =  6   #DeepMars Landmark
-NUM_CLASSES = 24  #DeepMars Surface
+NUM_CLASSES =  6   #DeepMars Landmark
+#NUM_CLASSES = 24  #DeepMars Surface
 
 BATCH_SIZE = 16
 LR = 0.0001
@@ -302,21 +301,21 @@ IMAGE_SIZE = (224,224)
 # TXT_FILE = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/labels-map-proj_v3_2_train_val_test.txt' 
 
 
-# #Define Directories and other variables for DeepMars Landmark 
-# DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/map-proj/'
-# LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt'
+#Define Directories and other variables for DeepMars Landmark 
+DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/map-proj/'
+LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt'
 
-#Define Directories and other variables for DeepMars Surface 
-DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/calibrated/'
-TRAIN_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/train-calibrated-shuffled.txt'
-VAL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/val-calibrated-shuffled.txt'
-TEST_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/test-calibrated-shuffled.txt'
+# #Define Directories and other variables for DeepMars Surface 
+# DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/calibrated/'
+# TRAIN_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/train-calibrated-shuffled.txt'
+# VAL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/val-calibrated-shuffled.txt'
+# TEST_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/test-calibrated-shuffled.txt'
 
 
 
 
 print("Execution Date-Time: ",datetime.datetime.now())
-print("SwinTransformer with DeepMars_surface, Normalized using ImageNet data and no Uniform Random Sampling")
+print("VIT-16 with DeepMars_Landmark, using 75:25 split  Normalized using ImageNet data and no Uniform Random Sampling")
 
 #Transformations
 transform = transforms.Compose([
@@ -337,16 +336,16 @@ target_transform = transforms.Compose([
 ])
 
 
-# DeepMars Surface classification dataset created
-train_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = transform, txt_file = TRAIN_TXT)
-val_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = target_transform, txt_file = VAL_TXT)
+# # DeepMars Surface classification dataset created
+# train_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = transform, txt_file = TRAIN_TXT)
+# val_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = target_transform, txt_file = VAL_TXT)
 
 
-# ## dataset creation for DeepMars Landmark
-# dataset=DeepMars_Landmark(data_dir = DATA_DIR, txt_file = LABEL_TXT, transform = target_transform)
-# train_size = int(0.7 * len(dataset))
-# test_size = len(dataset) - train_size
-# train_dataset, val_dataset = random_split(dataset, [train_size, test_size])
+## dataset creation for DeepMars Landmark
+dataset=DeepMars_Landmark(data_dir = DATA_DIR, txt_file = LABEL_TXT, transform = target_transform)
+train_size = int(0.7 * len(dataset))
+test_size = len(dataset) - train_size
+train_dataset, val_dataset = random_split(dataset, [train_size, test_size])
 
 
 # # Mars Image content classification dataset created
@@ -398,21 +397,35 @@ print(f"Std: {std}")
 
 # Load the pre-trained Swin Transformer BASE model
 #model = models.swin_b(pretrained=True)
-model=models.swin_b(weights='DEFAULT')
+# model=models.swin_b(weights='DEFAULT')
+
+# ResNet
+#model = models.resnet50(pretrained=True)
+
+# VIT
+model = models.vit_b_16(pretrained=True) 
+
+
 # Freeze all the pre-trained layers
 for param in model.parameters():
   param.requires_grad = False
 
 # Modify the last layer of the model
 num_classes = NUM_CLASSES
-model.head = torch.nn.Linear(model.head.in_features, num_classes)
+# model.head = torch.nn.Linear(model.head.in_features, num_classes)
+
+# VIT
+model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 model.to(device)
+
+# RESNET
+# model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
 # Define the loss function and optimizer
 criterion = torch.nn.CrossEntropyLoss()
 
 # Fine-tune the last layer for a few epochs
-optimizer = torch.optim.AdamW(model.head.parameters(), lr=LR)
+optimizer = torch.optim.AdamW(model.heads.head.parameters(), lr=LR)
 print("Training Begins")
 train(model, train_data_loader, val_data_loader, criterion, optimizer, num_epochs=N_EPOCHS)
 print('\n')
