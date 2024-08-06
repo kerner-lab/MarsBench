@@ -4,9 +4,9 @@ import os
 
 DATASET='DoMars16K'
 #Create DoMars16k Dataset
-URL= 'https://zenodo.org/records/4291940/files/data.zip?download=1'
+URL= 'https://zenodo.org/records/1048301/files/hirise-map-proj.zip?download=1'
 
-zip_file_path = f'/home/kkasodek/MarsBench/datasets'
+zip_file_path = f'/home/kkasodek/MarsBench/datasets/DeepMars'
 
 if(not(os.path.isdir(zip_file_path))):
     os.mkdir(zip_file_path)
