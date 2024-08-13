@@ -206,6 +206,8 @@ IMAGE_SIZE = (224,224)
 
 print("Execution Date-Time: ",datetime.datetime.now())
 print("RESNET50 with DoMars16k, Normalized using ImageNet data and no Uniform Random Sampling")
+#print("VIT with DoMars16k, Normalized using ImageNet data and no Uniform Random Sampling")
+#print("SWIN-Transformer with DoMars16k, Normalized using ImageNet data and no Uniform Random Sampling")
 
 #Transformations
 transform = transforms.Compose([
@@ -267,21 +269,33 @@ print(f"Std: {std}")
 
 # Load the pre-trained Swin Transformer BASE model
 #model = models.swin_b(pretrained=True)
-model=models.resnet50(pretrained=True)
+# Resnet
+# model=models.resnet50(pretrained=True)
+# VIT
+model=models.vit_b_16(pretrained=True)
+print(model)
 # Freeze all the pre-trained layers
 for param in model.parameters():
   param.requires_grad = False
 
 # Modify the last layer of the model
 num_classes = NUM_CLASSES
-model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
+# model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
+
+# VIT
+model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
+model.to(device)
+
+
+# 
+model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 model.to(device)
 
 # Define the loss function and optimizer
 criterion = torch.nn.CrossEntropyLoss()
 
 # Fine-tune the last layer for a few epochs
-optimizer = torch.optim.Adam(model.fc.parameters(), lr=LR)
+optimizer = torch.optim.Adam(model.heads.head.parameters(), lr=LR)
 print("Training Begins")
 train(model, train_data_loader, val_data_loader, criterion, optimizer, num_epochs=N_EPOCHS)
 print('\n')
