@@ -315,13 +315,7 @@ LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.
 
 
 print("Execution Date-Time: ",datetime.datetime.now())
-<<<<<<< HEAD
-print("RESNET50 with DoMars16k, Normalized using ImageNet data and no Uniform Random Sampling")
-#print("VIT with DoMars16k, Normalized using ImageNet data and no Uniform Random Sampling")
-#print("SWIN-Transformer with DoMars16k, Normalized using ImageNet data and no Uniform Random Sampling")
-=======
 print("VIT-16 with DeepMars_Landmark, using 75:25 split  Normalized using ImageNet data and no Uniform Random Sampling")
->>>>>>> a0435eb927308b97077e6687f9308aa72d8f52e4
 
 #Transformations
 transform = transforms.Compose([
@@ -403,13 +397,6 @@ print(f"Std: {std}")
 
 # Load the pre-trained Swin Transformer BASE model
 #model = models.swin_b(pretrained=True)
-<<<<<<< HEAD
-# Resnet
-# model=models.resnet50(pretrained=True)
-# VIT
-model=models.vit_b_16(pretrained=True)
-print(model)
-=======
 # model=models.swin_b(weights='DEFAULT')
 
 # ResNet
@@ -419,29 +406,16 @@ print(model)
 model = models.vit_b_16(pretrained=True) 
 
 
->>>>>>> a0435eb927308b97077e6687f9308aa72d8f52e4
 # Freeze all the pre-trained layers
 for param in model.parameters():
   param.requires_grad = False
 
 # Modify the last layer of the model
 num_classes = NUM_CLASSES
-<<<<<<< HEAD
-# model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
-
-# VIT
-model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
-model.to(device)
-
-
-# 
-model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
-=======
 # model.head = torch.nn.Linear(model.head.in_features, num_classes)
 
 # VIT
 model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
->>>>>>> a0435eb927308b97077e6687f9308aa72d8f52e4
 model.to(device)
 
 # RESNET
@@ -451,11 +425,7 @@ model.to(device)
 criterion = torch.nn.CrossEntropyLoss()
 
 # Fine-tune the last layer for a few epochs
-<<<<<<< HEAD
-optimizer = torch.optim.Adam(model.heads.head.parameters(), lr=LR)
-=======
 optimizer = torch.optim.AdamW(model.heads.head.parameters(), lr=LR)
->>>>>>> a0435eb927308b97077e6687f9308aa72d8f52e4
 print("Training Begins")
 train(model, train_data_loader, val_data_loader, criterion, optimizer, num_epochs=N_EPOCHS)
 print('\n')
