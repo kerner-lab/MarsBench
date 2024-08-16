@@ -25,7 +25,6 @@ wandb_run=sys.argv[1]
 wandb.login(key="ee2f13f7fdb31a577bcdc759c68c3c0a1ac2751d")
 wandb.init(project='MarsBench', name=wandb_run)
 
-
 #Seeds
 torch.manual_seed(0)
 random.seed(0)
@@ -154,10 +153,52 @@ class DeepMars_Surface(CustomDataset):
         
         return image_path, labels
     
-
-
-
     
+class MartianFrostDataset(CustomDataset):
+    def _getdata(self):
+        image_paths = []
+        labels = []
+        
+        # Walk through the directories and collect image and label file paths
+        for subframe_dir in os.listdir(self.data_dir):
+            subframe_path = os.path.join(self.data_dir, subframe_dir)
+
+            if not os.path.isdir(subframe_path):
+                continue
+
+            tiles_dir = os.path.join(subframe_path, "tiles")
+            labels_dir = os.path.join(subframe_path, "labels")
+            
+            for frost_type in os.listdir(tiles_dir):
+                tile_frost_dir = os.path.join(tiles_dir, frost_type)
+                label_frost_dir = os.path.join(labels_dir, frost_type)
+
+                # Skip non-directory files
+                if not os.path.isdir(tile_frost_dir):
+                    continue
+
+                for img_file in os.listdir(tile_frost_dir):
+                    img_path = os.path.join(tile_frost_dir, img_file)
+                    label_file = img_file.replace(".png", ".json")
+                    label_path = os.path.join(label_frost_dir, label_file)
+
+                    # Skip non-png files or missing labels
+                    if not img_file.endswith('.png') or not os.path.exists(label_path):
+                        continue
+                    
+                    # Store paths
+                    print(img_path)
+                    image_paths.append(img_path)
+
+                    # Load the label from the corresponding JSON file
+                    with open(label_path, 'r') as f:
+                        label_data = json.load(f)
+                    label = label_data.get('frost', 0)
+                    labels.append(label)
+
+        return image_paths, labels
+ 
+
 # Wandb log table  
 def log_image_table(images, predicted, labels, probs):
     "Log a wandb.Table with (img, pred, target, scores)"
@@ -281,8 +322,8 @@ def validate(model, val_loader):
 
 #Main Code begins
 #NUM_CLASSES = 15  #DoMars16k
-#NUM_CLASSES = 8   #Mars Content Classification Landmark
-NUM_CLASSES =  6   #DeepMars Landmark
+NUM_CLASSES = 8   #Mars Content Classification Landmark
+#NUM_CLASSES =  6   #DeepMars Landmark
 #NUM_CLASSES = 24  #DeepMars Surface
 
 BATCH_SIZE = 16
@@ -297,13 +338,15 @@ IMAGE_SIZE = (224,224)
 #TEST_DIR = '/data/hkerner/MarsBench/Datasets/DoMars16K/data/test/'
 
 #Define Directories and other variables for Mars Image Content Classification-Landmark
-# DATA_DIR = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/map-proj-v3_2/'
-# TXT_FILE = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/labels-map-proj_v3_2_train_val_test.txt' 
+#DATA_DIR = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/map-proj-v3_2/'
+#TXT_FILE = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/labels-map-proj_v3_2_train_val_test.txt' 
 
-
+#Define Directories and other variables for Martian Frost Dataset
+data_dir = '/data/hkerner/MarsBench/Datasets/Martian_Frost/data' 
+  
 #Define Directories and other variables for DeepMars Landmark 
-DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/map-proj/'
-LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt'
+# DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/map-proj/'
+# LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt'
 
 # #Define Directories and other variables for DeepMars Surface 
 # DATA_DIR = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/calibrated/'
@@ -312,10 +355,8 @@ LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.
 # TEST_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Surface/test-calibrated-shuffled.txt'
 
 
-
-
 print("Execution Date-Time: ",datetime.datetime.now())
-print("VIT-16 with DeepMars_Landmark, using 75:25 split  Normalized using ImageNet data and no Uniform Random Sampling")
+print("VIT-16 with Mars Content Classification, using 75:25 split  Normalized using ImageNet data and no Uniform Random Sampling")
 
 #Transformations
 transform = transforms.Compose([
@@ -342,10 +383,10 @@ target_transform = transforms.Compose([
 
 
 ## dataset creation for DeepMars Landmark
-dataset=DeepMars_Landmark(data_dir = DATA_DIR, txt_file = LABEL_TXT, transform = target_transform)
-train_size = int(0.7 * len(dataset))
-test_size = len(dataset) - train_size
-train_dataset, val_dataset = random_split(dataset, [train_size, test_size])
+# dataset=DeepMars_Landmark(data_dir = DATA_DIR, txt_file = LABEL_TXT, transform = target_transform)
+# train_size = int(0.7 * len(dataset))
+# test_size = len(dataset) - train_size
+# train_dataset, val_dataset = random_split(dataset, [train_size, test_size])
 
 
 # # Mars Image content classification dataset created
@@ -356,6 +397,9 @@ train_dataset, val_dataset = random_split(dataset, [train_size, test_size])
 # train_dataset = DoMars16k(data_dir = TRAIN_DIR, transform = transform)
 # val_dataset = DoMars16k(data_dir = VALID_DIR, transform = target_transform)
 
+# Dataset Creation for Martian Frost
+martian_frost_dataset = MartianFrostDataset(data_dir=data_dir, transform=transform)
+train_dataset, val_dataset = split_dataset(dataset, split_ratio=0.2)
 
 ##Creating weights for uniform sampling
 # label_count = np.bincount(train_dataset.labels)
@@ -400,7 +444,7 @@ print(f"Std: {std}")
 # model=models.swin_b(weights='DEFAULT')
 
 # ResNet
-#model = models.resnet50(pretrained=True)
+# model = models.resnet50(pretrained=True)
 
 # VIT
 model = models.vit_b_16(pretrained=True) 
@@ -420,12 +464,18 @@ model.to(device)
 
 # RESNET
 # model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
+# model.to(device)
 
 # Define the loss function and optimizer
 criterion = torch.nn.CrossEntropyLoss()
 
 # Fine-tune the last layer for a few epochs
+# AdamW
 optimizer = torch.optim.AdamW(model.heads.head.parameters(), lr=LR)
+
+# Adam
+#optimizer = torch.optim.Adam(model.fc.parameters(), lr=LR)
+
 print("Training Begins")
 train(model, train_data_loader, val_data_loader, criterion, optimizer, num_epochs=N_EPOCHS)
 print('\n')
