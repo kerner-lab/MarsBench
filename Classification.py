@@ -15,6 +15,7 @@ import wandb
 import psutil
 import sys
 import cv2
+import logging
 
 warnings.filterwarnings("ignore")
 
@@ -158,8 +159,9 @@ class MartianFrostDataset(CustomDataset):
     def _getdata(self):
         image_paths = []
         labels = []
-        
-        # Walk through the directories and collect image and label file paths
+        subframe_ids = []
+
+        # Collect image and label paths
         for subframe_dir in os.listdir(self.data_dir):
             subframe_path = os.path.join(self.data_dir, subframe_dir)
 
@@ -168,12 +170,11 @@ class MartianFrostDataset(CustomDataset):
 
             tiles_dir = os.path.join(subframe_path, "tiles")
             labels_dir = os.path.join(subframe_path, "labels")
-            
+
             for frost_type in os.listdir(tiles_dir):
                 tile_frost_dir = os.path.join(tiles_dir, frost_type)
                 label_frost_dir = os.path.join(labels_dir, frost_type)
 
-                # Skip non-directory files
                 if not os.path.isdir(tile_frost_dir):
                     continue
 
@@ -182,13 +183,12 @@ class MartianFrostDataset(CustomDataset):
                     label_file = img_file.replace(".png", ".json")
                     label_path = os.path.join(label_frost_dir, label_file)
 
-                    # Skip non-png files or missing labels
                     if not img_file.endswith('.png') or not os.path.exists(label_path):
                         continue
-                    
-                    # Store paths
-                    print(img_path)
+
+                    # Store paths and subframe IDs
                     image_paths.append(img_path)
+                    subframe_ids.append(subframe_dir)
 
                     # Load the label from the corresponding JSON file
                     with open(label_path, 'r') as f:
@@ -196,8 +196,31 @@ class MartianFrostDataset(CustomDataset):
                     label = label_data.get('frost', 0)
                     labels.append(label)
 
-        return image_paths, labels
- 
+        return image_paths, labels, subframe_ids
+
+def load_text_ids(file_path):
+    """Helper to load all lines from a text file"""
+    with open(file_path, 'r') as f:
+        lines = [line.strip() for line in f.readlines()]
+    return lines
+
+def split_dataset(dataset, train_ids, validate_ids, test_ids):
+    train_indices = []
+    validate_indices = []
+    test_indices = []
+
+    for idx, subframe_id in enumerate(dataset.subframe_ids):
+        if subframe_id in train_ids:
+            train_indices.append(idx)
+        elif subframe_id in validate_ids:
+            validate_indices.append(idx)
+        elif subframe_id in test_ids:
+            test_indices.append(idx)
+        else:
+            logging.warning(f'{subframe_id}: Did not find designated split in train/validate/test list.')
+
+    return Subset(dataset, train_indices), Subset(dataset, validate_indices), Subset(dataset, test_indices)
+
 
 # Wandb log table  
 def log_image_table(images, predicted, labels, probs):
@@ -356,7 +379,7 @@ data_dir = '/data/hkerner/MarsBench/Datasets/Martian_Frost/data'
 
 
 print("Execution Date-Time: ",datetime.datetime.now())
-print("VIT-16 with Mars Content Classification, using 75:25 split  Normalized using ImageNet data and no Uniform Random Sampling")
+print("Resnet50 with Martian Frost, using 75:25 split  Normalized using ImageNet data and no Uniform Random Sampling")
 
 #Transformations
 transform = transforms.Compose([
@@ -398,8 +421,13 @@ target_transform = transforms.Compose([
 # val_dataset = DoMars16k(data_dir = VALID_DIR, transform = target_transform)
 
 # Dataset Creation for Martian Frost
-martian_frost_dataset = MartianFrostDataset(data_dir=data_dir, transform=transform)
-train_dataset, val_dataset = split_dataset(dataset, split_ratio=0.2)
+
+# Load the subframe IDs for the three data subsets
+train_ids = load_text_ids('./train_source_images.txt')
+validate_ids = load_text_ids('./val_source_images.txt')
+test_ids = load_text_ids('./test_source_images.txt')
+dataset = MartianFrostDataset(data_dir=data_dir, transform=transform)
+train_dataset, val_dataset, test_dataset = split_dataset(dataset, train_ids, validate_ids, test_ids)
 
 ##Creating weights for uniform sampling
 # label_count = np.bincount(train_dataset.labels)
