@@ -117,9 +117,6 @@ if dataset_name == "MartianFrost":
     val_dataset = MartianFrostDataset(data_dir = DATA_DIR, transform = transform, split_type = 'val')
     
 
-
-
-
 print("Execution Date-Time: ",datetime.datetime.now())
 print(f"{model_name} with {dataset_name}, Normalized using ImageNet data and no Uniform Random Sampling")
 
