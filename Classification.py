@@ -206,7 +206,7 @@ if model_name=='VIT16':
     model.to(device)
 
     if dataset_name in ['MartianFrost','DustyvsNonDusty']:
-        criterion = torch.nn.BCEwithLogitsLoss()
+        criterion = torch.nn.BCEWithLogitsLoss()
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
