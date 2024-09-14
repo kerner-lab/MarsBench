@@ -155,86 +155,32 @@ class DeepMars_Surface(CustomDataset):
         return image_path, labels
     
 
-class MartianFrostDataset(Dataset):
-    def __init__(self, data_dir, transform, split_type):
-        self.data_dir=data_dir
-        self.images = []
-        self.labels = []
-        self.split_type=split_type
-        self.transform = transform
-        data_df = self._getdata()
-        
+class MartianFrost(CustomDataset):
 
-        for _, row in data_df.iterrows():
-            image_path = row["filepath"]
-            self.images.append(image_path)
-            self.labels.append(row["label"])
+    def __init__(self, data_dir, transform, txt_file):
+        self.data_dir = data_dir
+        self.text_file = txt_file
+        super(MartianFrost, self).__init__(data_dir, transform)
 
-    def __len__(self):
-
-        return len(self.images)
-
-    def __getitem__(self, idx):
-
-        image_path = self.images[idx]
-        label = self.labels[idx]
-        filename = image_path.split("/")[-1]
-
-        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        # image = np.expand_dims(image, axis=0)
-        image = np.stack((image,)*3, axis=-1)
-        # image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        if self.transform:
-            image=self.transform(image)
-
-        return image, label, filename.split("/")[-1]
-    
     def _getdata(self):
-        data_list = []
+        image_path, labels = [], []
 
-        if self.split_type=="train":
-            with open(os.path.join(self.data_dir, "train_source_images.txt")) as f:
-                lines = f.readlines()
-                for each_line in lines:
-                    data_list.append(each_line[:-1])
+        with open(self.text_file) as text:
+            lines = [line.strip() for line in text]
 
-        if self.split_type=="val":
-            with open(os.path.join(self.data_dir, "val_source_images.txt")) as f:
-                lines = f.readlines()
-                for each_line in lines:
-                    data_list.append(each_line[:-1])
+        for each_folder in os.listdir(self.data_dir):
+            parent_directory = each_folder[:15]
+            if parent_directory in lines:
+                temp_path = os.path.join(self.data_dir, each_folder, "tiles")
 
-        if self.split_type=="test":
-            with open(os.path.join(self.data_dir, "test_source_images.txt")) as f:
-                lines = f.readlines()
-                for each_line in lines:
-                    data_list.append(each_line[:-1])
-
-        data_folder = os.path.join(self.data_dir, "data")
-
-        filepath_list, feature_list, set_list = [], [], []
-
-        for each_folder in os.listdir(data_folder):
-
-            if each_folder == ".DS_Store":
-                continue
-
-            class_name = os.listdir(os.path.join(data_folder, each_folder, "tiles"))[0]
-            for each_file in os.listdir(os.path.join(data_folder, each_folder, "tiles", class_name)):
-                filepath_list.append(os.path.join(data_folder, each_folder, "tiles", class_name, each_file))
-                feature_list.append(class_name)
-                set_list.append(self.split_type)
-
-        data_dict = {"filepath": filepath_list, "feature": feature_list, "set": set_list}
-        data_df = pd.DataFrame(data_dict)
-
-        data_df = data_df.drop(data_df[data_df["filepath"]==".DS_Store"].index)
-
-        le = LabelEncoder()
-        le.fit(data_df["feature"])
-
-        data_df["label"] = le.transform(data_df["feature"])
-
-        return data_df
-
+                if "frost" in os.listdir(temp_path):
+                  for each_image in os.listdir(os.path.join(temp_path, "frost")):
+                    image_path.append(os.path.join(temp_path, "frost", each_image))
+                    labels.append(1)
+                else:
+                  for each_image in os.listdir(os.path.join(temp_path, "background")):
+                    image_path.append(os.path.join(temp_path, "background", each_image))
+                    labels.append(0)
+        
+        return image_path, labels 
         
