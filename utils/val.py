@@ -30,8 +30,7 @@ def validate(model, val_loader, device):
 
   # Calculate precision, recall, F1 score
   precision, recall, f1_score, _ = precision_recall_fscore_support(all_labels, all_preds, average='weighted')
+  
   metrics4={"precision":precision,"recall":recall,"f1_score":f1_score}
-  wandb.log(metrics4)
-  # Print the epoch results
-  print('val precision: {:.4f}, val recall: {:.4f}, val F1 score: {:.4f}'
-        .format(precision, recall, f1_score))
+  
+  return metrics4
