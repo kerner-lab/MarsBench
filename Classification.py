@@ -9,9 +9,8 @@ import warnings
 import datetime
 import sys
 import wandb
-from data.data import DeepMars_Landmark, DeepMars_Surface, DoMars16k, MarsDatasetLandmark, MartianFrostDataset, MarsDatasetSurface
+from data.data import DeepMars_Landmark, DeepMars_Surface, DoMars16k, MarsDatasetLandmark, MartianFrost, MarsDatasetSurface
 from utils.train import train
-from utils.utils import load_text_ids, split_dataset, bootstrap_sampler
 
 warnings.filterwarnings("ignore")
 
@@ -35,7 +34,7 @@ np.random.seed(0)
 BATCH_SIZE = 16
 LR = 0.0001
 MOMENTUM = 0.9
-N_EPOCHS = 30
+N_EPOCHS = 100
 IMAGE_SIZE = (224,224)
 
 #Transformations
@@ -66,6 +65,7 @@ if dataset_name == "DoMars16k":
 
     train_dataset = DoMars16k(data_dir = TRAIN_DIR, transform = transform)
     val_dataset = DoMars16k(data_dir = VALID_DIR, transform = target_transform)
+    test_dataset = DoMars16k(data_dir = TEST_DIR, transform = target_transform)
 
 #Define variables for Mars Content Classification Landmark
 if dataset_name == "MarsDatasetLandmark":
@@ -75,6 +75,7 @@ if dataset_name == "MarsDatasetLandmark":
 
     train_dataset = MarsDatasetLandmark(data_dir = DATA_DIR,transform=transform, txt_file = TXT_FILE, split_type ='train')
     val_dataset = MarsDatasetLandmark(data_dir = DATA_DIR,transform=target_transform, txt_file = TXT_FILE, split_type ='val')
+    test_dataset = MarsDatasetLandmark(data_dir = DATA_DIR,transform=target_transform, txt_file = TXT_FILE, split_type ='test')
 
 #Define Variables for Mars Content Classification Surface
 if dataset_name == "MarsDatasetSurface":
@@ -83,8 +84,10 @@ if dataset_name == "MarsDatasetSurface":
     TRAIN_TXT = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Surface/msl-labeled-data-set-v2.1/train-set-v2.1.txt'
     VAL_TXT = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Surface/msl-labeled-data-set-v2.1/val-set-v2.1.txt'
     TEST_TXT = '/data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Surface/msl-labeled-data-set-v2.1/test-set-v2.1.txt'
+
     train_dataset = MarsDatasetSurface(data_dir = DATA_DIR, transform = transform, txt_file = TRAIN_TXT)
     val_dataset = MarsDatasetSurface(data_dir = DATA_DIR, transform = target_transform, txt_file = VAL_TXT)
+    test_dataset = MarsDatasetSurface(data_dir = DATA_DIR, transform = target_transform, txt_file = TEST_TXT)
 
 #Define variables DeepMars Landmark
 if dataset_name  == "DeepMars_Landmark":
@@ -93,9 +96,10 @@ if dataset_name  == "DeepMars_Landmark":
     LABEL_TXT = '/data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt'
 
     dataset=DeepMars_Landmark(data_dir = DATA_DIR, txt_file = LABEL_TXT, transform = target_transform)
-    train_size = int(0.7 * len(dataset))
+    train_size = int(0.6 * len(dataset))
     test_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, test_size])
+    train_dataset, other_dataset = random_split(dataset, [train_size, test_size])
+    val_dataset, test_dataset = random_split(other_dataset, [0.5 * test_size, 0.5 * test_size])
 
 #Define variables for DeepMars Surface
 if dataset_name == "DeepMars_Surface":
@@ -107,14 +111,19 @@ if dataset_name == "DeepMars_Surface":
 
     train_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = transform, txt_file = TRAIN_TXT)
     val_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = target_transform, txt_file = VAL_TXT)
+    test_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = target_transform, txt_file = TEST_TXT)
 
 #Define variables for Martian Frost
 if dataset_name == "MartianFrost":
-    NUM_CLASSES = 1
-    DATA_DIR = '/data/hkerner/MarsBench/Datasets/Martian_Frost/'
+    NUM_CLASSES = 2
+    DATA_DIR = "/data/hkerner/MarsBench/Datasets/Martian_Frost/data"
+    TRAIN_TXT = "/data/hkerner/MarsBench/Datasets/Martian_Frost/train_source_images.txt"
+    VAL_TXT = "/data/hkerner/MarsBench/Datasets/Martian_Frost/val_source_images.txt"
+    TEST_TXT = "/data/hkerner/MarsBench/Datasets/Martian_Frost/test_source_images.txt"
 
-    train_dataset = MartianFrostDataset(data_dir = DATA_DIR, transform = transform, split_type = 'train')
-    val_dataset = MartianFrostDataset(data_dir = DATA_DIR, transform = transform, split_type = 'val')
+    train_dataset = MartianFrost(data_dir=DATA_DIR, transform=transform, txt_file=TRAIN_TXT)
+    val_dataset = MartianFrost(data_dir=DATA_DIR, transform=transform, txt_file=VAL_TXT)
+    test_dataset = MartianFrost(data_dir=DATA_DIR, transform=transform, txt_file=TEST_TXT)
     
 
 
@@ -129,9 +138,9 @@ print(f"{model_name} with {dataset_name}, Normalized using ImageNet data and no 
 # bootstrap_datasets=[bootstrap_sampler(train_dataset, len(train_dataset)) for _ in range(num_samples)]
 
 # Initializing DataLoader
-train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4,sampler=None)
-val_data_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
-
+train_data_loader = DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle = True, num_workers = 4,sampler = None)
+val_data_loader = DataLoader(val_dataset, batch_size = BATCH_SIZE, shuffle = False, num_workers = 4)
+test_data_loader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False, num_workers = 4)
 
 
 mean = torch.zeros(3)
@@ -141,11 +150,7 @@ nb_samples = 0
 
 # Iterate through the DataLoader
 for data in train_data_loader:
-    if dataset_name=="MartianFrost":
-        images, _ ,_ = data
-    else:
-        images, _ = data
-
+    images, _ = data
     batch_samples = images.size(0)  # batch size (the last batch can have smaller size)
     images = images.view(batch_samples, images.size(1), -1)
     mean += images.mean(2).sum(0)
@@ -172,7 +177,7 @@ if model_name=='SwinTransformer':
     model.head = torch.nn.Linear(model.head.in_features, NUM_CLASSES)
     model.to(device)
     
-    if dataset_name in ['MartianFrost','DustyvsNonDusty']:
+    if dataset_name in ['DustyvsNonDusty']:
         criterion = torch.nn.BCEwithLogitsLoss()
     else:
         criterion = torch.nn.CrossEntropyLoss()
@@ -191,7 +196,7 @@ if model_name=='ResNet50':
     model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
     model.to(device)
 
-    if dataset_name in ['MartianFrost','DustyvsNonDusty']:
+    if dataset_name in ['DustyvsNonDusty']:
         criterion = torch.nn.BCEwithLogitsLoss()
     else:
         criterion = torch.nn.CrossEntropyLoss()
@@ -208,7 +213,7 @@ if model_name=='VIT16':
     model.heads.head = torch.nn.Linear(model.heads.head.in_features, NUM_CLASSES)
     model.to(device)
 
-    if dataset_name in ['MartianFrost','DustyvsNonDusty']:
+    if dataset_name in ['DustyvsNonDusty']:
         criterion = torch.nn.BCEwithLogitsLoss()
     else:
         criterion = torch.nn.CrossEntropyLoss()
@@ -218,6 +223,6 @@ if model_name=='VIT16':
 
 #Call Training Function
 print("Training Begins")
-train(model, train_data_loader, val_data_loader, criterion, optimizer, device, len(train_dataset), len(val_dataset) ,num_epochs=N_EPOCHS)
+train(model, train_data_loader, val_data_loader, test_data_loader ,criterion, optimizer, device, len(train_dataset), len(val_dataset), len(test_dataset) ,num_epochs=N_EPOCHS)
 print('\n')
 print("Training Ends")
