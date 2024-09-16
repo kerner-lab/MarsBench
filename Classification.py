@@ -152,9 +152,6 @@ if dataset_name == "MartianFrost":
     test_dataset = MartianFrost(data_dir=DATA_DIR, transform=transform, txt_file=TEST_TXT)
     
 
-
-
-
 print("Execution Date-Time: ",datetime.datetime.now())
 print(f"{model_name} with {dataset_name}, Normalized using ImageNet data and no Uniform Random Sampling")
 
@@ -208,6 +205,7 @@ if model_name == 'VIT16':
 if model_name == 'InceptionV3':
     criterion,optimizer, model = models.InceptionV3(device, dataset_name, NUM_CLASSES, LR, run_type)
 
+
 #SqueezeNet
 if model_name == 'SqueezeNet':
     criterion,optimizer, model = models.SqueezeNet(device, dataset_name, NUM_CLASSES, LR, run_type)
@@ -222,6 +220,7 @@ train(model, train_data_loader, val_data_loader, criterion, optimizer, device, l
       len(val_dataset), MODEL_LOC, early_stopping_tolerance, early_stopping_threshold, num_epochs = N_EPOCHS)
 print('\n')
 print("Training Ends")
+
 
 
 print("Testing Begins")
