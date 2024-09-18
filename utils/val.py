@@ -30,8 +30,35 @@ def validate(model, val_loader, device):
 
   # Calculate precision, recall, F1 score
   precision, recall, f1_score, _ = precision_recall_fscore_support(all_labels, all_preds, average='weighted')
-  metrics4={"precision":precision,"recall":recall,"f1_score":f1_score}
-  wandb.log(metrics4)
-  # Print the epoch results
-  print('val precision: {:.4f}, val recall: {:.4f}, val F1 score: {:.4f}'
-        .format(precision, recall, f1_score))
+  
+  
+  return precision, recall, f1_score
+
+
+
+def test(model, test_loader, device, test_len, criterion):
+  running_loss = 0.0
+  running_corrects = 0
+  #Iterating over the batches of the test loader
+  with torch.no_grad():
+    for inputs, labels in test_loader:
+      # Move the inputs and labels to the device
+      inputs = inputs.to(device)
+      labels = labels.to(device)
+
+      # Forward pass
+      outputs = model(inputs)
+      _, preds = torch.max(outputs, 1)
+      loss = criterion(outputs, labels)
+
+      # Update the running loss and accuracy
+      running_loss += loss.item() * inputs.size(0)
+      running_corrects += torch.sum(preds == labels.data)
+
+  # Calculate the validation loss and accuracy
+  test_loss = running_loss/test_len
+  test_acc = running_corrects.double()/ test_len
+  
+  metrics={"test_loss":test_loss, "test_acc":test_acc}
+  
+  return metrics
