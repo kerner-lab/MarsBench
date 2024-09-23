@@ -4,12 +4,23 @@ import torch
 
 #SwinTransformer
 def SwinTransformer(device, dataset_name, NUM_CLASSES, LR, run_type):
-    
-    model=models.swin_b(weights='DEFAULT')
-    
-    for param in model.parameters():
-        param.requires_grad = False
+    # Selecting model paramters based on Run type
+    if run_type=="Transfer_Learning" or run_type=="Finetuning":
+        model=models.swin_b(weights='DEFAULT')
 
+        if run_type=='Transfer_Learning':    
+            for param in model.parameters():
+                param.requires_grad = False
+
+        if run_type=='Finetuning':
+            for param in model.parameters():
+                param.requires_grad = True
+    
+    if run_type=="Scratch":
+        model=models.swin_b(weights=None)
+        for param in model.parameters():
+                param.requires_grad = True
+                
     model.head = torch.nn.Linear(model.head.in_features, NUM_CLASSES)
     model.to(device)
     
@@ -24,12 +35,23 @@ def SwinTransformer(device, dataset_name, NUM_CLASSES, LR, run_type):
     
 
 #ResNet50
-def ResNet50(device,dataset_name,NUM_CLASSES, LR, run_type):
-
-    model=models.resnet50(pretrained=True)
+def ResNet50(device,dataset_name, NUM_CLASSES, LR, run_type):
     
-    for param in model.parameters():
-        param.requires_grad = False
+    if run_type=="Transfer_Learning" or run_type=="Finetuning":
+        model=models.resnet50(pretrained=True)
+    
+        if run_type=='Transfer_Learning':    
+            for param in model.parameters():
+                param.requires_grad = False
+
+        if run_type=='Finetuning':
+            for param in model.parameters():
+                param.requires_grad = True
+    
+    if run_type=="Scratch":
+        model=models.resnet50(pretrained=False)
+        for param in model.parameters():
+                param.requires_grad = True
 
     model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
     model.to(device)
@@ -47,10 +69,21 @@ def ResNet50(device,dataset_name,NUM_CLASSES, LR, run_type):
 #VIT16
 def VIT16(device,dataset_name,NUM_CLASSES, LR, run_type):
 
-    model = models.vit_b_16(pretrained=True)
+    if run_type=="Transfer_Learning" or run_type=="Finetuning":
+        model = models.vit_b_16(pretrained=True)
+        
+        if run_type=='Transfer_Learning':    
+            for param in model.parameters():
+                param.requires_grad = False
+
+        if run_type=='Finetuning':
+            for param in model.parameters():
+                param.requires_grad = True
     
-    for param in model.parameters():
-        param.requires_grad = False
+    if run_type=="Scratch":
+        model=models.vit_b_16(pretrained=False)
+        for param in model.parameters():
+                param.requires_grad = True
 
     model.heads.head = torch.nn.Linear(model.heads.head.in_features, NUM_CLASSES)
     model.to(device)
@@ -66,11 +99,23 @@ def VIT16(device,dataset_name,NUM_CLASSES, LR, run_type):
 
 #ResNet18
 def ResNet18(device, dataset_name, NUM_CLASSES, LR, run_type):
-
-    model=models.resnet18(pretrained=True)
     
-    for param in model.parameters():
-        param.requires_grad = False
+    if run_type=="Transfer_Learning" or run_type=="Finetuning":
+        model=models.resnet18(pretrained=True)
+    
+        if run_type=='Transfer_Learning':    
+            for param in model.parameters():
+                param.requires_grad = False
+
+        if run_type=='Finetuning':
+            for param in model.parameters():
+                param.requires_grad = True
+    
+    if run_type=="Scratch":
+        model=models.resnet18(pretrained=False)
+        for param in model.parameters():
+                param.requires_grad = True
+
 
     model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
     model.to(device)
@@ -86,13 +131,24 @@ def ResNet18(device, dataset_name, NUM_CLASSES, LR, run_type):
 
 #SqueezeNet1_1
 def SqueezeNet(device, dataset_name, NUM_CLASSES, LR, run_type):
-
-    model=models.squeezenet1_1(pretrained=True)
     
-    for param in model.parameters():
-        param.requires_grad = False
+    if run_type=="Transfer_Learning" or run_type=="Finetuning":
+        model=models.squeezenet1_1(pretrained=True)
+    
+        if run_type=='Transfer_Learning':    
+            for param in model.parameters():
+                param.requires_grad = False
 
-    #model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
+        if run_type=='Finetuning':
+            for param in model.parameters():
+                param.requires_grad = True
+    
+    if run_type=="Scratch":
+        model=models.squeezenet1_1(pretrained=False)
+        for param in model.parameters():
+                param.requires_grad = True
+
+
     model.classifier[1] = torch.nn.Conv2d(512, NUM_CLASSES, kernel_size=(1,1), stride=(1,1))
 
     model.num_classes = NUM_CLASSES
@@ -110,12 +166,23 @@ def SqueezeNet(device, dataset_name, NUM_CLASSES, LR, run_type):
 
 #InceptionV3
 def InceptionV3(device, dataset_name, NUM_CLASSES, LR, run_type):
-
-    model=models.inception_v3(pretrained=True)
     
-    for param in model.parameters():
-        param.requires_grad = False
+    if run_type=="Transfer_Learning" or run_type=="Finetuning":
+        model=models.inception_v3(pretrained=True)
+    
+        if run_type=='Transfer_Learning':    
+            for param in model.parameters():
+                param.requires_grad = False
 
+        if run_type=='Finetuning':
+            for param in model.parameters():
+                param.requires_grad = True
+    
+    if run_type=="Scratch":
+        model=models.squeezenet1_1(pretrained=False)
+        for param in model.parameters():
+                param.requires_grad = True
+                
     model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
     model.to(device)
 
