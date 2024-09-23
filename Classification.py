@@ -38,9 +38,9 @@ np.random.seed(0)
 BATCH_SIZE = 16
 LR = 0.0001
 MOMENTUM = 0.9
-N_EPOCHS = 5
+N_EPOCHS = 200
 IMAGE_SIZE = (224,224)
-early_stopping_tolerance = 3
+early_stopping_tolerance = 20
 early_stopping_threshold = 0.03
 
 #Transformations
@@ -77,6 +77,7 @@ if dataset_name == "DoMars16k":
     val_dataset = DoMars16k(data_dir = VALID_DIR, transform = target_transform)
     test_dataset = DoMars16k(data_dir = TEST_DIR, transform = target_transform)
 
+
 #Define variables for Mars Content Classification Landmark
 if dataset_name == "MarsDatasetLandmark":
     NUM_CLASSES = 8
@@ -90,6 +91,7 @@ if dataset_name == "MarsDatasetLandmark":
     train_dataset = MarsDatasetLandmark(data_dir = DATA_DIR,transform=transform, txt_file = TXT_FILE, split_type ='train')
     val_dataset = MarsDatasetLandmark(data_dir = DATA_DIR,transform=target_transform, txt_file = TXT_FILE, split_type ='val')
     test_dataset = MarsDatasetLandmark(data_dir = DATA_DIR,transform=target_transform, txt_file = TXT_FILE, split_type ='test')
+
 
 #Define Variables for Mars Content Classification Surface
 if dataset_name == "MarsDatasetSurface":
@@ -106,6 +108,7 @@ if dataset_name == "MarsDatasetSurface":
     val_dataset = MarsDatasetSurface(data_dir = DATA_DIR, transform = target_transform, txt_file = VAL_TXT)
     test_dataset = MarsDatasetSurface(data_dir = DATA_DIR, transform = target_transform, txt_file = TEST_TXT)
 
+
 #Define variables DeepMars Landmark
 if dataset_name  == "DeepMars_Landmark":
     NUM_CLASSES = 6
@@ -121,6 +124,7 @@ if dataset_name  == "DeepMars_Landmark":
     train_dataset, other_dataset = random_split(dataset, [train_size, test_size])
     val_dataset, test_dataset = random_split(other_dataset, [0.5 * test_size, 0.5 * test_size])
 
+
 #Define variables for DeepMars Surface
 if dataset_name == "DeepMars_Surface":
     NUM_CLASSES = 24
@@ -135,6 +139,7 @@ if dataset_name == "DeepMars_Surface":
     train_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = transform, txt_file = TRAIN_TXT)
     val_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = target_transform, txt_file = VAL_TXT)
     test_dataset = DeepMars_Surface(data_dir = DATA_DIR, transform = target_transform, txt_file = TEST_TXT)
+
 
 #Define variables for Martian Frost
 if dataset_name == "MartianFrost":
@@ -153,7 +158,7 @@ if dataset_name == "MartianFrost":
     
 
 print("Execution Date-Time: ",datetime.datetime.now())
-print(f"{model_name} with {dataset_name}, Normalized using ImageNet data and no Uniform Random Sampling")
+print(f"{model_name} for {dataset_name}, in {run_type} mode without Uniform Random Sampling")
 
 
 # #Using Boot Sampler
@@ -211,8 +216,9 @@ if model_name == 'SqueezeNet':
     criterion,optimizer, model = models.SqueezeNet(device, dataset_name, NUM_CLASSES, LR, run_type)
 
 #Resnet18
-if model_name == "Resnet18":
+if model_name == "ResNet18":
     criterion,optimizer, model = models.ResNet18(device, dataset_name, NUM_CLASSES, LR, run_type)
+
 
 #Call Training Function
 print("Training Begins")
@@ -236,7 +242,7 @@ test_metrics2 = {'test_precision': test_precision, 'test_recall': test_recall, '
 
 print('test loss: {:.4f}, train acc: {:.4f}'
           .format(test_metrics1['test_loss'], test_metrics1['test_acc']))
-print("test_metrics2- ", test_metrics2)
+print("test_metrics2: ", test_metrics2)
 
 print('\n')
 print("Testing Ends")
@@ -244,6 +250,3 @@ print("Testing Ends")
 wandb.log(test_metrics1)
 wandb.log(test_metrics2)
 wandb.finish()
-
-
-
