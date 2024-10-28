@@ -1,0 +1,10 @@
+data:
+  status:
+    - ready
+  subset_size: 100
+
+model:
+  status:
+    - ready
+  with_tuple_output:
+    - InceptionV3

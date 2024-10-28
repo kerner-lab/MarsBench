@@ -1,0 +1,26 @@
+defaults:
+  - _self_
+  - data: domars16k
+  - model: resnet50
+  - transforms: default
+  - training: dev
+  - optimizer: adam
+  - criterion: cross_entropy
+  - test: default
+
+data:
+  valid_image_extensions:
+    - jpg
+    - JPG
+    - jpeg
+    - JPEG
+    - png
+    - PNG
+    - tif
+    - TIF
+
+hydra:
+  job:
+    chdir: True
+  run:
+    dir: outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
