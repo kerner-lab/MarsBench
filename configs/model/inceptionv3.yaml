@@ -4,4 +4,5 @@ classification:
   status: ready
   pretrained: true
   freeze_layers: true
-  input_size: [3, 299, 299] 
+
+input_size: [3, 299, 299]

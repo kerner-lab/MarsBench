@@ -1,6 +1,8 @@
-from typing import List, Tuple
-from .BaseClassificationDataset import BaseClassificationDataset
 from pathlib import Path
+from typing import List
+from typing import Tuple
+
+from .BaseClassificationDataset import BaseClassificationDataset
 
 
 class MartianFrost(BaseClassificationDataset):
@@ -23,10 +25,10 @@ class MartianFrost(BaseClassificationDataset):
 
         data_dir = Path(self.data_dir)
 
-        patterns = [('frost', 1), ('background', 0)]
+        patterns = [("frost", 1), ("background", 0)]
 
         for subfolder, label in patterns:
-            for image_path in data_dir.glob(f'*/tiles/{subfolder}/*'):
+            for image_path in data_dir.glob(f"*/tiles/{subfolder}/*"):
                 each_folder = image_path.parents[2].name
                 parent_directory = each_folder[:15]
                 if parent_directory in valid_parents:
@@ -34,4 +36,3 @@ class MartianFrost(BaseClassificationDataset):
                     labels.append(label)
 
         return image_paths, labels
-

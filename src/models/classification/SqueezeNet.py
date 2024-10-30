@@ -1,7 +1,11 @@
-from .BaseClassificationModel import BaseClassificationModel
-from torchvision.models import squeezenet1_1, SqueezeNet1_1_Weights
-from torch import nn
 import warnings
+
+from torch import nn
+from torchvision.models import SqueezeNet1_1_Weights
+from torchvision.models import squeezenet1_1
+
+from .BaseClassificationModel import BaseClassificationModel
+
 
 class SqueezeNet(BaseClassificationModel):
     def __init__(self, cfg):
@@ -19,12 +23,15 @@ class SqueezeNet(BaseClassificationModel):
 
         model = squeezenet1_1(weights=weights)
         # Replace the classifier to match num_classes
-        model.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
+        model.classifier[1] = nn.Conv2d(
+            512, num_classes, kernel_size=(1, 1), stride=(1, 1)
+        )
         model.num_classes = num_classes
 
-
         if freeze_layers and not pretrained:
-            warnings.warn("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
+            warnings.warn(
+                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
+            )
             freeze_layers = False
 
         if freeze_layers:

@@ -7,11 +7,11 @@ from .MartianFrost import MartianFrost
 from .MSLNet import MSLNet
 
 __all__ = [
-    'BaseClassificationDataset',
-    'DeepMars_Landmark',
-    'DeepMars_Surface',
-    'DoMars16k',
-    'HiRISENet',
-    'MartianFrost',
-    'MSLNet',
+    "BaseClassificationDataset",
+    "DeepMars_Landmark",
+    "DeepMars_Surface",
+    "DoMars16k",
+    "HiRISENet",
+    "MartianFrost",
+    "MSLNet",
 ]

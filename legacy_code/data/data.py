@@ -98,7 +98,7 @@ class DoMars16k(CustomDataset):
             class_dir_path = os.path.join(self.data_dir, class_dir)
 
             for image in os.listdir(class_dir_path):
-                if image.endswith(("jpg", "png", "jpeg","tif")):
+                if image.endswith(("jpg", "png", "jpeg", "tif")):
                     image_path.append(os.path.join(class_dir_path, image))
                     labels.append(label)
 

@@ -1,10 +1,16 @@
-from typing import Any, Callable, List, Optional, Tuple
+from abc import ABC
+from abc import abstractmethod
+from typing import Callable
+from typing import List
+from typing import Optional
+from typing import Tuple
+
 import torch
-from abc import ABC, abstractmethod
-from torch.utils.data import Dataset
-from PIL import Image
-from torchvision import transforms
 from omegaconf import DictConfig
+from PIL import Image
+from torch.utils.data import Dataset
+from torchvision import transforms
+
 
 class BaseClassificationDataset(Dataset, ABC):
     """Abstract base class for custom datasets.
@@ -24,7 +30,13 @@ class BaseClassificationDataset(Dataset, ABC):
                 # Implement data loading logic
                 return image_paths, labels
     """
-    def __init__(self, cfg: DictConfig, data_dir: str, transform: Optional[Callable[[Image.Image], torch.Tensor]] = None):
+
+    def __init__(
+        self,
+        cfg: DictConfig,
+        data_dir: str,
+        transform: Optional[Callable[[Image.Image], torch.Tensor]] = None,
+    ):
         self.cfg = cfg
         self.data_dir = data_dir
         self.transform = transform

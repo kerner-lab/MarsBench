@@ -1,7 +1,11 @@
-from .BaseClassificationModel import BaseClassificationModel
-from torchvision.models import inception_v3, Inception_V3_Weights
-from torch import nn
 import warnings
+
+from torch import nn
+from torchvision.models import Inception_V3_Weights
+from torchvision.models import inception_v3
+
+from .BaseClassificationModel import BaseClassificationModel
+
 
 class InceptionV3(BaseClassificationModel):
     def __init__(self, cfg):
@@ -21,11 +25,13 @@ class InceptionV3(BaseClassificationModel):
         model.fc = nn.Linear(num_features, num_classes)
 
         # Optionally replace auxiliary classifier
-        num_aux_features = model.AuxLogits.fc.in_features # type: ignore
-        model.AuxLogits.fc = nn.Linear(num_aux_features, num_classes) # type: ignore
+        num_aux_features = model.AuxLogits.fc.in_features  # type: ignore
+        model.AuxLogits.fc = nn.Linear(num_aux_features, num_classes)  # type: ignore
 
         if freeze_layers and not pretrained:
-            warnings.warn("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
+            warnings.warn(
+                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
+            )
             freeze_layers = False
 
         if freeze_layers:
@@ -38,7 +44,7 @@ class InceptionV3(BaseClassificationModel):
                 param.requires_grad = True
 
         return model
-    
+
     def training_step(self, batch, batch_idx):
         images, labels = batch
         outputs = self(images)
@@ -49,11 +55,11 @@ class InceptionV3(BaseClassificationModel):
 
         acc = self._calculate_accuracy(outputs.logits, labels)
 
-        self.log('train_loss', loss)
-        self.log('train_acc', acc, prog_bar=True)
+        self.log("train_loss", loss)
+        self.log("train_acc", acc, prog_bar=True)
 
         return loss
-    
+
     def validation_step(self, batch, batch_idx):
         images, labels = batch
         outputs = self(images)
@@ -62,9 +68,9 @@ class InceptionV3(BaseClassificationModel):
         loss = self.criterion(outputs, labels)
         acc = self._calculate_accuracy(outputs, labels)
 
-        self.log('val_loss', loss, prog_bar=True)
-        self.log('val_acc', acc, prog_bar=True)
-    
+        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_acc", acc, prog_bar=True)
+
     def test_step(self, batch, batch_idx):
         images, labels = batch
         outputs = self(images)
@@ -72,5 +78,5 @@ class InceptionV3(BaseClassificationModel):
         loss = self.criterion(outputs, labels)
         acc = self._calculate_accuracy(outputs, labels)
 
-        self.log('test_loss', loss)
-        self.log('test_acc', acc)
+        self.log("test_loss", loss)
+        self.log("test_acc", acc)

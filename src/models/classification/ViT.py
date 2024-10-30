@@ -1,7 +1,11 @@
-from .BaseClassificationModel import BaseClassificationModel
-from torch import nn
-from torchvision.models import vit_l_16, ViT_L_16_Weights
 import warnings
+
+from torch import nn
+from torchvision.models import ViT_L_16_Weights
+from torchvision.models import vit_l_16
+
+from .BaseClassificationModel import BaseClassificationModel
+
 
 class ViT(BaseClassificationModel):
     def __init__(self, cfg):
@@ -16,12 +20,14 @@ class ViT(BaseClassificationModel):
             weights = ViT_L_16_Weights.DEFAULT
         else:
             weights = None
-        
+
         model = vit_l_16(weights=weights)
         model.heads[-1] = nn.Linear(model.heads[-1].in_features, num_classes)
 
         if freeze_layers and not pretrained:
-            warnings.warn("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
+            warnings.warn(
+                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
+            )
             freeze_layers = False
 
         if pretrained and freeze_layers:

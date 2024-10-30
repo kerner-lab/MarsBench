@@ -1,6 +1,10 @@
-from typing import List, Optional, Tuple, Sequence
-from .BaseClassificationDataset import BaseClassificationDataset
 import os
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+
+from .BaseClassificationDataset import BaseClassificationDataset
 
 
 class DeepMars_Landmark(BaseClassificationDataset):
@@ -8,7 +12,14 @@ class DeepMars_Landmark(BaseClassificationDataset):
     DeepMars_Landmark https://zenodo.org/records/1048301
     """
 
-    def __init__(self, cfg, data_dir, transform, txt_file, indices: Optional[Sequence[int]] = None):
+    def __init__(
+        self,
+        cfg,
+        data_dir,
+        transform,
+        txt_file,
+        indices: Optional[Sequence[int]] = None,
+    ):
         self.txt_file = txt_file
         self.indices = indices
         super(DeepMars_Landmark, self).__init__(cfg, data_dir, transform)
@@ -29,4 +40,3 @@ class DeepMars_Landmark(BaseClassificationDataset):
             labels = [labels[i] for i in self.indices]
 
         return image_paths, labels
-

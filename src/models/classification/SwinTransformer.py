@@ -1,7 +1,10 @@
-from .BaseClassificationModel import BaseClassificationModel
-from torchvision.models import swin_v2_b, Swin_V2_B_Weights
-from torch import nn
 import warnings
+
+from torch import nn
+from torchvision.models import Swin_V2_B_Weights
+from torchvision.models import swin_v2_b
+
+from .BaseClassificationModel import BaseClassificationModel
 
 
 class SwinTransformer(BaseClassificationModel):
@@ -24,7 +27,9 @@ class SwinTransformer(BaseClassificationModel):
         model.head = nn.Linear(num_features, num_classes)
 
         if freeze_layers and not pretrained:
-            warnings.warn("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
+            warnings.warn(
+                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
+            )
             freeze_layers = False
 
         if pretrained and freeze_layers:
@@ -35,5 +40,5 @@ class SwinTransformer(BaseClassificationModel):
         else:
             for param in model.parameters():
                 param.requires_grad = True
-                
+
         return model

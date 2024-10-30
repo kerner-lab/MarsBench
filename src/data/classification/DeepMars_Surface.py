@@ -1,12 +1,15 @@
-from typing import List, Tuple
-from .BaseClassificationDataset import BaseClassificationDataset
 import os
+from typing import List
+from typing import Tuple
+
+from .BaseClassificationDataset import BaseClassificationDataset
 
 
 class DeepMars_Surface(BaseClassificationDataset):
     """
     DeepMars_Surface https://zenodo.org/records/1049137
     """
+
     def __init__(self, cfg, data_dir, transform, txt_file):
         self.txt_file = txt_file
         super(DeepMars_Surface, self).__init__(cfg, data_dir, transform)
@@ -27,4 +30,3 @@ class DeepMars_Surface(BaseClassificationDataset):
                 labels.append(label)
 
         return image_paths, labels
-

@@ -1,8 +1,12 @@
+from typing import Optional
+
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
+
 from src.data import get_dataset
 from src.utils.transforms import get_transforms
-from typing import Optional
+
 
 class MarsDataModule(pl.LightningDataModule):
     def __init__(self, cfg):
@@ -28,7 +32,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=True,
-            num_workers=self.cfg.training.num_workers
+            num_workers=self.cfg.training.num_workers,
         )
 
     def val_dataloader(self):
@@ -37,7 +41,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.val_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers
+            num_workers=self.cfg.training.num_workers,
         )
 
     def test_dataloader(self):
@@ -46,5 +50,5 @@ class MarsDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers
+            num_workers=self.cfg.training.num_workers,
         )

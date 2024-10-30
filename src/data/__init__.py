@@ -1,80 +1,86 @@
-import torch
-from torch.utils.data import random_split, Dataset, Subset
-from .classification import (
-    DoMars16k,
-    HiRISENet,
-    MSLNet,
-    DeepMars_Landmark,
-    DeepMars_Surface,
-    MartianFrost,
-)
-from typing import Tuple, Union
+from typing import Tuple
+from typing import Union
 
-def get_dataset(cfg, train_transform=None, val_transform=None, subset: Union[int, None]=None) -> Tuple[Dataset, Dataset, Dataset]:
+import torch
+from torch.utils.data import Dataset
+from torch.utils.data import Subset
+from torch.utils.data import random_split
+
+from .classification import DeepMars_Landmark
+from .classification import DeepMars_Surface
+from .classification import DoMars16k
+from .classification import HiRISENet
+from .classification import MartianFrost
+from .classification import MSLNet
+
+
+def get_dataset(
+    cfg, train_transform=None, val_transform=None, subset: Union[int, None] = None
+) -> Tuple[Dataset, Dataset, Dataset]:
     dataset_name = cfg.data.name
-    if dataset_name == 'DoMars16k':
+    if dataset_name == "DoMars16k":
         train_dataset = DoMars16k(
-            cfg = cfg,
+            cfg=cfg,
             data_dir=cfg.data.data_dir.train,
             transform=train_transform,
         )
         val_dataset = DoMars16k(
-            cfg = cfg,
+            cfg=cfg,
             data_dir=cfg.data.data_dir.val,
             transform=val_transform,
         )
         test_dataset = DoMars16k(
-            cfg = cfg,
+            cfg=cfg,
             data_dir=cfg.data.data_dir.test,
             transform=val_transform,
         )
-    elif dataset_name == 'HiRISENet':
+    elif dataset_name == "HiRISENet":
         train_dataset = HiRISENet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
             txt_file=cfg.data.txt_file,
-            split_type="train"
+            split_type="train",
         )
         val_dataset = HiRISENet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
             txt_file=cfg.data.txt_file,
-            split_type="val"
+            split_type="val",
         )
         test_dataset = HiRISENet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
             txt_file=cfg.data.txt_file,
-            split_type="test"
+            split_type="test",
         )
-    elif dataset_name == 'MSLNet':
+    elif dataset_name == "MSLNet":
         train_dataset = MSLNet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_files.train
+            txt_file=cfg.data.txt_files.train,
         )
         val_dataset = MSLNet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.val
+            txt_file=cfg.data.txt_files.val,
         )
         test_dataset = MSLNet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.test
+            txt_file=cfg.data.txt_files.test,
         )
-    elif dataset_name == 'DeepMars_Landmark':
+    elif dataset_name == "DeepMars_Landmark":
         full_dataset = DeepMars_Landmark(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_file
+            txt_file=cfg.data.txt_file,
         )
         total_size = len(full_dataset)
         train_size = int(0.6 * total_size)
@@ -97,59 +103,59 @@ def get_dataset(cfg, train_transform=None, val_transform=None, subset: Union[int
             data_dir=cfg.data.data_dir,
             transform=train_transform,
             txt_file=cfg.data.txt_file,
-            indices=train_indices
+            indices=train_indices,
         )
         val_dataset = DeepMars_Landmark(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
             txt_file=cfg.data.txt_file,
-            indices=val_indices
+            indices=val_indices,
         )
         test_dataset = DeepMars_Landmark(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
             txt_file=cfg.data.txt_file,
-            indices=test_indices
+            indices=test_indices,
         )
-    elif dataset_name == 'DeepMars_Surface':
+    elif dataset_name == "DeepMars_Surface":
         train_dataset = DeepMars_Surface(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_files.train
+            txt_file=cfg.data.txt_files.train,
         )
         val_dataset = DeepMars_Surface(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.val
+            txt_file=cfg.data.txt_files.val,
         )
         test_dataset = DeepMars_Surface(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.test
+            txt_file=cfg.data.txt_files.test,
         )
-    elif dataset_name == 'MartianFrost':
+    elif dataset_name == "MartianFrost":
         train_dataset = MartianFrost(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_files.train
+            txt_file=cfg.data.txt_files.train,
         )
         val_dataset = MartianFrost(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.val
+            txt_file=cfg.data.txt_files.val,
         )
         test_dataset = MartianFrost(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.test
+            txt_file=cfg.data.txt_files.test,
         )
     else:
         raise ValueError(f"Dataset {dataset_name} not recognized.")

@@ -1,7 +1,11 @@
-from .BaseClassificationModel import BaseClassificationModel
-from torchvision.models import resnet18, ResNet18_Weights
-from torch import nn
 import warnings
+
+from torch import nn
+from torchvision.models import ResNet18_Weights
+from torchvision.models import resnet18
+
+from .BaseClassificationModel import BaseClassificationModel
+
 
 class ResNet18(BaseClassificationModel):
     def __init__(self, cfg):
@@ -16,13 +20,15 @@ class ResNet18(BaseClassificationModel):
             weights = ResNet18_Weights.DEFAULT
         else:
             weights = None
-        
+
         model = resnet18(weights=weights)
         num_features = model.fc.in_features
         model.fc = nn.Linear(num_features, num_classes)
 
         if freeze_layers and not pretrained:
-            warnings.warn("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
+            warnings.warn(
+                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
+            )
             freeze_layers = False
 
         if pretrained and freeze_layers:

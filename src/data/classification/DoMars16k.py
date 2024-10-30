@@ -1,8 +1,11 @@
-from typing import List, Tuple
-from .BaseClassificationDataset import BaseClassificationDataset
+import glob
 import os
 from itertools import chain
-import glob
+from typing import List
+from typing import Tuple
+
+from .BaseClassificationDataset import BaseClassificationDataset
+
 
 class DoMars16k(BaseClassificationDataset):
     """
@@ -18,7 +21,12 @@ class DoMars16k(BaseClassificationDataset):
         extensions = self.cfg.data.valid_image_extensions
         for label, class_dir in enumerate(os.listdir(self.data_dir)):
             class_dir_path = os.path.join(self.data_dir, class_dir)
-            matched_files = list(chain.from_iterable(glob.glob(os.path.join(class_dir_path, f'*.{ext}')) for ext in extensions))
+            matched_files = list(
+                chain.from_iterable(
+                    glob.glob(os.path.join(class_dir_path, f"*.{ext}"))
+                    for ext in extensions
+                )
+            )
             image_paths.extend(matched_files)
             labels.extend([label] * len(matched_files))
         return image_paths, labels

@@ -1,14 +1,18 @@
 import os
+
 import pytest
 import torch
-from hydra import initialize_config_dir, compose
+from hydra import compose
+from hydra import initialize_config_dir
+
 from src.data.mars_datamodule import MarsDataModule
+
 
 def test_mars_datamodule():
     # Load a sample configuration
-    config_dir = os.path.abspath('configs')
-    with initialize_config_dir(config_dir=config_dir, version_base='1.1'):
-        cfg = compose(config_name='config')
+    config_dir = os.path.abspath("configs")
+    with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
+        cfg = compose(config_name="config")
     # Initialize the MarsDataModule
     data_module = MarsDataModule(cfg)
 
@@ -36,18 +40,28 @@ def test_mars_datamodule():
     test_images, test_labels = test_batch
 
     # Check shapes and types
-    assert train_images.shape[1:] == (3, cfg.transforms.image_size[0], cfg.transforms.image_size[1]), \
-        f"Train images have incorrect shape: {train_images.shape}"
-    assert val_images.shape[1:] == (3, cfg.transforms.image_size[0], cfg.transforms.image_size[1]), \
-        f"Validation images have incorrect shape: {val_images.shape}"
-    assert test_images.shape[1:] == (3, cfg.transforms.image_size[0], cfg.transforms.image_size[1]), \
-        f"Test images have incorrect shape: {test_images.shape}"
+    assert train_images.shape[1:] == (
+        3,
+        cfg.transforms.image_size[0],
+        cfg.transforms.image_size[1],
+    ), f"Train images have incorrect shape: {train_images.shape}"
+    assert val_images.shape[1:] == (
+        3,
+        cfg.transforms.image_size[0],
+        cfg.transforms.image_size[1],
+    ), f"Validation images have incorrect shape: {val_images.shape}"
+    assert test_images.shape[1:] == (
+        3,
+        cfg.transforms.image_size[0],
+        cfg.transforms.image_size[1],
+    ), f"Test images have incorrect shape: {test_images.shape}"
 
     assert train_labels.dtype == torch.int64, "Train labels are not integers."
     assert val_labels.dtype == torch.int64, "Validation labels are not integers."
     assert test_labels.dtype == torch.int64, "Test labels are not integers."
 
     print("MarsDataModule datasets and DataLoaders are working correctly.")
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

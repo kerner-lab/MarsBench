@@ -1,6 +1,8 @@
-from typing import List, Tuple
-from .BaseClassificationDataset import BaseClassificationDataset
 import os
+from typing import List
+from typing import Tuple
+
+from .BaseClassificationDataset import BaseClassificationDataset
 
 
 class HiRISENet(BaseClassificationDataset):

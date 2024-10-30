@@ -1,24 +1,30 @@
-import os
 import glob
+import os
+
 import pytest
-from hydra import initialize_config_dir, compose
-from src.utils.transforms import get_transforms
+from hydra import compose
+from hydra import initialize_config_dir
+
 from src.data import get_dataset
+from src.utils.transforms import get_transforms
+
 
 @pytest.mark.parametrize("dataset_config_file", glob.glob("configs/data/*.yaml"))
 def test_datasets(dataset_config_file):
     # Get dataset name from config file name
     dataset_name = os.path.splitext(os.path.basename(dataset_config_file))[0]
-    config_dir = os.path.abspath('configs')
+    config_dir = os.path.abspath("configs")
 
     # Initialize Hydra and compose configuration
-    with initialize_config_dir(config_dir=config_dir, version_base='1.1'):
-        cfg = compose(config_name='config', overrides=[f'data={dataset_name}'])
+    with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
+        cfg = compose(config_name="config", overrides=[f"data={dataset_name}"])
 
         # Check dataset status
         if cfg.data.status not in cfg.test.data.status:
             print(f"Skipping dataset '{dataset_name}' (status: {cfg.data.status})")
-            pytest.skip(f"Dataset '{dataset_name}' is not in status set {cfg.test.data.status} for testing.")
+            pytest.skip(
+                f"Dataset '{dataset_name}' is not in status set {cfg.test.data.status} for testing."
+            )
 
         print(f"Testing dataset '{dataset_name}'")
 
@@ -26,7 +32,9 @@ def test_datasets(dataset_config_file):
         train_transform, val_transform = get_transforms(cfg)
 
         # Get datasets
-        train_dataset, val_dataset, test_dataset = get_dataset(cfg, train_transform, val_transform, subset=cfg.test.data.subset_size)
+        train_dataset, val_dataset, test_dataset = get_dataset(
+            cfg, train_transform, val_transform, subset=cfg.test.data.subset_size
+        )
 
         # Expected image size and channels
         expected_image_size = cfg.transforms.image_size
@@ -58,13 +66,13 @@ def test_datasets(dataset_config_file):
                 )
 
                 # Check label
-                assert isinstance(label, int), (
-                    f"Dataset '{dataset_name}' {split_name} split: Label is not an integer."
-                )
+                assert isinstance(
+                    label, int
+                ), f"Dataset '{dataset_name}' {split_name} split: Label is not an integer."
                 num_classes = cfg.data.num_classes
-                assert 0 <= label < num_classes, (
-                    f"Dataset '{dataset_name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."
-                )
+                assert (
+                    0 <= label < num_classes
+                ), f"Dataset '{dataset_name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
 
                 print(
                     f"Dataset '{dataset_name}' {split_name} split, index {idx}: "
@@ -72,6 +80,6 @@ def test_datasets(dataset_config_file):
                 )
 
         # Test each split
-        test_split('train', train_dataset)
-        test_split('val', val_dataset)
-        test_split('test', test_dataset)
+        test_split("train", train_dataset)
+        test_split("val", val_dataset)
+        test_split("test", test_dataset)
