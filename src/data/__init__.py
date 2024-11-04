@@ -2,9 +2,9 @@ from typing import Tuple
 from typing import Union
 
 import torch
+from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from torch.utils.data import Subset
-from torch.utils.data import random_split
 
 from .classification import DeepMars_Landmark
 from .classification import DeepMars_Surface
@@ -15,147 +15,140 @@ from .classification import MSLNet
 
 
 def get_dataset(
-    cfg, train_transform=None, val_transform=None, subset: Union[int, None] = None
+    cfg: DictConfig,
+    train_transform: torch.nn.Module,
+    val_transform: torch.nn.Module,
+    subset: Union[int, None] = None,
 ) -> Tuple[Dataset, Dataset, Dataset]:
     dataset_name = cfg.data.name
     if dataset_name == "DoMars16k":
         train_dataset = DoMars16k(
             cfg=cfg,
-            data_dir=cfg.data.data_dir.train,
+            data_dir=cfg.data.data_dir,
             transform=train_transform,
+            annot_csv=cfg.data.annot_csv,
         )
         val_dataset = DoMars16k(
             cfg=cfg,
-            data_dir=cfg.data.data_dir.val,
+            data_dir=cfg.data.data_dir,
             transform=val_transform,
+            annot_csv=cfg.data.annot_csv,
         )
         test_dataset = DoMars16k(
             cfg=cfg,
-            data_dir=cfg.data.data_dir.test,
+            data_dir=cfg.data.data_dir,
             transform=val_transform,
+            annot_csv=cfg.data.annot_csv,
         )
     elif dataset_name == "HiRISENet":
         train_dataset = HiRISENet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_file,
-            split_type="train",
+            annot_csv=cfg.data.annot_csv,
+            split="train",
         )
         val_dataset = HiRISENet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_file,
-            split_type="val",
+            annot_csv=cfg.data.annot_csv,
+            split="val",
         )
         test_dataset = HiRISENet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_file,
-            split_type="test",
+            annot_csv=cfg.data.annot_csv,
+            split="test",
         )
     elif dataset_name == "MSLNet":
         train_dataset = MSLNet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_files.train,
+            annot_csv=cfg.data.annot_csv,
+            split="train",
         )
         val_dataset = MSLNet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.val,
+            annot_csv=cfg.data.annot_csv,
+            split="val",
         )
         test_dataset = MSLNet(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.test,
+            annot_csv=cfg.data.annot_csv,
+            split="test",
         )
     elif dataset_name == "DeepMars_Landmark":
-        full_dataset = DeepMars_Landmark(
-            cfg=cfg,
-            data_dir=cfg.data.data_dir,
-            transform=train_transform,
-            txt_file=cfg.data.txt_file,
-        )
-        total_size = len(full_dataset)
-        train_size = int(0.6 * total_size)
-        val_size = int(0.2 * total_size)
-        test_size = total_size - train_size - val_size
-        # Get indices for the splits
-        generator = torch.Generator().manual_seed(42)
-        train_subset, val_subset, test_subset = random_split(
-            full_dataset, [train_size, val_size, test_size], generator=generator
-        )
-
-        # Extract indices from the subsets
-        train_indices = train_subset.indices
-        val_indices = val_subset.indices
-        test_indices = test_subset.indices
-
-        # Create separate datasets for each split with their own transforms
         train_dataset = DeepMars_Landmark(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_file,
-            indices=train_indices,
+            annot_csv=cfg.data.annot_csv,
+            split="train",
         )
         val_dataset = DeepMars_Landmark(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_file,
-            indices=val_indices,
+            annot_csv=cfg.data.annot_csv,
+            split="val",
         )
         test_dataset = DeepMars_Landmark(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_file,
-            indices=test_indices,
+            annot_csv=cfg.data.annot_csv,
+            split="test",
         )
     elif dataset_name == "DeepMars_Surface":
         train_dataset = DeepMars_Surface(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_files.train,
+            annot_csv=cfg.data.annot_csv,
+            split="train",
         )
         val_dataset = DeepMars_Surface(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.val,
+            annot_csv=cfg.data.annot_csv,
+            split="val",
         )
         test_dataset = DeepMars_Surface(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.test,
+            annot_csv=cfg.data.annot_csv,
+            split="test",
         )
     elif dataset_name == "MartianFrost":
         train_dataset = MartianFrost(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=train_transform,
-            txt_file=cfg.data.txt_files.train,
+            annot_csv=cfg.data.annot_csv,
+            split="train",
         )
         val_dataset = MartianFrost(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.val,
+            annot_csv=cfg.data.annot_csv,
+            split="val",
         )
         test_dataset = MartianFrost(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=val_transform,
-            txt_file=cfg.data.txt_files.test,
+            annot_csv=cfg.data.annot_csv,
+            split="test",
         )
     else:
         raise ValueError(f"Dataset {dataset_name} not recognized.")

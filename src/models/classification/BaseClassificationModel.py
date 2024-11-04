@@ -10,6 +10,8 @@ from torch.optim.sgd import SGD
 
 
 class BaseClassificationModel(pl.LightningModule, ABC):
+    """Abstract base class for classification models."""
+
     def __init__(self, cfg):
         super(BaseClassificationModel, self).__init__()
         self.cfg = cfg

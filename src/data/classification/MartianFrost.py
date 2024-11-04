@@ -1,6 +1,10 @@
-from pathlib import Path
+import os
 from typing import List
+from typing import Literal
 from typing import Tuple
+from typing import Union
+
+import pandas as pd
 
 from .BaseClassificationDataset import BaseClassificationDataset
 
@@ -11,28 +15,19 @@ class MartianFrost(BaseClassificationDataset):
     https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=doi:10.48577/jpl.QJ9PYA
     """
 
-    def __init__(self, cfg, data_dir, transform, txt_file):
-        self.data_dir = data_dir
-        self.txt_file = txt_file
+    def __init__(
+        self,
+        cfg,
+        data_dir,
+        transform,
+        annot_csv: Union[str, os.PathLike],
+        split: Literal["train", "val", "test"] = "train",
+    ):
+        self.annot = pd.read_csv(annot_csv)
+        self.annot = self.annot[self.annot["split"] == split]
         super(MartianFrost, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
-        image_paths = []
-        labels = []
-
-        with open(self.txt_file, "r", encoding="utf-8") as text:
-            valid_parents = set(line.strip() for line in text)
-
-        data_dir = Path(self.data_dir)
-
-        patterns = [("frost", 1), ("background", 0)]
-
-        for subfolder, label in patterns:
-            for image_path in data_dir.glob(f"*/tiles/{subfolder}/*"):
-                each_folder = image_path.parents[2].name
-                parent_directory = each_folder[:15]
-                if parent_directory in valid_parents:
-                    image_paths.append(str(image_path))
-                    labels.append(label)
-
+        image_paths = self.annot["image_path"].astype(str).tolist()
+        labels = self.annot["label"].astype(int).tolist()
         return image_paths, labels

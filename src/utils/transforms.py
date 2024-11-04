@@ -2,9 +2,11 @@ from torchvision import transforms
 
 
 def get_transforms(cfg):
-    # TODO: Update model config to use objective oriented config
-    if hasattr(cfg.model, "input_size"):
-        image_size = tuple(cfg.model.input_size)[1:]  # Remove channel dimension
+    task = cfg.task
+    if hasattr(cfg.model.get(task, None), "input_size"):
+        image_size = tuple(cfg.model.get(task).input_size)[
+            1:
+        ]  # Remove channel dimension
     else:
         image_size = tuple(cfg.transforms.image_size)
 

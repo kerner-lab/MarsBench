@@ -1,8 +1,12 @@
 import os
 from typing import List
+from typing import Literal
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
+from typing import Union
+
+import pandas as pd
+import torch
 
 from .BaseClassificationDataset import BaseClassificationDataset
 
@@ -17,26 +21,23 @@ class DeepMars_Landmark(BaseClassificationDataset):
         cfg,
         data_dir,
         transform,
-        txt_file,
-        indices: Optional[Sequence[int]] = None,
+        annot_csv: Union[str, os.PathLike],
+        split: Literal["train", "val", "test"] = "train",
+        generator: Optional[torch.Generator] = None,
     ):
-        self.txt_file = txt_file
-        self.indices = indices
+        self.cfg = cfg
+        self.annot = pd.read_csv(annot_csv)
+        generator = (
+            torch.Generator().manual_seed(cfg.seed) if generator is None else generator
+        )
+        total_size = len(self.annot)
+        self.indices = self.determine_data_splits(total_size, generator, split)
         super(DeepMars_Landmark, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
-        image_paths = []
-        labels = []
-
-        with open(self.txt_file, "r", encoding="utf-8") as text:
-            for line in text:
-                image_name, label_str = line.strip().split()[:2]
-                label = int(label_str)
-                image_paths.append(os.path.join(self.data_dir, image_name))
-                labels.append(5 if label == 6 else label)
-
-        if self.indices is not None:
-            image_paths = [image_paths[i] for i in self.indices]
-            labels = [labels[i] for i in self.indices]
-
+        annot_subset = (
+            self.annot if self.indices is None else self.annot.iloc[self.indices]
+        )
+        image_paths = annot_subset["image_path"].astype(str).tolist()
+        labels = annot_subset["label"].astype(int).tolist()
         return image_paths, labels

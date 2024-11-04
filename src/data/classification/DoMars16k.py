@@ -1,8 +1,10 @@
-import glob
 import os
-from itertools import chain
 from typing import List
+from typing import Literal
 from typing import Tuple
+from typing import Union
+
+import pandas as pd
 
 from .BaseClassificationDataset import BaseClassificationDataset
 
@@ -12,21 +14,21 @@ class DoMars16k(BaseClassificationDataset):
     DoMars16k dataset https://zenodo.org/records/4291940
     """
 
-    def __init__(self, cfg, data_dir, transform):
+    def __init__(
+        self,
+        cfg,
+        data_dir,
+        transform,
+        annot_csv: Union[str, os.PathLike],
+        split: Literal["train", "val", "test"] = "train",
+    ):
+        self.split = split
+        self.annot = pd.read_csv(annot_csv)
+        self.annot = self.annot[self.annot["split"] == split]
+        data_dir = data_dir + f"/{split}"
         super(DoMars16k, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
-        image_paths = []
-        labels = []
-        extensions = self.cfg.data.valid_image_extensions
-        for label, class_dir in enumerate(os.listdir(self.data_dir)):
-            class_dir_path = os.path.join(self.data_dir, class_dir)
-            matched_files = list(
-                chain.from_iterable(
-                    glob.glob(os.path.join(class_dir_path, f"*.{ext}"))
-                    for ext in extensions
-                )
-            )
-            image_paths.extend(matched_files)
-            labels.extend([label] * len(matched_files))
+        image_paths = self.annot["image_path"].astype(str).tolist()
+        labels = self.annot["label"].astype(int).tolist()
         return image_paths, labels

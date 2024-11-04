@@ -11,7 +11,7 @@ from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-from src.models import *  # noqa: F403 F401
+from src.models import *
 
 
 @pytest.mark.parametrize("model_config_file", glob.glob("configs/model/*.yaml"))
@@ -29,33 +29,31 @@ def test_models(model_config_file):
             ],
         )
 
-    for objective in cfg.model:
-        model_name = cfg.model.get(objective).name
+    for task in cfg.model:
+        model_name = cfg.model.get(task).name
         # Check model status
-        if cfg.model.get(objective).status != "ready":
+        if cfg.model.get(task).status != "ready":
             print(
-                f"Skipping model '{model_name}' for {objective} (status: {cfg.model.get(objective).status})"
+                f"Skipping model '{model_name}' for {task} (status: {cfg.model.get(task).status})"
             )
-            pytest.skip(
-                f"Model '{model_name}' for {objective} is not ready for testing."
-            )
+            pytest.skip(f"Model '{model_name}' for {task} is not ready for testing.")
 
-        print(f"Testing model '{model_name}' for {objective}")
-        model_class_path = cfg.model.get(objective, {}).get("class_path", None)
+        print(f"Testing model '{model_name}' for {task}")
+        model_class_path = cfg.model.get(task, {}).get("class_path", None)
         if model_class_path is None:
             pytest.fail(
                 f"Model class path not specified for model '{model_name}' in the configuration."
             )
 
-        module_name, class_name = model_class_path.rsplit(".", 1)
+        _, class_name = model_class_path.rsplit(".", 1)
         try:
-            module = importlib.import_module(module_name)
-            ModelClass = getattr(getattr(module, class_name), class_name)
+            module = importlib.import_module(model_class_path)
+            ModelClass = getattr(module, class_name)
         except (ImportError, AttributeError) as e:
             pytest.fail(
                 f"Failed to import model class '{model_class_path}' for model '{model_name}': {e}"
             )
-        input_size = cfg.model.get("input_size", [3, 224, 224])
+        input_size = cfg.model.get(task).get("input_size", [3, 224, 224])
         model = ModelClass(cfg)
         batch_size = 2
         dummy_input = torch.randn(batch_size, *input_size, requires_grad=True)
@@ -107,12 +105,12 @@ def test_models(model_config_file):
         train_dataloader = DataLoader(
             DummyDataset(), batch_size=cfg.training.batch_size
         )
-        val_dataloder = DataLoader(DummyDataset(), batch_size=cfg.training.batch_size)
+        val_dataloader = DataLoader(DummyDataset(), batch_size=cfg.training.batch_size)
 
         trainer = Trainer(max_epochs=cfg.training.max_epochs, fast_dev_run=True)
 
         trainer.fit(
-            model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloder
+            model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
         )
 
         print(f"{model_name}: Training integration test successful")

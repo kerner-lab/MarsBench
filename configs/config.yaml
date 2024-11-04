@@ -8,7 +8,15 @@ defaults:
   - criterion: cross_entropy
   - test: default
 
+seed: 42
+
+task: classification
+
 data:
+  split:
+    train: 0.6
+    val: 0.2
+    test: 0.2
   valid_image_extensions:
     - jpg
     - JPG

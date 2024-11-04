@@ -1,6 +1,10 @@
 import os
 from typing import List
+from typing import Literal
 from typing import Tuple
+from typing import Union
+
+import pandas as pd
 
 from .BaseClassificationDataset import BaseClassificationDataset
 
@@ -11,18 +15,19 @@ class MSLNet(BaseClassificationDataset):
     https://zenodo.org/records/4033453
     """
 
-    def __init__(self, cfg, data_dir, transform, txt_file):
-        self.txt_file = txt_file
+    def __init__(
+        self,
+        cfg,
+        data_dir,
+        transform,
+        annot_csv: Union[str, os.PathLike],
+        split: Literal["train", "val", "test"] = "train",
+    ):
+        self.annot = pd.read_csv(annot_csv)
+        self.annot = self.annot[self.annot["split"] == split]
         super(MSLNet, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
-        image_paths = []
-        labels = []
-
-        with open(self.txt_file, "r", encoding="utf-8") as text:
-            for line in text:
-                image_name, label_str = line.strip().split()[:2]
-                image_paths.append(os.path.join(self.data_dir, image_name))
-                labels.append(int(label_str))
-
+        image_paths = self.annot["image_path"].astype(str).tolist()
+        labels = self.annot["label"].astype(int).tolist()
         return image_paths, labels

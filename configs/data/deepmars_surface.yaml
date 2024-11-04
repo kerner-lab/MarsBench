@@ -1,6 +1,7 @@
 name: DeepMars_Surface
 status: ready
 data_dir: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/
+annot_csv: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/annotation.csv
 txt_files:
   train: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/train-calibrated-shuffled.txt
   val: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/val-calibrated-shuffled.txt

@@ -1,7 +1,9 @@
+import os
 from abc import ABC
 from abc import abstractmethod
 from typing import Callable
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 
@@ -49,11 +51,29 @@ class BaseClassificationDataset(Dataset, ABC):
     def _load_data(self) -> Tuple[List[str], List[int]]:
         pass
 
+    def determine_data_splits(
+        self,
+        total_size: int,
+        generator: torch.Generator,
+        split: Literal["train", "val", "test"],
+    ):
+        train_size = int(self.cfg.data.split.train * total_size)
+        val_size = int(self.cfg.data.split.val * total_size)
+        indices = torch.randperm(total_size, generator=generator).tolist()
+        if split == "train":
+            return indices[:train_size]
+        elif split == "val":
+            return indices[train_size : train_size + val_size]
+        else:
+            return indices[train_size + val_size :]
+
     def __len__(self) -> int:
         return len(self.labels)
 
     def __getitem__(self, ind) -> Tuple[torch.Tensor, int]:
-        image = Image.open(self.image_paths[ind]).convert("RGB")
+        image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(
+            "RGB"
+        )
         label = self.labels[ind]
 
         if self.transform:
