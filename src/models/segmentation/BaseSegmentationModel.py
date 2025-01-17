@@ -21,6 +21,18 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         self.criterion = self._initialize_criterion()
         self.save_hyperparameters(cfg)
 
+    def _get_in_channels(self) -> int:
+        """Get number of input channels based on image type."""
+        image_type = self.cfg.data.image_type.lower().strip()
+        if image_type in ["rgb", "bgr"]:
+            return 3
+        elif image_type in ["grayscale", "l"]:
+            return 1
+        else:
+            raise ValueError(
+                f"Unsupported image type: {image_type}. Must be one of: rgb, bgr, grayscale, l"
+            )
+
     @abstractmethod
     def _initialize_model(self):
         """Initialize the model architecture. Must be implemented by subclasses."""

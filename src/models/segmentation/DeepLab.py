@@ -7,12 +7,12 @@ from .BaseSegmentationModel import BaseSegmentationModel
 logger = logging.getLogger(__name__)
 
 
-class UNet(BaseSegmentationModel):
+class DeepLab(BaseSegmentationModel):
     def __init__(self, cfg):
-        super(UNet, self).__init__(cfg)
+        super(DeepLab, self).__init__(cfg)
 
     def _initialize_model(self):
-        """Initialize UNet model with configuration parameters."""
+        """Initialize DeepLab model with configuration parameters."""
         in_channels = self._get_in_channels()
         num_classes = self.cfg.data.num_classes
         encoder_name = self.cfg.model.segmentation.get("encoder_name", "resnet34")
@@ -22,7 +22,7 @@ class UNet(BaseSegmentationModel):
         # Set encoder weights based on pretrained flag
         encoder_weights = "imagenet" if pretrained else None
 
-        model = smp.Unet(
+        model = smp.DeepLabV3Plus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=in_channels,

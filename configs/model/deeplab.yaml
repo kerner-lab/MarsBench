@@ -1,0 +1,7 @@
+segmentation:
+  name: DeepLab
+  status: test
+  class_path: src.models.segmentation.DeepLab
+  encoder_name: resnet34
+  pretrained: true
+  freeze_layers: false

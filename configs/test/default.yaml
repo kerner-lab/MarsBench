@@ -7,5 +7,6 @@ data:
 model:
   status:
     - ready
+    - test
   with_tuple_output:
     - InceptionV3
