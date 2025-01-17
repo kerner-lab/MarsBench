@@ -4,6 +4,7 @@ from .classification import ResNet50
 from .classification import SqueezeNet
 from .classification import SwinTransformer
 from .classification import ViT
+from .segmentation import UNet
 
 __all__ = [
     "InceptionV3",
@@ -12,4 +13,5 @@ __all__ = [
     "SqueezeNet",
     "SwinTransformer",
     "ViT",
+    "UNet",
 ]
