@@ -26,6 +26,13 @@ def test_mars_datamodule(dataset_name, task):
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
         cfg = compose(config_name="config", overrides=[f"data={dataset_name}"])
 
+    # Skip if dataset status is not ready
+    if cfg.data.status not in cfg.test.data.status:
+        print(f"Skipping dataset '{dataset_name}' (status: {cfg.data.status})")
+        pytest.skip(
+            f"Dataset '{dataset_name}' is not ready for testing (status: {cfg.data.status})"
+        )
+
     # Initialize the MarsDataModule
     data_module = MarsDataModule(cfg)
 
