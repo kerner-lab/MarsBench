@@ -8,3 +8,4 @@ txt_files:
 annot_csv: /data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Surface/msl-labeled-data-set-v2.1/annotation.csv
 num_classes: 19
 model_loc: /data/hkerner/MarsBench/Models/MarsDatasetSurface/${model.name}/
+image_type: "rgb"

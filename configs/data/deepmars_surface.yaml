@@ -8,3 +8,4 @@ txt_files:
   test: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/test-calibrated-shuffled.txt
 num_classes: 24
 model_loc: /data/hkerner/MarsBench/Models/DeepMars_Surface/${model.name}/
+image_type: "rgb"

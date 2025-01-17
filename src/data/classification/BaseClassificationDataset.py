@@ -1,3 +1,4 @@
+import logging
 import os
 from abc import ABC
 from abc import abstractmethod
@@ -12,6 +13,8 @@ from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
+
+logger = logging.getLogger(__name__)
 
 
 class BaseClassificationDataset(Dataset, ABC):
@@ -40,12 +43,34 @@ class BaseClassificationDataset(Dataset, ABC):
         transform: Optional[Callable[[Image.Image], torch.Tensor]] = None,
     ):
         self.cfg = cfg
+        # Map image types to PIL modes
+        IMAGE_MODES = {"rgb": "RGB", "grayscale": "L", "l": "L"}
+        requested_mode = cfg.data.image_type.lower().strip()
+        self.image_type = IMAGE_MODES.get(requested_mode)
+        if self.image_type is None:
+            logger.error(
+                f"Invalid/unsupported image_type '{requested_mode}'. Valid options are: {list(IMAGE_MODES.keys())}. "
+                "Defaulting to RGB."
+            )
+            self.image_type = "RGB"
         self.data_dir = data_dir
         self.transform = transform
+        logger.info(f"Loading {self.__class__.__name__} from {data_dir}")
         self.image_paths, self.labels = self._load_data()
+        logger.info(
+            f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes"
+        )
+
+        # Validate image extensions
         for image_path in self.image_paths:
             if not image_path.endswith(tuple(cfg.data.valid_image_extensions)):
+                logger.error(f"Invalid image format: {image_path}")
                 raise ValueError(f"Invalid image format: {image_path}")
+
+        logger.info(
+            f"Dataset initialized with mode: {self.image_type}, "
+            f"transforms: {'applied' if transform else 'none'}"
+        )
 
     @abstractmethod
     def _load_data(self) -> Tuple[List[str], List[int]]:
@@ -72,7 +97,7 @@ class BaseClassificationDataset(Dataset, ABC):
 
     def __getitem__(self, ind) -> Tuple[torch.Tensor, int]:
         image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(
-            "RGB"
+            self.image_type
         )
         label = self.labels[ind]
 

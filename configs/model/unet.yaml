@@ -1,0 +1,8 @@
+segmentation:
+  name: UNet
+  class_path: src.models.segmentation.Unet
+  status: dev
+  pretrained: true
+  freeze_layers: true
+  encoder_name: resnet34
+  in_channels: 1
