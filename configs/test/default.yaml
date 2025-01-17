@@ -1,6 +1,7 @@
 data:
   status:
     - ready
+    - test
   subset_size: 100
 
 model:

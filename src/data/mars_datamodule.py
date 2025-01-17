@@ -21,10 +21,17 @@ class MarsDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage=None):
-        train_transform, val_transform = get_transforms(self.cfg)
-        self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
-            self.cfg, train_transform, val_transform
-        )
+        transforms = get_transforms(self.cfg)
+        if self.cfg.task == "classification":
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
+                self.cfg, transforms[:2]
+            )
+        elif self.cfg.task == "segmentation":
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
+                self.cfg, transforms[:2], mask_transforms=transforms[2:]
+            )
+        else:
+            raise ValueError(f"Task not yet supported: {self.cfg.task}")
 
     def train_dataloader(self):
         assert self.train_dataset is not None, "train_dataset is not loaded."

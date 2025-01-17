@@ -199,9 +199,11 @@ def get_dataset(
     else:
         logger.error(f"Dataset {dataset_name} not recognized.")
         raise ValueError(f"Dataset {dataset_name} not recognized.")
+
     if subset is not None:
         logger.info(f"Using {subset} samples for training.")
         train_dataset = Subset(train_dataset, range(subset))
         val_dataset = Subset(val_dataset, range(subset))
         test_dataset = Subset(test_dataset, range(subset))
+
     return train_dataset, val_dataset, test_dataset
