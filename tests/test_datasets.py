@@ -29,16 +29,26 @@ def test_datasets(dataset_config_file):
         print(f"Testing dataset '{dataset_name}'")
 
         # Get transforms
-        train_transform, val_transform = get_transforms(cfg)
+        transforms = get_transforms(cfg)
 
         # Get datasets
-        train_dataset, val_dataset, test_dataset = get_dataset(
-            cfg, train_transform, val_transform, subset=cfg.test.data.subset_size
-        )
+        if cfg.task == "classification":
+            train_dataset, val_dataset, test_dataset = get_dataset(
+                cfg, transforms[:2], subset=cfg.test.data.subset_size
+            )
+        elif cfg.task == "segmentation":
+            train_dataset, val_dataset, test_dataset = get_dataset(
+                cfg,
+                transforms[:2],
+                subset=cfg.test.data.subset_size,
+                mask_transforms=transforms[2:],
+            )
+        else:
+            raise ValueError(f"Task not yet supported: {cfg.task}")
 
         # Expected image size and channels
         expected_image_size = cfg.transforms.image_size
-        expected_channels = 3  # Assuming images are in RGB format
+        expected_channels = 1 if cfg.data.image_type == "grayscale" else 3
 
         # Function to test a dataset split
         def test_split(split_name, dataset):
@@ -49,7 +59,29 @@ def test_datasets(dataset_config_file):
             # Test a few samples
             sample_indices = [0, len(dataset) // 2, len(dataset) - 1]
             for idx in sample_indices:
-                image, label = dataset[idx]
+                sample = dataset[idx]
+                if cfg.task == "classification":
+                    image, label = sample
+                    # Check label
+                    assert isinstance(
+                        label, int
+                    ), f"Dataset '{dataset_name}' {split_name} split: Label is not an integer."
+                    num_classes = cfg.data.num_classes
+                    assert (
+                        0 <= label < num_classes
+                    ), f"Dataset '{dataset_name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
+                elif cfg.task == "segmentation":
+                    image, mask = sample
+                    # Check mask shape
+                    assert mask.shape == image.shape, (
+                        f"Dataset '{dataset_name}' {split_name} split: Mask shape {mask.shape} "
+                        f"does not match image shape {image.shape}"
+                    )
+                    # For segmentation, check that mask values are valid
+                    assert mask.min() >= 0 and mask.max() <= 1, (
+                        f"Dataset '{dataset_name}' {split_name} split: Mask values should be between 0 and 1, "
+                        f"got min={mask.min()}, max={mask.max()}"
+                    )
 
                 # Check image shape
                 assert image.shape[0] == expected_channels, (
@@ -65,18 +97,14 @@ def test_datasets(dataset_config_file):
                     f"got {image.shape[2]}"
                 )
 
-                # Check label
-                assert isinstance(
-                    label, int
-                ), f"Dataset '{dataset_name}' {split_name} split: Label is not an integer."
-                num_classes = cfg.data.num_classes
-                assert (
-                    0 <= label < num_classes
-                ), f"Dataset '{dataset_name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
-
                 print(
                     f"Dataset '{dataset_name}' {split_name} split, index {idx}: "
-                    f"Image shape {image.shape}, Label {label}"
+                    f"Image shape {image.shape}"
+                    + (
+                        f", Mask shape {mask.shape}"
+                        if cfg.task == "segmentation"
+                        else ""
+                    )
                 )
 
         # Test each split
