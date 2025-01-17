@@ -1,10 +1,12 @@
-import warnings
+import logging
 
 from torch import nn
 from torchvision.models import Inception_V3_Weights
 from torchvision.models import inception_v3
 
 from .BaseClassificationModel import BaseClassificationModel
+
+logger = logging.getLogger(__name__)
 
 
 class InceptionV3(BaseClassificationModel):
@@ -29,7 +31,7 @@ class InceptionV3(BaseClassificationModel):
         model.AuxLogits.fc = nn.Linear(num_aux_features, num_classes)  # type: ignore
 
         if freeze_layers and not pretrained:
-            warnings.warn(
+            logger.warning(
                 "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
             )
             freeze_layers = False

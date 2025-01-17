@@ -1,10 +1,12 @@
-import warnings
+import logging
 
 from torch import nn
 from torchvision.models import Swin_V2_B_Weights
 from torchvision.models import swin_v2_b
 
 from .BaseClassificationModel import BaseClassificationModel
+
+logger = logging.getLogger(__name__)
 
 
 class SwinTransformer(BaseClassificationModel):
@@ -27,7 +29,7 @@ class SwinTransformer(BaseClassificationModel):
         model.head = nn.Linear(num_features, num_classes)
 
         if freeze_layers and not pretrained:
-            warnings.warn(
+            logger.warning(
                 "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
             )
             freeze_layers = False
@@ -37,8 +39,10 @@ class SwinTransformer(BaseClassificationModel):
                 param.requires_grad = False
             for param in model.head.parameters():
                 param.requires_grad = True
+            logger.info("Froze transformer layers, keeping final classifier trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True
+            logger.info("All layers are trainable")
 
         return model

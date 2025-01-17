@@ -1,10 +1,12 @@
-import warnings
+import logging
 
 from torch import nn
 from torchvision.models import SqueezeNet1_1_Weights
 from torchvision.models import squeezenet1_1
 
 from .BaseClassificationModel import BaseClassificationModel
+
+logger = logging.getLogger(__name__)
 
 
 class SqueezeNet(BaseClassificationModel):
@@ -29,7 +31,7 @@ class SqueezeNet(BaseClassificationModel):
         model.num_classes = num_classes
 
         if freeze_layers and not pretrained:
-            warnings.warn(
+            logger.warning(
                 "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
             )
             freeze_layers = False
@@ -39,7 +41,10 @@ class SqueezeNet(BaseClassificationModel):
                 param.requires_grad = False
             for param in model.classifier[1].parameters():
                 param.requires_grad = True
+            logger.info("Froze feature layers, keeping final classifier trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True
+            logger.info("All layers are trainable")
+
         return model

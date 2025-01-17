@@ -1,10 +1,12 @@
-import warnings
+import logging
 
 from torch import nn
 from torchvision.models import ResNet18_Weights
 from torchvision.models import resnet18
 
 from .BaseClassificationModel import BaseClassificationModel
+
+logger = logging.getLogger(__name__)
 
 
 class ResNet18(BaseClassificationModel):
@@ -26,7 +28,7 @@ class ResNet18(BaseClassificationModel):
         model.fc = nn.Linear(num_features, num_classes)
 
         if freeze_layers and not pretrained:
-            warnings.warn(
+            logger.warning(
                 "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
             )
             freeze_layers = False
@@ -36,8 +38,10 @@ class ResNet18(BaseClassificationModel):
                 param.requires_grad = False
             for param in model.fc.parameters():
                 param.requires_grad = True
+            logger.info("Froze backbone layers, keeping final classifier trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True
+            logger.info("All layers are trainable")
 
         return model
