@@ -1,21 +1,57 @@
+"""Tests for classification and segmentation model implementations."""
+
 import glob
 import importlib
 import os
-import tempfile
+from typing import Any
+from typing import Type
 
 import pytest
 import torch
 from hydra import compose
 from hydra import initialize_config_dir
-from pytorch_lightning import Trainer
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
+from omegaconf import DictConfig
 
 from src.models import *
+from tests.utils.model_test_utils import DEFAULT_BATCH_SIZE
+from tests.utils.model_test_utils import create_test_data
+from tests.utils.model_test_utils import get_expected_output_shape
+from tests.utils.model_test_utils import setup_training
+from tests.utils.model_test_utils import verify_backward_pass
+from tests.utils.model_test_utils import verify_model_save_load
+from tests.utils.model_test_utils import verify_output_properties
 
 
-@pytest.mark.parametrize("model_config_file", glob.glob("configs/model/*.yaml"))
-def test_models(model_config_file):
+def import_model_class(model_class_path: str, model_name: str) -> Type[torch.nn.Module]:
+    """Imports and returns the model class from its path."""
+    _, class_name = model_class_path.rsplit(".", 1)
+    try:
+        module = importlib.import_module(model_class_path)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError) as e:
+        pytest.fail(
+            f"Failed to import model class '{model_class_path}' for model '{model_name}': {e}"
+        )
+
+
+def verify_model_config(cfg: DictConfig, task: str, model_name: str) -> None:
+    """Checks if model configuration is valid for testing."""
+    if cfg.model.get(task).status not in cfg.test.model.status:
+        pytest.skip(f"Model '{model_name}' for {task} is not ready for testing.")
+
+    if cfg.model.get(task, {}).get("class_path", None) is None:
+        pytest.fail(
+            f"Model class path not specified for model '{model_name}' in the configuration."
+        )
+
+
+@pytest.mark.parametrize(
+    "model_config_file",
+    glob.glob("configs/model/*.yaml"),
+    ids=lambda x: os.path.splitext(os.path.basename(x))[0],
+)
+def test_models(model_config_file: str) -> None:
+    """Tests model initialization, forward/backward passes, and training loop."""
     model = os.path.splitext(os.path.basename(model_config_file))[0]
     config_dir = os.path.abspath("configs")
 
@@ -32,7 +68,7 @@ def test_models(model_config_file):
     for task in cfg.model:
         model_name = cfg.model.get(task).name
         # Check model status
-        if cfg.model.get(task).status != "ready":
+        if cfg.model.get(task).status not in cfg.test.model.status:
             print(
                 f"Skipping model '{model_name}' for {task} (status: {cfg.model.get(task).status})"
             )
@@ -45,25 +81,33 @@ def test_models(model_config_file):
                 f"Model class path not specified for model '{model_name}' in the configuration."
             )
 
-        _, class_name = model_class_path.rsplit(".", 1)
-        try:
-            module = importlib.import_module(model_class_path)
-            ModelClass = getattr(module, class_name)
-        except (ImportError, AttributeError) as e:
-            pytest.fail(
-                f"Failed to import model class '{model_class_path}' for model '{model_name}': {e}"
-            )
+        # Import model class
+        ModelClass = import_model_class(model_class_path, model_name)
+
+        # Setup model parameters
         input_size = cfg.model.get(task).get("input_size", [3, 224, 224])
-        model = ModelClass(cfg)
         batch_size = 2
-        dummy_input = torch.randn(batch_size, *input_size, requires_grad=True)
-        dummy_target = torch.randint(0, cfg.data.num_classes, (batch_size,))
-
-        # Perform forward pass
+        model = ModelClass(cfg)
         model.train()
-        output = model(dummy_input)
 
-        expected_output_shape = (batch_size, cfg.data.num_classes)
+        # Create test data
+        dummy_input, dummy_target = create_test_data(
+            batch_size=batch_size,
+            input_size=input_size,
+            num_classes=cfg.data.num_classes,
+            task=task,
+        )
+
+        # Test forward pass
+        output = model(dummy_input)
+        expected_output_shape = get_expected_output_shape(
+            batch_size=batch_size,
+            num_classes=cfg.data.num_classes,
+            input_size=input_size,
+            task=task,
+        )
+
+        # Handle tuple outputs
         if isinstance(output, tuple) and model_name in cfg.test.model.with_tuple_output:
             output = output[0]
         elif isinstance(output, tuple):
@@ -73,59 +117,27 @@ def test_models(model_config_file):
             output.shape == expected_output_shape
         ), f"{model_name}: Expected output shape {expected_output_shape}, got {output.shape}"
 
+        # Verify output properties
+        verify_output_properties(output, task, model_name)
         print(f"{model_name}: Forward pass successful with output shape {output.shape}")
 
-        # Perform backward pass
-        criterion_name = cfg.criterion.name
-        if criterion_name == "cross_entropy":
-            criterion = torch.nn.CrossEntropyLoss()
-        else:
-            pytest.fail(f"Criterion '{criterion_name}' not recognized.")
-
-        loss = criterion(output, dummy_target)
-        loss.backward()
-
-        grad_norm = sum(
-            p.grad.norm().item() for p in model.parameters() if p.grad is not None
+        # Test backward pass
+        verify_backward_pass(
+            model, output, dummy_target, cfg.criterion.name, model_name
         )
-        assert (
-            grad_norm > 0
-        ), f"{model_name}: Gradients are not computed during backward pass."
+        print(f"{model_name}: Backward pass successful")
 
-        # Perform a training step
-        class DummyDataset(Dataset):
-            def __len__(self):
-                return 10
-
-            def __getitem__(self, idx):
-                dummy_input = torch.randn(*input_size)
-                dummy_label = torch.randint(0, cfg.data.num_classes, (1,)).item()
-                return dummy_input, dummy_label
-
-        train_dataloader = DataLoader(
-            DummyDataset(), batch_size=cfg.training.batch_size
+        # Test training loop
+        setup_training(
+            model=model,
+            input_size=input_size,
+            num_classes=cfg.data.num_classes,
+            task=task,
+            batch_size=cfg.training.batch_size,
+            max_epochs=cfg.training.max_epochs,
         )
-        val_dataloader = DataLoader(DummyDataset(), batch_size=cfg.training.batch_size)
-
-        trainer = Trainer(max_epochs=cfg.training.max_epochs, fast_dev_run=True)
-
-        trainer.fit(
-            model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
-        )
-
         print(f"{model_name}: Training integration test successful")
 
-        # Save model
-        with tempfile.NamedTemporaryFile() as tmp:
-            torch.save(model.state_dict(), tmp.name)
-            model_loaded = ModelClass(cfg)
-            model_loaded.load_state_dict(torch.load(tmp.name, weights_only=False))
-
-        for param_original, param_loaded in zip(
-            model.parameters(), model_loaded.parameters()
-        ):
-            assert torch.allclose(
-                param_original, param_loaded
-            ), f"{model_name}: Parameters differ after loading."
-
+        # Test model save/load
+        verify_model_save_load(model, ModelClass, cfg, model_name)
         print(f"{model_name}: Model saving and loading successful")

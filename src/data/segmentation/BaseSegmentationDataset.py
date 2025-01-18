@@ -17,12 +17,13 @@ from torchvision import transforms
 logger = logging.getLogger(__name__)
 
 
-class BaseClassificationDataset(Dataset, ABC):
+class BaseSegmentationDataset(Dataset, ABC):
     """Abstract base class for custom datasets.
 
     Attributes:
         data_dir (str): Directory where data is stored.
         transform (callable, optional): A function/transform to apply to the images.
+        mask_transform (callable, optional): A function/transform to apply to the masks.
 
     Methods:
         _load_data(): Abstract method to load image paths and labels. Must be overridden.
@@ -41,6 +42,8 @@ class BaseClassificationDataset(Dataset, ABC):
         cfg: DictConfig,
         data_dir: str,
         transform: Optional[Callable[[Image.Image], torch.Tensor]] = None,
+        mask_transform: Optional[Callable[[Image.Image], torch.Tensor]] = None,
+        split: Literal["train", "val", "test"] = "train",
     ):
         self.cfg = cfg
         # Map image types to PIL modes
@@ -55,11 +58,14 @@ class BaseClassificationDataset(Dataset, ABC):
             self.image_type = "RGB"
         self.data_dir = data_dir
         self.transform = transform
-        logger.info(f"Loading {self.__class__.__name__} from {data_dir}")
-        self.image_paths, self.labels = self._load_data()
+        self.mask_transform = mask_transform
+        self.split = split
+
         logger.info(
-            f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes"
+            f"Loading {self.__class__.__name__} from {data_dir} (split: {split})"
         )
+        self.image_paths, self.ground = self._load_data()
+        logger.info(f"Loaded {len(self.image_paths)} image-mask pairs")
 
         # Validate image extensions
         for image_path in self.image_paths:
@@ -69,7 +75,8 @@ class BaseClassificationDataset(Dataset, ABC):
 
         logger.info(
             f"Dataset initialized with mode: {self.image_type}, "
-            f"transforms: {'applied' if transform else 'none'}"
+            f"transforms: {'applied' if transform else 'none'}, "
+            f"mask_transforms: {'applied' if mask_transform else 'none'}"
         )
 
     @abstractmethod
@@ -93,17 +100,25 @@ class BaseClassificationDataset(Dataset, ABC):
             return indices[train_size + val_size :]
 
     def __len__(self) -> int:
-        return len(self.labels)
+        return len(self.image_paths)
 
-    def __getitem__(self, ind) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, ind: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        # Load image as grayscale (single channel)
         image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(
             self.image_type
         )
-        label = self.labels[ind]
+
+        # Load mask as grayscale (single channel)
+        mask = Image.open(os.path.join(self.data_dir, self.ground[ind])).convert("L")
 
         if self.transform:
             image = self.transform(image)
-        else:
-            image = transforms.ToTensor()(image)
 
-        return image, label
+        if self.mask_transform:
+            mask = self.mask_transform(mask)
+        else:
+            # Default mask transform if none provided
+            mask = transforms.ToTensor()(mask)
+            mask = mask.squeeze(0)  # Remove channel dimension, making it [H, W]
+
+        return image, mask

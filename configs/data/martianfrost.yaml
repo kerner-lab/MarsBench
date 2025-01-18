@@ -8,3 +8,4 @@ txt_files:
 annot_csv: /data/hkerner/MarsBench/Datasets/Martian_Frost/annotation.csv
 num_classes: 2
 model_loc: /data/hkerner/MarsBench/Models/Martian_Frost/${model.name}/
+image_type: "rgb"

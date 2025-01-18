@@ -8,3 +8,4 @@ data_dir: /data/hkerner/MarsBench/Datasets/DoMars16K/data/
 annot_csv: /data/hkerner/MarsBench/Datasets/DoMars16K/annotation.csv
 num_classes: 15
 model_loc: /data/hkerner/MarsBench/Models/DoMars16K/${model.name}/
+image_type: "rgb"

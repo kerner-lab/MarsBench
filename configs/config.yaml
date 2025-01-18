@@ -10,7 +10,8 @@ defaults:
 
 seed: 42
 
-task: classification
+# Use data.task if defined, otherwise default to classification
+task: ${oc.decode:${oc.select:data.task,classification}}
 
 data:
   split:

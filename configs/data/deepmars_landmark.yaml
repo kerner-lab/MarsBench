@@ -5,3 +5,4 @@ annot_csv: /data/hkerner/MarsBench/Datasets/DeepMars_Landmark/annotation.csv
 txt_file: /data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt
 num_classes: 6
 model_loc: /data/hkerner/MarsBench/Models/DeepMars_Landmark/${model.name}/
+image_type: "rgb"
