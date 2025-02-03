@@ -1,0 +1,7 @@
+name: ConeQuest
+status: test
+data_dir: /data/hkerner/MarsBench/NewDatasets/object_detection/Mars_Dust_Devil/
+num_classes: 1
+image_type: grayscale
+task: detection
+image_size: 720
