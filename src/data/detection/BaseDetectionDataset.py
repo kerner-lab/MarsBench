@@ -4,10 +4,10 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 
-import cv2
 import torch
 from lxml import etree
 from omegaconf import DictConfig
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import tv_tensors
 
@@ -141,12 +141,11 @@ class BaseDetectionDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        image = cv2.imread(self.image_paths[idx])
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = Image.open(self.image_paths[idx]).convert("RGB")
         bboxes = self.annotations[idx]
         labels = self.labels[idx]
 
-        img_height, img_width = image.shape[:2]
+        img_width, img_height = image.size
         if self.bbox_format == "yolo":
             bboxes_cxcywh = [
                 [cx * img_width, cy * img_height, w * img_width, h * img_height]

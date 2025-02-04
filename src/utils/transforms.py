@@ -1,6 +1,7 @@
 import logging
 
 from torchvision import transforms
+from torchvision.transforms import v2
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,24 @@ def get_mask_transforms(geometric_transform):
     return transform
 
 
+def get_bbox_transforms(cfg):
+    train_transform = v2.Compose(
+        [
+            v2.Resize((cfg.data.image_size, cfg.data.image_size)),
+            v2.ToTensor(),
+        ]
+    )
+
+    val_transform = v2.Compose(
+        [
+            v2.Resize((cfg.data.image_size, cfg.data.image_size)),
+            v2.ToTensor(),
+        ]
+    )
+
+    return train_transform, val_transform
+
+
 def get_transforms(cfg):
     """Get appropriate transforms based on task."""
     (
@@ -98,5 +117,9 @@ def get_transforms(cfg):
         train_mask_transform = get_mask_transforms(train_geometric)
         val_mask_transform = get_mask_transforms(val_geometric)
         return train_transform, val_transform, train_mask_transform, val_mask_transform
+
+    elif cfg.task == "detection":
+        train_transform, val_transform = get_bbox_transforms(cfg)
+        return train_transform, val_transform
 
     return train_transform, val_transform

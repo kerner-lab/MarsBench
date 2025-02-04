@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -30,8 +31,24 @@ class MarsDataModule(pl.LightningDataModule):
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
                 self.cfg, transforms[:2], mask_transforms=transforms[2:]
             )
+        elif self.cfg.task == "detection":
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
+                self.cfg, transforms[:2]
+            )
         else:
             raise ValueError(f"Task not yet supported: {self.cfg.task}")
+
+    @staticmethod
+    def detection_collate_fn(batch):
+        images, targets = tuple(zip(*batch))
+        images = torch.stack(images, dim=0)
+        return images, targets
+
+    def get_collate_fn(self):
+        if self.cfg.task == "detection":
+            return MarsDataModule.detection_collate_fn
+        else:
+            return None
 
     def train_dataloader(self):
         assert self.train_dataset is not None, "train_dataset is not loaded."
@@ -40,6 +57,7 @@ class MarsDataModule(pl.LightningDataModule):
             batch_size=self.cfg.training.batch_size,
             shuffle=True,
             num_workers=self.cfg.training.num_workers,
+            collate_fn=self.get_collate_fn(),
         )
 
     def val_dataloader(self):
@@ -49,6 +67,7 @@ class MarsDataModule(pl.LightningDataModule):
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
             num_workers=self.cfg.training.num_workers,
+            collate_fn=self.get_collate_fn(),
         )
 
     def test_dataloader(self):
@@ -58,4 +77,5 @@ class MarsDataModule(pl.LightningDataModule):
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
             num_workers=self.cfg.training.num_workers,
+            collate_fn=self.get_collate_fn(),
         )

@@ -14,6 +14,8 @@ from .classification import DoMars16k
 from .classification import HiRISENet
 from .classification import MartianFrost
 from .classification import MSLNet
+from .detection import ConeQuest as ConeQuestDetection
+from .detection import Mars_Dust_Devil
 from .segmentation import ConeQuest
 
 logger = logging.getLogger(__name__)
@@ -172,28 +174,73 @@ def get_dataset(
             split="test",
         )
     elif dataset_name == "ConeQuest":
-        if mask_transforms is None:
-            logger.error("No mask transforms provided for ConeQuest dataset.")
-            raise ValueError("No mask transforms provided for ConeQuest dataset.")
-        train_dataset = ConeQuest(
+        if cfg.task == "segmentation":
+            if mask_transforms is None:
+                logger.error("No mask transforms provided for ConeQuest dataset.")
+                raise ValueError("No mask transforms provided for ConeQuest dataset.")
+            train_dataset = ConeQuest(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[0],
+                mask_transform=mask_transforms[0],
+                split="train",
+            )
+            val_dataset = ConeQuest(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                mask_transform=mask_transforms[1],
+                split="val",
+            )
+            test_dataset = ConeQuest(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                mask_transform=mask_transforms[1],
+                split="test",
+            )
+        elif cfg.task == "detection":
+            train_dataset = ConeQuestDetection(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[0],
+                bbox_format=cfg.model.bbox_format,
+                split="train",
+            )
+            val_dataset = ConeQuestDetection(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                bbox_format=cfg.model.bbox_format,
+                split="val",
+            )
+            test_dataset = ConeQuestDetection(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                bbox_format=cfg.model.bbox_format,
+                split="test",
+            )
+    elif dataset_name == "Mars_Dust_Devil":
+        train_dataset = Mars_Dust_Devil(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=transforms[0],
-            mask_transform=mask_transforms[0],
+            bbox_format=cfg.model.bbox_format,
             split="train",
         )
-        val_dataset = ConeQuest(
+        val_dataset = Mars_Dust_Devil(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=transforms[1],
-            mask_transform=mask_transforms[1],
+            bbox_format=cfg.model.bbox_format,
             split="val",
         )
-        test_dataset = ConeQuest(
+        test_dataset = Mars_Dust_Devil(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=transforms[1],
-            mask_transform=mask_transforms[1],
+            bbox_format=cfg.model.bbox_format,
             split="test",
         )
     else:
