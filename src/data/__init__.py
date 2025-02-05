@@ -204,21 +204,21 @@ def get_dataset(
                 cfg=cfg,
                 data_dir=cfg.data.data_dir,
                 transform=transforms[0],
-                bbox_format=cfg.model.bbox_format,
+                bbox_format=cfg.model.detection.bbox_format,
                 split="train",
             )
             val_dataset = ConeQuestDetection(
                 cfg=cfg,
                 data_dir=cfg.data.data_dir,
                 transform=transforms[1],
-                bbox_format=cfg.model.bbox_format,
+                bbox_format=cfg.model.detection.bbox_format,
                 split="val",
             )
             test_dataset = ConeQuestDetection(
                 cfg=cfg,
                 data_dir=cfg.data.data_dir,
                 transform=transforms[1],
-                bbox_format=cfg.model.bbox_format,
+                bbox_format=cfg.model.detection.bbox_format,
                 split="test",
             )
     elif dataset_name == "Mars_Dust_Devil":
@@ -226,21 +226,21 @@ def get_dataset(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=transforms[0],
-            bbox_format=cfg.model.bbox_format,
+            bbox_format=cfg.model.detection.bbox_format,
             split="train",
         )
         val_dataset = Mars_Dust_Devil(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=transforms[1],
-            bbox_format=cfg.model.bbox_format,
+            bbox_format=cfg.model.detection.bbox_format,
             split="val",
         )
         test_dataset = Mars_Dust_Devil(
             cfg=cfg,
             data_dir=cfg.data.data_dir,
             transform=transforms[1],
-            bbox_format=cfg.model.bbox_format,
+            bbox_format=cfg.model.detection.bbox_format,
             split="test",
         )
     else:

@@ -1,6 +1,6 @@
 name: Mars_Dust_Devil
 status: test
-data_dir: /data/hkerner/MarsBench/NewDatasets/object_detection/Mars_Dust_Devil/
+data_dir: /data/hkerner/MarsBench/NewDatasets/Mars_Dust_Devil/
 num_classes: 1
 image_type: grayscale
 task: detection

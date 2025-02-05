@@ -1,0 +1,6 @@
+detection:
+  name: FasterRCNN
+  class_path: src.models.detection.FasterRCNN
+  pretrained: true
+  freeze_layers: true
+  bbox_format: pascal_voc
