@@ -1,6 +1,6 @@
 name: ConeQuest
 status: test
-data_dir: /data/hkerner/MarsBench/NewDatasets/ConeQuest/
+data_dir: /data/hkerner/MarsBench/NewDatasets/conequest/
 num_classes: 1
 image_type: grayscale
 task: detection

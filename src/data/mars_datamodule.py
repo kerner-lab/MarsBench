@@ -44,9 +44,30 @@ class MarsDataModule(pl.LightningDataModule):
         images = torch.stack(images, dim=0)
         return images, targets
 
+    @staticmethod
+    def detection_collate_fn_v2(batch):
+        images, targets = tuple(zip(*batch))
+        images = torch.stack(images, dim=0)
+
+        boxes = [target["bbox"] for target in targets]
+        labels = [target["cls"] for target in targets]
+        img_sizes = torch.stack([target["img_size"] for target in targets])
+        img_scales = torch.tensor([target["img_scale"] for target in targets])
+
+        annotations = {
+            "bbox": boxes,
+            "cls": labels,
+            "img_size": img_sizes,
+            "img_scale": img_scales,
+        }
+        return images, annotations
+
     def get_collate_fn(self):
         if self.cfg.task == "detection":
-            return MarsDataModule.detection_collate_fn
+            if self.cfg.model.detection.name.lower() == "efficientdet":
+                return MarsDataModule.detection_collate_fn_v2
+            else:
+                return MarsDataModule.detection_collate_fn
         else:
             return None
 
