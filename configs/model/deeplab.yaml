@@ -5,3 +5,4 @@ segmentation:
   encoder_name: resnet34
   pretrained: true
   freeze_layers: false
+  input_size: [512, 512]

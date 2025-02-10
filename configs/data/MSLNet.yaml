@@ -1,5 +1,5 @@
 name: MSLNet
-status: ready
+status: test
 data_dir: /data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Surface/msl-labeled-data-set-v2.1/images/
 txt_files:
   train: /data/hkerner/MarsBench/Datasets/Mars_Image_Cont_Class_Surface/msl-labeled-data-set-v2.1/train-set-v2.1.txt

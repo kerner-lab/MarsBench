@@ -1,5 +1,5 @@
 name: DeepMars_Landmark
-status: ready
+status: test
 data_dir: /data/hkerner/MarsBench/Datasets/DeepMars_Landmark/map-proj/
 annot_csv: /data/hkerner/MarsBench/Datasets/DeepMars_Landmark/annotation.csv
 txt_file: /data/hkerner/MarsBench/Datasets/DeepMars_Landmark/labels-map-proj.txt

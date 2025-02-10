@@ -1,3 +1,4 @@
+import multiprocessing
 from typing import Optional
 
 import pytorch_lightning as pl
@@ -34,28 +35,34 @@ class MarsDataModule(pl.LightningDataModule):
             raise ValueError(f"Task not yet supported: {self.cfg.task}")
 
     def train_dataloader(self):
+        """Get train dataloader."""
         assert self.train_dataset is not None, "train_dataset is not loaded."
         return DataLoader(
             self.train_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=True,
-            num_workers=self.cfg.training.num_workers,
+            num_workers=min(2, multiprocessing.cpu_count()),  # Limit to suggested max
+            pin_memory=True,
         )
 
     def val_dataloader(self):
+        """Get validation dataloader."""
         assert self.val_dataset is not None, "val_dataset is not loaded."
         return DataLoader(
             self.val_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers,
+            num_workers=min(2, multiprocessing.cpu_count()),  # Limit to suggested max
+            pin_memory=True,
         )
 
     def test_dataloader(self):
+        """Get test dataloader."""
         assert self.test_dataset is not None, "test_dataset is not loaded."
         return DataLoader(
             self.test_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers,
+            num_workers=min(2, multiprocessing.cpu_count()),  # Limit to suggested max
+            pin_memory=True,
         )

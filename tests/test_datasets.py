@@ -72,10 +72,18 @@ def test_datasets(dataset_config_file):
                     ), f"Dataset '{dataset_name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
                 elif cfg.task == "segmentation":
                     image, mask = sample
-                    # Check mask shape
-                    assert mask.shape == image.shape, (
-                        f"Dataset '{dataset_name}' {split_name} split: Mask shape {mask.shape} "
-                        f"does not match image shape {image.shape}"
+                    # Check mask shape - should be [1, H, W] for segmentation
+                    assert len(mask.shape) == 3, (
+                        f"Dataset '{dataset_name}' {split_name} split: Mask should be 3D tensor [C, H, W], "
+                        f"got shape {mask.shape}"
+                    )
+                    assert mask.shape[0] == 1, (
+                        f"Dataset '{dataset_name}' {split_name} split: Mask should have 1 channel, "
+                        f"got {mask.shape[0]} channels"
+                    )
+                    assert mask.shape[1:] == image.shape[1:], (
+                        f"Dataset '{dataset_name}' {split_name} split: Mask spatial dimensions {mask.shape[1:]} "
+                        f"do not match image dimensions {image.shape[1:]}"
                     )
                     # For segmentation, check that mask values are valid
                     assert mask.min() >= 0 and mask.max() <= 1, (

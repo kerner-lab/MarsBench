@@ -1,5 +1,5 @@
 name: DeepMars_Surface
-status: ready
+status: test
 data_dir: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/
 annot_csv: /data/hkerner/MarsBench/Datasets/DeepMars_Surface/annotation.csv
 txt_files:

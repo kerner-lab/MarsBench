@@ -1,11 +1,11 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import Dict
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
@@ -20,6 +20,7 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         self.model = self._initialize_model()
         self.criterion = self._initialize_criterion()
         self.save_hyperparameters(cfg)
+        self.test_outputs = []
 
     def _get_in_channels(self) -> int:
         """Get number of input channels based on image type."""
@@ -67,16 +68,56 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
     def forward(self, x):
         return self.model(x)
 
+    def _log_metrics(self, prefix, loss, dice, iou, on_step=True, on_epoch=True):
+        """Helper method to log metrics consistently."""
+        metrics = {f"{prefix}/loss": loss, f"{prefix}/dice": dice, f"{prefix}/iou": iou}
+        self.log_dict(metrics, on_step=on_step, on_epoch=on_epoch, prog_bar=True)
+
+    def _log_segmentation(
+        self, batch_idx, images, masks, outputs, prefix="train", max_samples=4
+    ):
+        """Helper method to log segmentation visualizations."""
+        if not hasattr(self.logger, "experiment") or batch_idx % 100 != 0:
+            return
+
+        # Get predicted masks
+        pred_masks = (
+            torch.argmax(outputs, dim=1)
+            if outputs.shape[1] > 1
+            else (outputs > 0.5).float()
+        )
+
+        # Log sample predictions
+        num_samples = min(max_samples, len(images))
+        for idx in range(num_samples):
+            self.logger.experiment.log(
+                {
+                    f"{prefix}_segmentation": wandb.Image(
+                        images[idx].cpu(),
+                        masks={
+                            "predictions": {
+                                "mask_data": pred_masks[idx].cpu().numpy(),
+                            },
+                            "ground_truth": {
+                                "mask_data": masks[idx].cpu().numpy(),
+                            },
+                        },
+                    )
+                }
+            )
+
     def training_step(self, batch, batch_idx):
         images, masks = batch
         outputs = self(images)
         loss = self.criterion(outputs, masks)
-        metrics = self._calculate_metrics(outputs, masks)
 
-        # Log all metrics
-        self.log("train_loss", loss)
-        for metric_name, value in metrics.items():
-            self.log(f"train_{metric_name}", value, prog_bar=True)
+        # Calculate metrics
+        dice = self._calculate_dice_score(outputs, masks)
+        iou = self._calculate_iou_score(outputs, masks)
+
+        # Log metrics and visualizations
+        self._log_metrics("train", loss, dice, iou)
+        self._log_segmentation(batch_idx, images, masks, outputs)
 
         return loss
 
@@ -84,23 +125,112 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         images, masks = batch
         outputs = self(images)
         loss = self.criterion(outputs, masks)
-        metrics = self._calculate_metrics(outputs, masks)
 
-        # Log all metrics
-        self.log("val_loss", loss, prog_bar=True)
-        for metric_name, value in metrics.items():
-            self.log(f"val_{metric_name}", value, prog_bar=True)
+        # Calculate metrics
+        dice = self._calculate_dice_score(outputs, masks)
+        iou = self._calculate_iou_score(outputs, masks)
+
+        # Log metrics
+        self._log_metrics("val", loss, dice, iou, on_step=False)
+
+        return loss
 
     def test_step(self, batch, batch_idx):
         images, masks = batch
         outputs = self(images)
         loss = self.criterion(outputs, masks)
-        metrics = self._calculate_metrics(outputs, masks)
 
-        # Log all metrics
-        self.log("test_loss", loss)
-        for metric_name, value in metrics.items():
-            self.log(f"test_{metric_name}", value)
+        # Calculate metrics
+        dice = self._calculate_dice_score(outputs, masks)
+        iou = self._calculate_iou_score(outputs, masks)
+
+        # Log metrics
+        self._log_metrics("test", loss, dice, iou, on_step=False)
+
+        # Store outputs for per-class analysis
+        self.test_outputs.append({"outputs": outputs.detach(), "masks": masks.detach()})
+
+        return loss
+
+    def predict_step(self, batch, batch_idx):
+        """Prediction step for segmentation model.
+
+        Args:
+            batch: Input batch, can be just images or tuple of (images, masks)
+            batch_idx: Index of the current batch
+
+        Returns:
+            Predicted segmentation masks
+        """
+        images = batch[0] if isinstance(batch, (tuple, list)) else batch
+        outputs = self(images)
+
+        # Convert logits to predicted masks
+        pred_masks = (
+            torch.argmax(outputs, dim=1)
+            if outputs.shape[1] > 1
+            else (outputs > 0.5).float()
+        )
+
+        return pred_masks
+
+    def on_test_epoch_end(self):
+        """Calculate and log per-class metrics at the end of test epoch."""
+        if not self.test_outputs or not hasattr(self.logger, "experiment"):
+            return
+
+        # Aggregate all outputs
+        all_outputs = torch.cat([x["outputs"] for x in self.test_outputs])
+        all_masks = torch.cat([x["masks"] for x in self.test_outputs])
+
+        # Calculate per-class metrics
+        num_classes = all_outputs.shape[1]
+        for class_idx in range(num_classes):
+            class_pred = all_outputs[:, class_idx]
+            class_true = all_masks == class_idx
+
+            dice = self._calculate_dice_score(class_pred, class_true)
+            iou = self._calculate_iou_score(class_pred, class_true)
+
+            self.logger.experiment.log(
+                {
+                    f"test/class_{class_idx}_dice": dice,
+                    f"test/class_{class_idx}_iou": iou,
+                }
+            )
+
+        # Clear stored outputs
+        self.test_outputs.clear()
+
+    def _calculate_dice_score(self, outputs, targets):
+        """Calculate Dice score between predicted and target masks.
+
+        Dice = 2|Intersection| / (|A| + |B|)
+        where |A| and |B| are the cardinalities of the two sets.
+        """
+        if outputs.shape != targets.shape:
+            outputs = (outputs > 0.5).float()
+
+        intersection = (outputs * targets).sum()
+        total_elements = outputs.sum() + targets.sum()  # |A| + |B|
+
+        return (2.0 * intersection + 1e-8) / (total_elements + 1e-8)
+
+    def _calculate_iou_score(self, outputs, targets):
+        """Calculate IoU (Intersection over Union) score between predicted and target masks.
+
+        IoU = |Intersection| / |Union| = |Intersection| / (|A| + |B| - |Intersection|)
+        where |A| and |B| are the cardinalities of the two sets.
+        """
+        if outputs.shape != targets.shape:
+            outputs = (outputs > 0.5).float()
+
+        intersection = (outputs * targets).sum()
+        set_union = (
+            outputs + targets
+        ).sum() - intersection  # |A| + |B| - |Intersection|
+
+        return (intersection + 1e-8) / (set_union + 1e-8)
 
     def configure_optimizers(self):
         optimizer_name = self.cfg.optimizer.name
@@ -120,35 +250,3 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
             raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
 
         return optimizer
-
-    def _calculate_metrics(
-        self, outputs: torch.Tensor, targets: torch.Tensor
-    ) -> Dict[str, float]:
-        """Calculate segmentation metrics.
-
-        Args:
-            outputs: Model predictions [B, C, H, W]
-            targets: Ground truth masks [B, H, W]
-
-        Returns:
-            Dictionary containing metrics (IoU, Dice coefficient)
-        """
-        # Get predicted class indices
-        pred_masks = torch.argmax(outputs, dim=1)
-
-        # Calculate IoU
-        intersection = torch.logical_and(pred_masks, targets)
-        union = torch.logical_or(pred_masks, targets)
-        iou = (intersection.sum().float() + 1e-8) / (union.sum().float() + 1e-8)
-
-        # Calculate Dice coefficient
-        dice = (2 * intersection.sum().float() + 1e-8) / (
-            pred_masks.sum().float() + targets.sum().float() + 1e-8
-        )
-
-        # Calculate pixel accuracy
-        correct = (pred_masks == targets).sum().float()
-        total = targets.numel()
-        accuracy = correct / total
-
-        return {"iou": iou, "dice": dice, "accuracy": accuracy}
