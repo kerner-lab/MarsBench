@@ -18,10 +18,15 @@ class BaseDetectionDataset(Dataset):
         cfg: DictConfig,
         data_dir: str,
         transform=None,
-        bbox_format: Literal["coco", "yolo", "pascal_voc"] = "yolo",
+        bbox_format: Literal["coco", "yolo", "pascal_voc"] = None,
         split: Literal["train", "val", "test"] = "train",
     ):
         self.cfg = cfg
+        IMAGE_MODES = {"rgb": "RGB", "grayscale": "L", "l": "L"}
+        requested_mode = cfg.data.image_type.lower().strip()
+        self.image_type = IMAGE_MODES.get(requested_mode)
+        if self.image_type is None:
+            self.image_type = "RGB"
         self.data_dir = data_dir
         self.transform = transform
         self.bbox_format = bbox_format
@@ -59,11 +64,8 @@ class BaseDetectionDataset(Dataset):
             labels = dict(labels)
 
         elif self.bbox_format == "coco":
-            coco_json_path = sorted(
-                os.listdir(Path(self.data_dir) / self.split / "coco")
-            )
             coco_json_path = os.path.join(
-                self.data_dir, self.split, "coco", coco_json_path[0]
+                self.data_dir, self.split, "coco_annotations.json"
             )
 
             with open(coco_json_path, "r") as file:
@@ -81,8 +83,8 @@ class BaseDetectionDataset(Dataset):
                 file_name = img_id_to_filename[image_id]
                 annotations[file_name].append(bbox)
                 labels[file_name].append(annotation["category_id"])
-            annotations = dict(annotations)
-            labels = dict(labels)
+            annotations = dict(sorted(annotations.items()))
+            labels = dict(sorted(labels.items()))
 
         elif self.bbox_format == "pascal_voc":
             bbox_paths = sorted(
@@ -124,6 +126,8 @@ class BaseDetectionDataset(Dataset):
 
         if valid_names == names_with_bbox and valid_names == list(labels.keys()):
             print("names and annotations in sync")
+        else:
+            print("names and annotations not in sync")
 
         image_paths = [
             os.path.join(self.data_dir, self.split, "images", p + image_suffix)
@@ -141,7 +145,7 @@ class BaseDetectionDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        image = Image.open(self.image_paths[idx]).convert("RGB")
+        image = Image.open(self.image_paths[idx]).convert(self.image_type)
         bboxes = self.annotations[idx]
         labels = self.labels[idx]
 
@@ -152,21 +156,30 @@ class BaseDetectionDataset(Dataset):
                 for cx, cy, w, h in bboxes
             ]
             bboxes_tv_tensor = tv_tensors.BoundingBoxes(
-                bboxes_cxcywh, format="CXCYWH", canvas_size=(img_width, img_height)
+                bboxes_cxcywh,
+                format="CXCYWH",
+                canvas_size=(img_height, img_width),
             )
         elif self.bbox_format == "coco":
             bboxes_tv_tensor = tv_tensors.BoundingBoxes(
-                bboxes, format="XYWH", canvas_size=(img_width, img_height)
+                bboxes,
+                format="XYWH",
+                canvas_size=(img_height, img_width),
             )
         elif self.bbox_format == "pascal_voc":
             bboxes_tv_tensor = tv_tensors.BoundingBoxes(
-                bboxes, format="XYXY", canvas_size=(img_width, img_height)
+                bboxes,
+                format="XYXY",
+                canvas_size=(img_height, img_width),
             )
 
         if self.transform:
             image, bboxes_tv_tensor, labels = self.transform(
                 image, bboxes_tv_tensor, labels
             )
+
+        image = image.as_subclass(torch.Tensor)
+        img_height, img_width = image.shape[-2:]
 
         bboxes = bboxes_tv_tensor.as_subclass(torch.Tensor).to(torch.float32)
         labels = torch.tensor(labels, dtype=torch.int64)

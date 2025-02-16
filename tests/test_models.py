@@ -18,6 +18,12 @@ from tests.utils.model_test_utils import create_test_data
 from tests.utils.model_test_utils import get_expected_output_shape
 from tests.utils.model_test_utils import setup_training
 from tests.utils.model_test_utils import verify_backward_pass
+from tests.utils.model_test_utils import verify_backward_pass_detection
+from tests.utils.model_test_utils import verify_backward_pass_detection_detr
+from tests.utils.model_test_utils import verify_backward_pass_detection_efficientdet
+from tests.utils.model_test_utils import verify_detection_output_properties
+from tests.utils.model_test_utils import verify_detr_output_properties
+from tests.utils.model_test_utils import verify_efficientdet_output_properties
 from tests.utils.model_test_utils import verify_model_save_load
 from tests.utils.model_test_utils import verify_output_properties
 
@@ -43,6 +49,95 @@ def verify_model_config(cfg: DictConfig, task: str, model_name: str) -> None:
         pytest.fail(
             f"Model class path not specified for model '{model_name}' in the configuration."
         )
+
+
+def verify_detection_model_output_and_backward_pass(
+    model, model_name, dummy_input, dummy_target, cfg
+):
+    device = next(model.parameters()).device
+    training_mode = model.training
+    dummy_target = [{k: v.to(device) for k, v in t.items()} for t in dummy_target]
+
+    if model_name.lower() == "detr":
+        dummy_input = dummy_input.detach()
+        dummy_input = dummy_input.to(device)
+
+        output = model(dummy_input)
+        verify_detr_output_properties(output, model_name)
+        verify_backward_pass_detection_detr(model, output, dummy_target, model_name)
+
+    elif model_name.lower() == "efficientdet":
+        dummy_input = dummy_input.to(device)
+
+        dummy_target = {
+            "bbox": [target["boxes"] for target in dummy_target],
+            "cls": [target["labels"] for target in dummy_target],
+            "img_size": torch.stack([target["img_size"] for target in dummy_target]),
+            "img_scale": torch.tensor([target["img_scale"] for target in dummy_target]),
+        }
+
+        model.eval()
+        with torch.no_grad():
+            output = model(dummy_input, dummy_target)
+        model.train(training_mode)
+
+        expected_eval_keys = {"loss", "class_loss", "box_loss", "detections"}
+        assert expected_eval_keys.issubset(
+            output.keys()
+        ), f"{model_name}: Evaluation output missing keys. Expected {expected_eval_keys}, got {output.keys()}"
+
+        detections = output["detections"]
+        verify_efficientdet_output_properties(detections, model_name)
+
+        loss_dict = model(dummy_input, dummy_target)
+        verify_backward_pass_detection_efficientdet(
+            model, loss_dict["loss"], model_name
+        )
+
+    else:
+        dummy_input = dummy_input.to(device)
+
+        model.eval()
+        with torch.no_grad():
+            output = model(dummy_input)
+        model.train(training_mode)
+
+        verify_detection_output_properties(output, model_name)
+
+        loss_dict = model(dummy_input, dummy_target)
+        verify_backward_pass_detection(model, loss_dict, model_name)
+
+
+def run_detection_model_tests(
+    cfg, model, model_class, model_name, input_size, batch_size
+):
+    dummy_input, dummy_target = create_test_data(
+        batch_size=batch_size,
+        input_size=input_size,
+        num_classes=cfg.data.num_classes,
+        task="detection",
+        model_name=model_name,
+        bbox_format=cfg.model.detection.bbox_format,
+    )
+
+    verify_detection_model_output_and_backward_pass(
+        model, model_name, dummy_input, dummy_target, cfg
+    )
+
+    setup_training(
+        model=model,
+        input_size=input_size,
+        num_classes=cfg.data.num_classes,
+        task="detection",
+        batch_size=cfg.training.batch_size,
+        max_epochs=cfg.training.max_epochs,
+        model_name=model_name,
+        bbox_format=cfg.model.detection.bbox_format,
+    )
+    print(f"{model_name}: Training integration test successful")
+
+    verify_model_save_load(model, model_class, cfg, model_name)
+    print(f"{model_name}: Model saving and loading successful")
 
 
 @pytest.mark.parametrize(
@@ -89,6 +184,12 @@ def test_models(model_config_file: str) -> None:
         batch_size = 2
         model = ModelClass(cfg)
         model.train()
+
+        if task == "detection":
+            run_detection_model_tests(
+                cfg, model, ModelClass, model_name, input_size, batch_size
+            )
+            continue
 
         # Create test data
         dummy_input, dummy_target = create_test_data(

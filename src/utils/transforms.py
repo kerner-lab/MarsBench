@@ -1,5 +1,6 @@
 import logging
 
+import torch
 from torchvision import transforms
 from torchvision.transforms import v2
 
@@ -86,17 +87,20 @@ def get_mask_transforms(geometric_transform):
 
 
 def get_bbox_transforms(cfg):
+    image_size = tuple(cfg.transforms.image_size)
     train_transform = v2.Compose(
         [
-            v2.Resize((cfg.data.image_size, cfg.data.image_size)),
-            v2.ToTensor(),
+            v2.Resize(image_size),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=False),
         ]
     )
 
     val_transform = v2.Compose(
         [
-            v2.Resize((cfg.data.image_size, cfg.data.image_size)),
-            v2.ToTensor(),
+            v2.Resize(image_size),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=False),
         ]
     )
 

@@ -7,3 +7,4 @@ detection:
   prediction_confidence_threshold: 0.2
   wbf_iou_threshold: 0.44
   architecture: tf_efficientnetv2_l
+  status: test

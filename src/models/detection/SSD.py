@@ -17,7 +17,7 @@ class SSD(BaseDetectionModel):
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes + 1
         nms = self.cfg.model.detection.nms
-        size = self.cfg.data.image_size
+        size = tuple(self.cfg.transforms.image_size)
         pretrained = self.cfg.model.detection.pretrained
         freeze_layers = self.cfg.model.detection.freeze_layers
 
@@ -50,7 +50,7 @@ class SSD(BaseDetectionModel):
             backbone=backbone,
             num_classes=num_classes,
             anchor_generator=anchor_generator,
-            size=(size, size),
+            size=size,
             head=head,
             nms_thresh=nms,
         )

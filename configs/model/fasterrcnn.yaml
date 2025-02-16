@@ -4,3 +4,4 @@ detection:
   pretrained: true
   freeze_layers: true
   bbox_format: pascal_voc
+  status: test

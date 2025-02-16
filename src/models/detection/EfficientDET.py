@@ -10,7 +10,7 @@ from .BaseDetectionModel import BaseDetectionModel
 class EfficientDET(BaseDetectionModel):
     def __init__(self, cfg):
         super(EfficientDET, self).__init__(cfg)
-        self.img_size = self.cfg.data.image_size
+        self.img_size = tuple(self.cfg.transforms.image_size)[0]
         self.prediction_confidence_threshold = (
             self.cfg.model.detection.prediction_confidence_threshold
         )
@@ -20,7 +20,7 @@ class EfficientDET(BaseDetectionModel):
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes
         architecture = self.cfg.model.detection.architecture
-        image_size = self.cfg.data.image_size
+        image_size = tuple(self.cfg.transforms.image_size)
         pretrained = self.cfg.model.detection.pretrained
         freeze_layers = self.cfg.model.detection.freeze_layers
 
@@ -34,7 +34,7 @@ class EfficientDET(BaseDetectionModel):
 
         config = get_efficientdet_config(architecture)
         config.update({"num_classes": num_classes})
-        config.update({"image_size": (image_size, image_size)})
+        config.update({"image_size": image_size})
 
         # config.head_bn_level_first = True  # Better for TF-style models
         # decides orders of BN and conv in head

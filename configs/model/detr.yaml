@@ -9,3 +9,4 @@ detection:
   null_class_coef: 0.5
   num_queries: 100
   iou: 0.6
+  status: test

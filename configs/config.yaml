@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - data: domars16k
-  - model: resnet50
+  - model: fasterrcnn
   - transforms: default
   - training: dev
   - optimizer: adam

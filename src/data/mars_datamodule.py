@@ -33,7 +33,9 @@ class MarsDataModule(pl.LightningDataModule):
             )
         elif self.cfg.task == "detection":
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
-                self.cfg, transforms[:2]
+                self.cfg,
+                transforms[:2],
+                bbox_format=self.cfg.model.detection.bbox_format,
             )
         else:
             raise ValueError(f"Task not yet supported: {self.cfg.task}")
