@@ -2,5 +2,5 @@ name: ConeQuest
 status: test
 data_dir: /data/hkerner/MarsBench/Datasets/ConeQuest
 num_classes: 1
-image_type: grayscale
+image_type: rgb
 task: segmentation

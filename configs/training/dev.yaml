@@ -1,3 +1,4 @@
 batch_size: 32
 num_workers: 4
 max_epochs: 10
+early_stopping_patience: 2

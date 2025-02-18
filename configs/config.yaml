@@ -33,3 +33,4 @@ hydra:
     chdir: True
   run:
     dir: outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+# outputs/dataset/model/timestamp

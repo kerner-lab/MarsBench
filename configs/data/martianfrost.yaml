@@ -1,5 +1,5 @@
 name: MartianFrost
-status: ready
+status: test
 data_dir: /data/hkerner/MarsBench/Datasets/Martian_Frost/data
 txt_files:
   train: /data/hkerner/MarsBench/Datasets/Martian_Frost/train_source_images.txt

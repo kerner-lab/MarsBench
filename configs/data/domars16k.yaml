@@ -1,5 +1,5 @@
 name: DoMars16k
-status: ready
+status: test
 data_dir: /data/hkerner/MarsBench/Datasets/DoMars16K/data/
 # data_dir:
 #   train: /data/hkerner/MarsBench/Datasets/DoMars16K/data/train/
