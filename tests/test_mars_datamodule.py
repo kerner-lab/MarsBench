@@ -11,10 +11,10 @@ from src.data.mars_datamodule import MarsDataModule
 @pytest.mark.parametrize(
     "dataset_name,task",
     [
-        ("HiRISENet", "classification"),
-        ("ConeQuest", "segmentation"),
+        ("hirise_net", "classification"),
+        ("cone_quest", "segmentation"),
         pytest.param(
-            "DetectionDataset",
+            "detection_dataset",
             "detection",
             marks=pytest.mark.skip(reason="Detection not yet implemented"),
         ),
@@ -24,7 +24,13 @@ def test_mars_datamodule(dataset_name, task):
     # Load a sample configuration
     config_dir = os.path.abspath("configs")
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
-        cfg = compose(config_name="config", overrides=[f"data={dataset_name}"])
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                f"task={task}",
+                f"data={task}/{dataset_name.lower()}",
+            ],
+        )
 
     # Skip if dataset status is not ready
     if cfg.data.status not in cfg.test.data.status:

@@ -2,3 +2,4 @@ batch_size: 32
 num_workers: 4
 max_epochs: 10
 early_stopping_patience: 2
+training_type: "supervised" # Need to check how to add restriction on training type

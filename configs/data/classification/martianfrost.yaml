@@ -1,0 +1,10 @@
+name: MartianFrost
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/Martian_Frost/data
+txt_files:
+  train: ${oc.decode:${oc.select:dataset_path, .}}/Martian_Frost/train_source_images.txt
+  val: ${oc.decode:${oc.select:dataset_path, .}}/Martian_Frost/val_source_images.txt
+  test: ${oc.decode:${oc.select:dataset_path, .}}/Martian_Frost/test_source_images.txt
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/Martian_Frost/annotation.csv
+num_classes: 2
+image_type: "rgb"

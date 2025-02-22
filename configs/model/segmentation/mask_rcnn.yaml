@@ -1,0 +1,6 @@
+name: MaskRCNN
+class_path: src.models.segmentation.MaskRCNN
+status: skip
+pretrained: true
+freeze_layers: true
+backbone: maskrcnn_resnet50_fpn_v2
