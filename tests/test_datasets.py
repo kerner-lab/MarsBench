@@ -9,24 +9,46 @@ from src.data import get_dataset
 from src.utils.transforms import get_transforms
 
 
-@pytest.mark.parametrize("dataset_config_file", glob.glob("configs/data/*.yaml"))
+@pytest.mark.parametrize("dataset_config_file", glob.glob("configs/data/**/*.yaml"))
 def test_datasets(dataset_config_file):
-    # Get dataset name from config file name
-    dataset_name = os.path.splitext(os.path.basename(dataset_config_file))[0]
+    # Get config directory
     config_dir = os.path.abspath("configs")
 
     # Initialize Hydra and compose configuration
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
-        cfg = compose(config_name="config", overrides=[f"data={dataset_name}"])
+        # Get dataset path relative to configs/data
+        rel_path = os.path.relpath(
+            dataset_config_file, os.path.join(config_dir, "data")
+        )
+        # Remove .yaml extension
+        rel_path = os.path.splitext(rel_path)[0]
+
+        # Extract task from the path
+        task = rel_path.split("/")[0]
+
+        cfg = compose(
+            config_name="config", overrides=[f"data={rel_path}", f"task={task}"]
+        )
 
         # Check dataset status
         if cfg.data.status not in cfg.test.data.status:
-            print(f"Skipping dataset '{dataset_name}' (status: {cfg.data.status})")
+            print(f"Skipping dataset '{cfg.data.name}' (status: {cfg.data.status})")
             pytest.skip(
-                f"Dataset '{dataset_name}' is not in status set {cfg.test.data.status} for testing."
+                f"Dataset '{cfg.data.name}' is not in status set {cfg.test.data.status} for testing."
             )
 
-        print(f"Testing dataset '{dataset_name}'")
+        # Check if dataset files exist
+        data_dir = cfg.data.data_dir
+        annot_csv = cfg.data.annot_csv
+        if not os.path.exists(data_dir) or (
+            cfg.task == "classification" and not os.path.exists(annot_csv)
+        ):
+            print(f"Skipping dataset '{cfg.data.name}' (dataset files not found)")
+            pytest.skip(
+                f"Dataset '{cfg.data.name}' files not found. This is expected when testing locally."
+            )
+
+        print(f"Testing dataset '{cfg.data.name}' (task: {task})")
 
         # Get transforms
         transforms = get_transforms(cfg)
@@ -53,8 +75,8 @@ def test_datasets(dataset_config_file):
         # Function to test a dataset split
         def test_split(split_name, dataset):
             if len(dataset) == 0:
-                print(f"The {split_name} dataset of '{dataset_name}' is empty.")
-                pytest.fail(f"The {split_name} dataset of '{dataset_name}' is empty.")
+                print(f"The {split_name} dataset of '{cfg.data.name}' is empty.")
+                pytest.fail(f"The {split_name} dataset of '{cfg.data.name}' is empty.")
 
             # Test a few samples
             sample_indices = [0, len(dataset) // 2, len(dataset) - 1]
@@ -65,57 +87,47 @@ def test_datasets(dataset_config_file):
                     # Check label
                     assert isinstance(
                         label, int
-                    ), f"Dataset '{dataset_name}' {split_name} split: Label is not an integer."
+                    ), f"Dataset '{cfg.data.name}' {split_name} split: Label is not an integer."
                     num_classes = cfg.data.num_classes
                     assert (
                         0 <= label < num_classes
-                    ), f"Dataset '{dataset_name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
+                    ), f"Dataset '{cfg.data.name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
                 elif cfg.task == "segmentation":
                     image, mask = sample
                     # Check mask shape - should be [1, H, W] for segmentation
                     assert len(mask.shape) == 3, (
-                        f"Dataset '{dataset_name}' {split_name} split: Mask should be 3D tensor [C, H, W], "
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask should be 3D tensor [C, H, W], "
                         f"got shape {mask.shape}"
                     )
                     assert mask.shape[0] == 1, (
-                        f"Dataset '{dataset_name}' {split_name} split: Mask should have 1 channel, "
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask should have 1 channel, "
                         f"got {mask.shape[0]} channels"
                     )
                     assert mask.shape[1:] == image.shape[1:], (
-                        f"Dataset '{dataset_name}' {split_name} split: Mask spatial dimensions {mask.shape[1:]} "
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask spatial dimensions {mask.shape[1:]} "
                         f"do not match image dimensions {image.shape[1:]}"
                     )
                     # For segmentation, check that mask values are valid
                     assert mask.min() >= 0 and mask.max() <= 1, (
-                        f"Dataset '{dataset_name}' {split_name} split: Mask values should be between 0 and 1, "
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask values should be between 0 and 1, "
                         f"got min={mask.min()}, max={mask.max()}"
                     )
 
                 # Check image shape
                 assert image.shape[0] == expected_channels, (
-                    f"Dataset '{dataset_name}' {split_name} split: Expected {expected_channels} channels, "
+                    f"Dataset '{cfg.data.name}' {split_name} split: Expected {expected_channels} channels, "
                     f"got {image.shape[0]}"
                 )
                 assert image.shape[1] == expected_image_size[0], (
-                    f"Dataset '{dataset_name}' {split_name} split: Expected height {expected_image_size[0]}, "
+                    f"Dataset '{cfg.data.name}' {split_name} split: Expected height {expected_image_size[0]}, "
                     f"got {image.shape[1]}"
                 )
                 assert image.shape[2] == expected_image_size[1], (
-                    f"Dataset '{dataset_name}' {split_name} split: Expected width {expected_image_size[1]}, "
+                    f"Dataset '{cfg.data.name}' {split_name} split: Expected width {expected_image_size[1]}, "
                     f"got {image.shape[2]}"
-                )
-
-                print(
-                    f"Dataset '{dataset_name}' {split_name} split, index {idx}: "
-                    f"Image shape {image.shape}"
-                    + (
-                        f", Mask shape {mask.shape}"
-                        if cfg.task == "segmentation"
-                        else ""
-                    )
                 )
 
         # Test each split
         test_split("train", train_dataset)
-        test_split("val", val_dataset)
+        test_split("validation", val_dataset)
         test_split("test", test_dataset)

@@ -15,8 +15,8 @@ class InceptionV3(BaseClassificationModel):
 
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes
-        pretrained = self.cfg.model.classification.pretrained
-        freeze_layers = self.cfg.model.classification.freeze_layers
+        pretrained = self.cfg.model.pretrained
+        freeze_layers = self.cfg.model.freeze_layers
         if pretrained:
             weights = Inception_V3_Weights.DEFAULT
         else:

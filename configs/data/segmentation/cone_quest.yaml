@@ -1,0 +1,7 @@
+name: ConeQuest
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/ConeQuest/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/ConeQuest/annotation.csv
+num_classes: 2
+image_type: "rgb"
+task: segmentation

@@ -1,7 +1,0 @@
-classification:
-  name: SqueezeNet
-  class_path: src.models.classification.SqueezeNet
-  status: ready
-  pretrained: true
-  freeze_layers: true
-  input_size: [3, 224, 224]

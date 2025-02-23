@@ -15,9 +15,9 @@ class UNet(BaseSegmentationModel):
         """Initialize UNet model with configuration parameters."""
         in_channels = self._get_in_channels()
         num_classes = self.cfg.data.num_classes
-        encoder_name = self.cfg.model.segmentation.get("encoder_name", "resnet34")
-        pretrained = self.cfg.model.segmentation.pretrained
-        freeze_layers = self.cfg.model.segmentation.freeze_layers
+        encoder_name = self.cfg.model.get("encoder_name", "resnet34")
+        pretrained = self.cfg.model.pretrained
+        freeze_layers = self.cfg.model.freeze_layers
 
         # Set encoder weights based on pretrained flag
         encoder_weights = "imagenet" if pretrained else None
