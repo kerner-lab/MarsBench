@@ -1,4 +1,6 @@
+# Configuration defaults
 task: classification
+mode: train  # train, test, or predict
 data_name: domars16k
 model_name: resnet18
 dataset_path: /data/hkerner/MarsBench/Datasets
@@ -13,7 +15,9 @@ defaults:
   - training: dev
   - optimizer: adam
   - criterion: cross_entropy
+  - callbacks: default
   - test: default
+  - logger: default
 
 data:
   split:

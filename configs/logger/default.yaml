@@ -1,0 +1,36 @@
+# Logger Configuration
+# WandB Logger Configuration
+wandb:
+  enabled: true
+  project: "marsbench"
+  name: null  # auto-generated from model/dataset if null
+  entity: null  # your wandb username/org
+  tags: []
+  notes: null
+  save_code: true
+  mode: "online"  # online, offline, disabled
+
+# MLflow Logger Configuration
+mlflow:
+  enabled: false
+  experiment_name: "marsbench"
+  tracking_uri: null  # MLflow tracking URI (null for default)
+  run_name: null     # auto-generated if null
+  tags: {}          # Additional tags for the run
+  log_model: true   # Whether to log model checkpoints
+  save_dir: "mlruns"  # Local directory for MLflow tracking
+
+# TensorBoard Logger Configuration
+tensorboard:
+  enabled: true
+  save_dir: "logs"
+  name: "tensorboard_logs"
+  version: null  # auto-generated if null
+  flush_secs: 30
+
+# CSV Logger Configuration
+csv:
+  enabled: true
+  save_dir: "logs"
+  name: "csv_logs"
+  version: null  # auto-generated if null
