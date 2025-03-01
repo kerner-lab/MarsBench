@@ -48,10 +48,14 @@ def verify_model_config(cfg: DictConfig, task: str, model_name: str) -> None:
 @pytest.mark.parametrize(
     "model_config_file",
     glob.glob("configs/model/**/*.yaml", recursive=True),
+    glob.glob("configs/model/**/*.yaml", recursive=True),
     ids=lambda x: os.path.splitext(os.path.basename(x))[0],
 )
 def test_models(model_config_file: str) -> None:
     """Tests model initialization, forward/backward passes, and training loop."""
+    # Extract task and model name from the config file path
+    rel_path = os.path.relpath(model_config_file, "configs/model")
+    task = rel_path.split(os.sep)[0]  # classification or segmentation
     # Extract task and model name from the config file path
     rel_path = os.path.relpath(model_config_file, "configs/model")
     task = rel_path.split(os.sep)[0]  # classification or segmentation
@@ -63,9 +67,15 @@ def test_models(model_config_file: str) -> None:
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
         # Set default dataset based on task
         default_dataset = "domars16k" if task == "classification" else "cone_quest"
+        # Set default dataset based on task
+        default_dataset = "domars16k" if task == "classification" else "cone_quest"
         cfg = compose(
             config_name="config",
             overrides=[
+                f"task={task}",
+                f"model={task}/{model}",
+                f"data={task}/{default_dataset}",
+                "data.num_classes=10",  # Set a default number of classes for testing
                 f"task={task}",
                 f"model={task}/{model}",
                 f"data={task}/{default_dataset}",
@@ -82,7 +92,22 @@ def test_models(model_config_file: str) -> None:
             f"Skipping model '{model}' for {task} (status: {getattr(cfg.model, 'status', 'unknown')})"
         )
         pytest.skip(f"Model '{model}' for {task} is not ready for testing.")
+    # Check model status
+    if (
+        not hasattr(cfg.model, "status")
+        or cfg.model.status not in cfg.test.model.status
+    ):
+        print(
+            f"Skipping model '{model}' for {task} (status: {getattr(cfg.model, 'status', 'unknown')})"
+        )
+        pytest.skip(f"Model '{model}' for {task} is not ready for testing.")
 
+    print(f"Testing model '{model}' for {task}")
+    model_class_path = cfg.model.get("class_path", None)
+    if model_class_path is None:
+        pytest.fail(
+            f"Model class path not specified for model '{model}' in the configuration."
+        )
     print(f"Testing model '{model}' for {task}")
     model_class_path = cfg.model.get("class_path", None)
     if model_class_path is None:
@@ -92,13 +117,27 @@ def test_models(model_config_file: str) -> None:
 
     # Import model class
     ModelClass = import_model_class(model_class_path, model)
+    # Import model class
+    ModelClass = import_model_class(model_class_path, model)
 
     # Setup model parameters
     input_size = cfg.model.get("input_size", [3, 224, 224])
     batch_size = 2
     model = ModelClass(cfg)
     model.train()
+    # Setup model parameters
+    input_size = cfg.model.get("input_size", [3, 224, 224])
+    batch_size = 2
+    model = ModelClass(cfg)
+    model.train()
 
+    # Create test data
+    dummy_input, dummy_target = create_test_data(
+        batch_size=batch_size,
+        input_size=input_size,
+        num_classes=cfg.data.num_classes,
+        task=task,
+    )
     # Create test data
     dummy_input, dummy_target = create_test_data(
         batch_size=batch_size,
@@ -115,7 +154,20 @@ def test_models(model_config_file: str) -> None:
         input_size=input_size,
         task=task,
     )
+    # Test forward pass
+    output = model(dummy_input)
+    expected_output_shape = get_expected_output_shape(
+        batch_size=batch_size,
+        num_classes=cfg.data.num_classes,
+        input_size=input_size,
+        task=task,
+    )
 
+    # Handle tuple outputs
+    if isinstance(output, tuple) and cfg.model.name in cfg.test.model.with_tuple_output:
+        output = output[0]
+    elif isinstance(output, tuple):
+        pytest.fail(f"Not expecting tuple as output for Model: '{model}'.")
     # Handle tuple outputs
     if isinstance(output, tuple) and cfg.model.name in cfg.test.model.with_tuple_output:
         output = output[0]
@@ -125,7 +177,13 @@ def test_models(model_config_file: str) -> None:
     assert (
         output.shape == expected_output_shape
     ), f"{model}: Expected output shape {expected_output_shape}, got {output.shape}"
+    assert (
+        output.shape == expected_output_shape
+    ), f"{model}: Expected output shape {expected_output_shape}, got {output.shape}"
 
+    # Verify output properties
+    verify_output_properties(output, task, model)
+    print(f"{model}: Forward pass successful with output shape {output.shape}")
     # Verify output properties
     verify_output_properties(output, task, model)
     print(f"{model}: Forward pass successful with output shape {output.shape}")
@@ -147,6 +205,9 @@ def test_models(model_config_file: str) -> None:
     )
     print(f"{model}: Training integration test successful")
 
+    # Test model save/load
+    verify_model_save_load(model, ModelClass, cfg, model)
+    print(f"{model}: Model saving and loading successful")
     # Test model save/load
     verify_model_save_load(model, ModelClass, cfg, model)
     print(f"{model}: Model saving and loading successful")
