@@ -1,3 +1,4 @@
+import multiprocessing
 from typing import Optional
 
 import pytorch_lightning as pl
@@ -15,6 +16,16 @@ class MarsDataModule(pl.LightningDataModule):
         self.train_dataset: Optional[Dataset] = None
         self.val_dataset: Optional[Dataset] = None
         self.test_dataset: Optional[Dataset] = None
+
+        # Calculate optimal workers if not explicitly set
+        if (
+            not hasattr(self.cfg.training, "num_workers")
+            or self.cfg.training.num_workers <= 0
+        ):
+            # Use half the CPU count by default (minimum 1)
+            self.num_workers = max(1, multiprocessing.cpu_count() // 2)
+        else:
+            self.num_workers = self.cfg.training.num_workers
 
     def prepare_data(self):
         # Download or process data if needed
@@ -40,7 +51,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=True,
-            num_workers=self.cfg.training.num_workers,
+            num_workers=self.num_workers,
             pin_memory=True,
         )
 
@@ -51,7 +62,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.val_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers,
+            num_workers=self.num_workers,
             pin_memory=True,
         )
 
@@ -62,6 +73,6 @@ class MarsDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers,
+            num_workers=self.num_workers,
             pin_memory=True,
         )

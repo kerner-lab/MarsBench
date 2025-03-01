@@ -1,5 +1,5 @@
 batch_size: 32
-num_workers: ${oc.env:TEST_ENV,4}  # Use 1 worker in test env, 4 in production
+num_workers: 0  # Special value: 0 means auto-detect (will use CPU count / 2)
 
 # Optimzer
 optimizer:
