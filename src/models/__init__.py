@@ -1,5 +1,7 @@
 import logging
+import os
 
+import hydra
 from omegaconf import DictConfig
 
 from .classification import InceptionV3
@@ -55,3 +57,20 @@ def import_model_class(cfg: DictConfig):
     except Exception as e:
         log.error(f"Failed to import model: {str(e)}")
         raise
+
+
+if __name__ == "__main__":
+    config_dir = os.path.abspath("../configs")
+    with hydra.initialize_config_dir(config_dir=config_dir, version_base="1.1"):
+        cfg = hydra.compose(
+            config_name="config",
+            overrides=[
+                "task=classification",
+                "model_name=vit",
+                "data_name=domars16k",
+                "seed=0",
+                "training.max_epochs=5",
+                "training.batch_size=16",
+            ],
+        )
+    import_model_class(cfg)

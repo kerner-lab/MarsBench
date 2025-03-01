@@ -1,6 +1,20 @@
 # Training specific parameters
 batch_size: 32
-num_workers: 4
+num_workers: 0  # Special value: 0 means auto-detect (will use CPU count / 2)
+
+# Optimzer
+optimizer:
+  name: 'Adam'  # Supported: 'Adam', 'AdamW', 'SGD'
+  lr: 0.001
+  weight_decay: 0.0
+  # momentum: 0.9 # Only relevant for SGD
+
+# loss
+criterion:
+  name: 'cross_entropy'
+
+# Early stopping
+early_stopping_patience: 5
 
 # PyTorch Lightning Trainer arguments
 trainer:
