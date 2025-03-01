@@ -10,9 +10,7 @@ defaults:
   - transforms: default
   - data: ${oc.select:task, classification}/${oc.select:data_name, domars16k}
   - model: ${oc.select:task, classification}/${oc.select:model_name, resnet18}
-  - training: dev
-  - optimizer: adam
-  - criterion: cross_entropy
+  - training: ${oc.env:HYDRA_TRAINING,dev}  # Use test config in test environment
   - test: default
 
 data:
