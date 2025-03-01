@@ -1,0 +1,14 @@
+# Inherits from dev.yaml but overrides test-specific settings
+defaults:
+  - dev # Inherit everything from dev config
+
+# Override with test-specific values
+batch_size: 16  # Smaller batch size for tests
+num_workers: 1  # Single worker for tests
+
+# Optional: Reduce epochs for faster test runs
+trainer:
+  max_epochs: 2
+  # Disable logging and checkpointing for tests
+  enable_checkpointing: false
+  log_every_n_steps: 1

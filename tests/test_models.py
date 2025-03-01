@@ -131,7 +131,9 @@ def test_models(model_config_file: str) -> None:
     print(f"{model}: Forward pass successful with output shape {output.shape}")
 
     # Test backward pass
-    verify_backward_pass(model, output, dummy_target, cfg.criterion.name, model)
+    verify_backward_pass(
+        model, output, dummy_target, cfg.training.criterion.name, model
+    )
     print(f"{model}: Backward pass successful")
 
     # Test training loop
@@ -141,7 +143,7 @@ def test_models(model_config_file: str) -> None:
         num_classes=cfg.data.num_classes,
         task=task,
         batch_size=cfg.training.batch_size,
-        max_epochs=cfg.training.max_epochs,
+        max_epochs=cfg.training.trainer.max_epochs,
     )
     print(f"{model}: Training integration test successful")
 

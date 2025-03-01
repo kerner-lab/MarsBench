@@ -126,6 +126,7 @@ dmypy.json
 
 # outputs
 examples/outputs/*
+outputs/*
 
 # playground
 playground
