@@ -1,4 +1,3 @@
-import multiprocessing
 from typing import Optional
 
 import pytorch_lightning as pl
@@ -41,7 +40,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=True,
-            num_workers=min(2, multiprocessing.cpu_count()),  # Limit to suggested max
+            num_workers=self.cfg.training.num_workers,
             pin_memory=True,
         )
 
@@ -52,7 +51,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.val_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=min(2, multiprocessing.cpu_count()),  # Limit to suggested max
+            num_workers=self.cfg.training.num_workers,
             pin_memory=True,
         )
 
@@ -63,6 +62,6 @@ class MarsDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=min(2, multiprocessing.cpu_count()),  # Limit to suggested max
+            num_workers=self.cfg.training.num_workers,
             pin_memory=True,
         )
