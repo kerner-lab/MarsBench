@@ -6,5 +6,6 @@ detection:
   bbox_format: pascal_voc
   prediction_confidence_threshold: 0.2
   wbf_iou_threshold: 0.44
-  architecture: tf_efficientnetv2_l
+  architecture: "efficientdet_d0"
   status: test
+  input_size: [3, 512, 512]

@@ -1,8 +1,7 @@
 import logging
 
-import torch
+import albumentations as A
 from torchvision import transforms
-from torchvision.transforms import v2
 
 logger = logging.getLogger(__name__)
 
@@ -88,20 +87,38 @@ def get_mask_transforms(geometric_transform):
 
 def get_bbox_transforms(cfg):
     image_size = tuple(cfg.transforms.image_size)
-    train_transform = v2.Compose(
+    bbox_format = cfg.model.detection.bbox_format
+    requested_mode = cfg.data.image_type.lower().strip()
+    image_mode = IMAGE_MODES.get(requested_mode)
+    if image_mode is None:
+        logger.error(
+            f"Invalid/unsupported image_type '{requested_mode}'. Valid options are: {list(IMAGE_MODES.keys())}. "
+            "Defaulting to RGB."
+        )
+        image_mode = "rgb"
+
+    mean = tuple(cfg.transforms.get(image_mode).mean)
+    std = tuple(cfg.transforms.get(image_mode).std)
+    # logger.info(f"Using {image_mode} normalization: mean={mean}, std={std}")
+
+    train_transform = A.Compose(
         [
-            v2.Resize(image_size),
-            v2.ToImage(),
-            v2.ToDtype(torch.float32, scale=False),
-        ]
+            A.Resize(height=image_size[0], width=image_size[1], p=1.0),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
+            A.Normalize(mean=mean, std=std, max_pixel_value=255.0, p=1.0),
+            A.ToTensorV2(),
+        ],
+        bbox_params=A.BboxParams(format=bbox_format, label_fields=["class_labels"]),
     )
 
-    val_transform = v2.Compose(
+    val_transform = A.Compose(
         [
-            v2.Resize(image_size),
-            v2.ToImage(),
-            v2.ToDtype(torch.float32, scale=False),
-        ]
+            A.Resize(height=image_size[0], width=image_size[1], p=1.0),
+            A.Normalize(mean=mean, std=std, max_pixel_value=255.0, p=1.0),
+            A.ToTensorV2(),
+        ],
+        bbox_params=A.BboxParams(format=bbox_format, label_fields=["class_labels"]),
     )
 
     return train_transform, val_transform

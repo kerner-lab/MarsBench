@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 DEFAULT_BATCH_SIZE = 2
 DEFAULT_NUM_EPOCHS = 1
 DEFAULT_DATASET_SIZE = 10
-DEFAULT_INPUT_SIZE = (3, 224, 224)
+DEFAULT_INPUT_SIZE = (3, 512, 512)
 VALID_TASKS = {"classification", "segmentation", "detection"}
 
 

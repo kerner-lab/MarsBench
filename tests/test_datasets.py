@@ -114,15 +114,14 @@ def test_datasets(dataset_config_file):
 
         print(f"Testing dataset '{dataset_name}'")
 
-        # Get transforms
-        transforms = get_transforms(cfg)
-
-        # Expected image size and channels
-        expected_image_size = cfg.transforms.image_size
-        expected_channels = 1 if cfg.data.image_type == "grayscale" else 3
-
         # Function to test a dataset split
-        def test_split(split_name, dataset, bbox_format=None):
+        def test_split(
+            split_name,
+            dataset,
+            expected_image_size,
+            expected_channels,
+            bbox_format=None,
+        ):
             if len(dataset) == 0:
                 print(f"The {split_name} dataset of '{dataset_name}' is empty.")
                 pytest.fail(f"The {split_name} dataset of '{dataset_name}' is empty.")
@@ -252,18 +251,54 @@ def test_datasets(dataset_config_file):
         if cfg.task == "detection":
             bbox_formats = ["yolo", "coco", "pascal_voc"]
             for bbox_format in bbox_formats:
+                cfg.model.detection.bbox_format = bbox_format
+
+                # Get transforms
+                transforms = get_transforms(cfg)
+
+                # Expected image size and channels
+                expected_image_size = cfg.transforms.image_size
+                expected_channels = 1 if cfg.data.image_type == "grayscale" else 3
+
                 # Get datasets
                 train_dataset, val_dataset, test_dataset = initialize_datasets(
-                    cfg, transforms, bbox_format
+                    cfg,
+                    transforms,
+                    bbox_format,
                 )
-                test_split("train", train_dataset, bbox_format)
-                test_split("val", val_dataset, bbox_format)
-                test_split("test", test_dataset, bbox_format)
+                test_split(
+                    "train",
+                    train_dataset,
+                    expected_image_size,
+                    expected_channels,
+                    bbox_format,
+                )
+                test_split(
+                    "val",
+                    val_dataset,
+                    expected_image_size,
+                    expected_channels,
+                    bbox_format,
+                )
+                test_split(
+                    "test",
+                    test_dataset,
+                    expected_image_size,
+                    expected_channels,
+                    bbox_format,
+                )
         else:
+            # Get transforms
+            transforms = get_transforms(cfg)
+
+            # Expected image size and channels
+            expected_image_size = cfg.transforms.image_size
+            expected_channels = 1 if cfg.data.image_type == "grayscale" else 3
+
             # Get datasets
             train_dataset, val_dataset, test_dataset = initialize_datasets(
                 cfg, transforms
             )
-            test_split("train", train_dataset)
-            test_split("val", val_dataset)
-            test_split("test", test_dataset)
+            test_split("train", train_dataset, expected_image_size, expected_channels)
+            test_split("val", val_dataset, expected_image_size, expected_channels)
+            test_split("test", test_dataset, expected_image_size, expected_channels)

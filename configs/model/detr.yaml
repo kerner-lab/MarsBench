@@ -3,7 +3,7 @@ detection:
   class_path: src.models.detection.DETR
   pretrained: false
   freeze_layers: false
-  bbox_format: coco
+  bbox_format: yolo
   loss_weight_dict : {'loss_ce': 1, 'loss_bbox': 1, 'loss_giou': 1}
   loss_types: ['labels', 'boxes', 'cardinality']
   null_class_coef: 0.5

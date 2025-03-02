@@ -1,7 +1,6 @@
 from effdet import DetBenchTrain
 from effdet import EfficientDet as EfficientDet_effdet
 from effdet import get_efficientdet_config
-from effdet.config.model_config import efficientdet_model_param_dict
 from effdet.efficientdet import HeadNet
 
 from .BaseDetectionModel import BaseDetectionModel
@@ -10,34 +9,16 @@ from .BaseDetectionModel import BaseDetectionModel
 class EfficientDET(BaseDetectionModel):
     def __init__(self, cfg):
         super(EfficientDET, self).__init__(cfg)
-        self.img_size = tuple(self.cfg.transforms.image_size)[0]
-        self.prediction_confidence_threshold = (
-            self.cfg.model.detection.prediction_confidence_threshold
-        )
-        self.lr = self.cfg.optimizer.lr
-        self.wbf_iou_threshold = self.cfg.model.detection.wbf_iou_threshold
 
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes
         architecture = self.cfg.model.detection.architecture
-        image_size = tuple(self.cfg.transforms.image_size)
         pretrained = self.cfg.model.detection.pretrained
         freeze_layers = self.cfg.model.detection.freeze_layers
 
-        efficientdet_model_param_dict["tf_efficientnetv2_l"] = dict(
-            name="tf_efficientnetv2_l",
-            backbone_name="tf_efficientnetv2_l",
-            backbone_args=dict(drop_path_rate=0.2),
-            num_classes=num_classes,
-            url="",
-        )
-
         config = get_efficientdet_config(architecture)
-        config.update({"num_classes": num_classes})
-        config.update({"image_size": image_size})
-
-        # config.head_bn_level_first = True  # Better for TF-style models
-        # decides orders of BN and conv in head
+        config.num_classes = num_classes
+        config.image_size = tuple(self.cfg.model.detection.input_size)[1:]
 
         model = EfficientDet_effdet(config, pretrained_backbone=pretrained)
 

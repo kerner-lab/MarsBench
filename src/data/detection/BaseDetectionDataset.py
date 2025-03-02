@@ -4,12 +4,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 import torch
 from lxml import etree
 from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import tv_tensors
 
 
 class BaseDetectionDataset(Dataset):
@@ -56,10 +56,11 @@ class BaseDetectionDataset(Dataset):
                 annotation_key = Path(bbox_path).stem
                 with open(bbox_path, "r") as file:
                     for line in file:
-                        bbox = list(map(float, line.strip().split()))
-                        bbox = bbox[1:]
+                        annots = list(map(float, line.strip().split()))
+                        class_id = int(annots[0])
+                        bbox = annots[1:5]
                         annotations[annotation_key].append(bbox)
-                        labels[annotation_key].append(int(bbox[0]))
+                        labels[annotation_key].append(class_id)
             annotations = dict(annotations)
             labels = dict(labels)
 
@@ -150,44 +151,19 @@ class BaseDetectionDataset(Dataset):
         labels = self.labels[idx]
 
         img_width, img_height = image.size
-        if self.bbox_format == "yolo":
-            bboxes_cxcywh = [
-                [cx * img_width, cy * img_height, w * img_width, h * img_height]
-                for cx, cy, w, h in bboxes
-            ]
-            bboxes_tv_tensor = tv_tensors.BoundingBoxes(
-                bboxes_cxcywh,
-                format="CXCYWH",
-                canvas_size=(img_height, img_width),
-            )
-        elif self.bbox_format == "coco":
-            bboxes_tv_tensor = tv_tensors.BoundingBoxes(
-                bboxes,
-                format="XYWH",
-                canvas_size=(img_height, img_width),
-            )
-        elif self.bbox_format == "pascal_voc":
-            bboxes_tv_tensor = tv_tensors.BoundingBoxes(
-                bboxes,
-                format="XYXY",
-                canvas_size=(img_height, img_width),
-            )
+        image = np.array(image)
 
         if self.transform:
-            image, bboxes_tv_tensor, labels = self.transform(
-                image, bboxes_tv_tensor, labels
+            transformed = self.transform(
+                image=image, bboxes=bboxes, class_labels=labels
             )
 
-        image = image.as_subclass(torch.Tensor)
+        image = transformed["image"]
         img_height, img_width = image.shape[-2:]
-
-        bboxes = bboxes_tv_tensor.as_subclass(torch.Tensor).to(torch.float32)
+        bboxes = transformed["bboxes"]
+        labels = transformed["class_labels"]
+        bboxes = torch.tensor(bboxes, dtype=torch.float32)
         labels = torch.tensor(labels, dtype=torch.int64)
-
-        # normalize bboxes for yolo format
-        if self.bbox_format == "yolo":
-            bboxes[:, [0, 2]] /= img_width
-            bboxes[:, [1, 3]] /= img_height
 
         if self.cfg.model.detection.name.lower() == "efficientdet":
             bboxes = bboxes[:, [1, 0, 3, 2]]
