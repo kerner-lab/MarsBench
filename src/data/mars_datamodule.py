@@ -1,7 +1,7 @@
+import multiprocessing
 from typing import Optional
 
 import pytorch_lightning as pl
-import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -17,6 +17,16 @@ class MarsDataModule(pl.LightningDataModule):
         self.val_dataset: Optional[Dataset] = None
         self.test_dataset: Optional[Dataset] = None
 
+        # Calculate optimal workers if not explicitly set
+        if (
+            not hasattr(self.cfg.training, "num_workers")
+            or self.cfg.training.num_workers <= 0
+        ):
+            # Use half the CPU count by default (minimum 1)
+            self.num_workers = max(1, multiprocessing.cpu_count() // 2)
+        else:
+            self.num_workers = self.cfg.training.num_workers
+
     def prepare_data(self):
         # Download or process data if needed
         pass
@@ -31,74 +41,38 @@ class MarsDataModule(pl.LightningDataModule):
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
                 self.cfg, transforms[:2], mask_transforms=transforms[2:]
             )
-        elif self.cfg.task == "detection":
-            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
-                self.cfg,
-                transforms[:2],
-                bbox_format=self.cfg.model.detection.bbox_format,
-            )
         else:
             raise ValueError(f"Task not yet supported: {self.cfg.task}")
 
-    @staticmethod
-    def detection_collate_fn(batch):
-        images, targets = tuple(zip(*batch))
-        images = torch.stack(images, dim=0)
-        return images, targets
-
-    @staticmethod
-    def detection_collate_fn_v2(batch):
-        images, targets = tuple(zip(*batch))
-        images = torch.stack(images, dim=0)
-
-        boxes = [target["bbox"] for target in targets]
-        labels = [target["cls"] for target in targets]
-        img_sizes = torch.stack([target["img_size"] for target in targets])
-        img_scales = torch.tensor([target["img_scale"] for target in targets])
-
-        annotations = {
-            "bbox": boxes,
-            "cls": labels,
-            "img_size": img_sizes,
-            "img_scale": img_scales,
-        }
-        return images, annotations
-
-    def get_collate_fn(self):
-        if self.cfg.task == "detection":
-            if self.cfg.model.detection.name.lower() == "efficientdet":
-                return MarsDataModule.detection_collate_fn_v2
-            else:
-                return MarsDataModule.detection_collate_fn
-        else:
-            return None
-
     def train_dataloader(self):
+        """Get train dataloader."""
         assert self.train_dataset is not None, "train_dataset is not loaded."
         return DataLoader(
             self.train_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=True,
-            num_workers=self.cfg.training.num_workers,
-            collate_fn=self.get_collate_fn(),
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
 
     def val_dataloader(self):
+        """Get validation dataloader."""
         assert self.val_dataset is not None, "val_dataset is not loaded."
         return DataLoader(
             self.val_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers,
-            collate_fn=self.get_collate_fn(),
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
 
     def test_dataloader(self):
+        """Get test dataloader."""
         assert self.test_dataset is not None, "test_dataset is not loaded."
         return DataLoader(
             self.test_dataset,
             batch_size=self.cfg.training.batch_size,
             shuffle=False,
-            num_workers=self.cfg.training.num_workers,
-            collate_fn=self.get_collate_fn(),
+            num_workers=self.num_workers,
+            pin_memory=True,
         )

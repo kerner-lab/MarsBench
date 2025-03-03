@@ -1,0 +1,6 @@
+name: SwinTransformer
+class_path: src.models.classification.SwinTransformer
+status: ready
+pretrained: true
+freeze_layers: true
+input_size: [3, 224, 224]

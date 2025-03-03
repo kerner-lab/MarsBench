@@ -1,17 +1,17 @@
-defaults:
-  - _self_
-  - data: domars16k
-  - model: fasterrcnn
-  - transforms: default
-  - training: dev
-  - optimizer: adam
-  - criterion: cross_entropy
-  - test: default
-
+task: classification
+data_name: domars16k
+model_name: resnet18
+dataset_path: /data/hkerner/MarsBench/Datasets
+output_path: outputs
 seed: 42
 
-# Use data.task if defined, otherwise default to classification
-task: ${oc.decode:${oc.select:data.task,classification}}
+defaults:
+  - _self_
+  - transforms: default
+  - data: ${oc.select:task, classification}/${oc.select:data_name, domars16k}
+  - model: ${oc.select:task, classification}/${oc.select:model_name, resnet18}
+  - training: ${oc.env:HYDRA_TRAINING,dev}  # Use test config in test environment
+  - test: default
 
 data:
   split:
@@ -32,4 +32,4 @@ hydra:
   job:
     chdir: True
   run:
-    dir: outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+    dir: ${output_path}/${task}/${data_name}/${model_name}/${now:%Y-%m-%d_%H-%M-%S}

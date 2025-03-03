@@ -1,3 +1,37 @@
 batch_size: 32
-num_workers: 4
-max_epochs: 10
+num_workers: 0  # Special value: 0 means auto-detect (will use CPU count / 2)
+
+# Optimzer
+optimizer:
+  name: 'Adam'  # Supported: 'Adam', 'AdamW', 'SGD'
+  lr: 0.001
+  weight_decay: 0.0
+  # momentum: 0.9 # Only relevant for SGD
+
+# loss
+criterion:
+  name: 'cross_entropy'
+
+# Early stopping
+early_stopping_patience: 5
+
+# PyTorch Lightning Trainer arguments
+trainer:
+  max_epochs: 10
+  accelerator: 'auto'      # auto-detects GPU/CPU
+  devices: 'auto'          # auto-detects number of available devices
+  strategy: 'auto'         # auto-selects DDP for multi-GPU
+  sync_batchnorm: true    # important for multi-GPU training
+
+  # Mixed precision settings
+  precision: '16-mixed'    # Use mixed precision training
+
+  enable_checkpointing: true
+
+  # Optional: any additional trainer args that might be needed
+  enable_progress_bar: true
+  log_every_n_steps: 10
+
+  # Multi-GPU specific settings
+  num_nodes: 1            # number of compute nodes
+  accumulate_grad_batches: 1  # gradient accumulation steps

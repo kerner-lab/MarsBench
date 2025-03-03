@@ -1,0 +1,6 @@
+name: DoMars16k
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/DoMars16K/data/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/DoMars16K/annotation.csv
+num_classes: 15
+image_type: "rgb"

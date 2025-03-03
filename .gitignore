@@ -124,5 +124,9 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# outputs
+examples/outputs/*
+outputs/*
+
 # playground
 playground
