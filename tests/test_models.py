@@ -65,12 +65,10 @@ def test_models(model_config_file: str) -> None:
         default_dataset = "domars16k" if task == "classification" else "cone_quest"
 
         # Set appropriate number of classes based on task
-        # For segmentation models, UNet and DeepLab expect specific class counts
         if task == "classification":
             num_classes = 10  # Classification models use 10 classes for testing
         else:  # segmentation
             # Set to 8 classes for all segmentation models to ensure consistency
-            # This value must match what's expected inside the model implementations
             num_classes = 8  # Use 8 classes for all segmentation models
 
         cfg = compose(
