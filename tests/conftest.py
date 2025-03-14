@@ -21,10 +21,21 @@ def setup_test_config(monkeypatch):
     # Force test training config
     monkeypatch.setenv("HYDRA_TRAINING", "test")
 
+    # Set TEST_ENV to true for test-specific configurations
+    monkeypatch.setenv("TEST_ENV", "true")
+
     # Disable warnings in pytest
     import warnings
 
+    # Filter out non-critical test warnings
     warnings.filterwarnings(
         "ignore",
         message="The `srun` command is available on your system but is not used",
     )
+
+    # Filter out ResourceWarnings which are common with DataLoader workers
+    warnings.filterwarnings("ignore", category=ResourceWarning)
+
+    # Filter out other common test warnings
+    warnings.filterwarnings("ignore", message=".*cuda initialization.*")
+    warnings.filterwarnings("ignore", message=".*overflow encountered in exp.*")
