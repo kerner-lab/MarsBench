@@ -3,12 +3,30 @@ defaults:
   - dev # Inherit everything from dev config
 
 # Override with test-specific values
-batch_size: 16  # Smaller batch size for tests
-num_workers: 1  # Single worker for tests
+batch_size: 8  # Smaller batch size for tests
+num_workers: ${oc.env:TEST_WORKERS,1}  # Single worker for tests to avoid resource warnings
 
-# Optional: Reduce epochs for faster test runs
+# Optimizer settings for fast iteration
+optimizer:
+  lr: 0.01  # Faster learning rate for tests
+
+# Shorter patience for early stopping
+early_stopping_patience: 2
+
+# Trainer settings for tests
 trainer:
-  max_epochs: 2
+  max_epochs: 2  # Minimal epochs for quick tests
+  limit_train_batches: 0.1  # Only use 10% of training data
+  limit_val_batches: 0.1  # Only use 10% of validation data
+  limit_test_batches: 0.1  # Only use 10% of test data
   # Disable logging and checkpointing for tests
   enable_checkpointing: false
   log_every_n_steps: 1
+  # Explicitly set devices for tests
+  devices: 1
+  # Disable progress bar in tests to reduce log noise
+  enable_progress_bar: false
+  # Use float32 precision for tests to avoid potential precision issues
+  precision: 32
+  # No gradient accumulation to keep tests simple
+  accumulate_grad_batches: 1

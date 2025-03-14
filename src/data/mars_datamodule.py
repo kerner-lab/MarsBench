@@ -20,12 +20,12 @@ class MarsDataModule(pl.LightningDataModule):
         # Calculate optimal workers if not explicitly set
         if (
             not hasattr(self.cfg.training, "num_workers")
-            or self.cfg.training.num_workers <= 0
+            or int(self.cfg.training.num_workers) <= 0
         ):
             # Use half the CPU count by default (minimum 1)
             self.num_workers = max(1, multiprocessing.cpu_count() // 2)
         else:
-            self.num_workers = self.cfg.training.num_workers
+            self.num_workers = int(self.cfg.training.num_workers)
 
     def prepare_data(self):
         # Download or process data if needed

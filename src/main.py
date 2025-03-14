@@ -12,6 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 from .data.mars_datamodule import MarsDataModule
 from .models import import_model_class
+from .utils.config_mapper import load_dynamic_configs
 from .utils.seed import seed_everything
 
 log = logging.getLogger(__name__)
@@ -25,6 +26,10 @@ def main(cfg: DictConfig) -> None:
         cfg (DictConfig): Hydra configuration
     """
     try:
+        # Update the configuration with dynamically loaded configs based on task, data_name, and model_name
+        # This handles loading the appropriate data and model configs automatically
+        cfg = load_dynamic_configs(cfg)
+
         # Set seed if provided
         if cfg.get("seed"):
             seed_everything(cfg.seed)

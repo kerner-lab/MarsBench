@@ -177,7 +177,7 @@ def get_dataset(
                 split="test",
             )
         else:
-            raise ValueError(f"Dataset not supported: {cfg.data.name}")
+            raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}")
 
     # Segmentation datasets
     elif cfg.task == "segmentation":
@@ -207,7 +207,7 @@ def get_dataset(
                 split="test",
             )
         else:
-            raise ValueError(f"Dataset not supported: {cfg.data.name}")
+            raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}")
 
     else:
         raise ValueError(f"Task not supported: {cfg.task}")

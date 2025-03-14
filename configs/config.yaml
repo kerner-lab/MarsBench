@@ -10,8 +10,8 @@ seed: 42
 defaults:
   - _self_
   - transforms: default
-  - data: ${oc.select:task, classification}/${oc.select:data_name, domars16k}
-  - model: ${oc.select:task, classification}/${oc.select:model_name, resnet18}
+  - data: classification/domars16k  # task/data_name updated using load_dynamic_configs
+  - model: classification/resnet18  # task/model_name updated using load_dynamic_configs
   - training: ${oc.env:HYDRA_TRAINING,dev}  # Use test config in test environment
   - test: default
   - logger: default
