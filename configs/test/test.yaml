@@ -1,0 +1,31 @@
+# Test-specific configurations
+# This file should be used when running in test environments
+
+data:
+  # Filter datasets by status
+  status:
+    - ready
+    - test
+  # Use smaller subset for tests
+  subset_size: 50
+  # Mock data paths for testing
+  use_mock_data: ${oc.env:USE_MOCK_DATA,false}
+
+model:
+  # Filter models by status
+  status:
+    - ready
+    - test
+  # Special handling for models with tuple outputs
+  with_tuple_output:
+    - InceptionV3
+  # Use smaller models for testing
+  use_smaller_backbone: ${oc.env:USE_SMALLER_BACKBONE,true}
+
+# Test environment specific settings
+environment:
+  # Disable features that might cause test instability
+  disable_wandb: true
+  disable_tensorboard: true
+  # Set seed for reproducibility
+  seed: 42

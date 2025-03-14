@@ -35,12 +35,17 @@ class ModelTestDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns a random input tensor and target for testing."""
+        # Create input with expected shape for the model
         dummy_input = torch.randn(*self.input_size)
+
         if self.task == "classification":
+            # For classification, target is a class index
             dummy_label = torch.randint(0, self.num_classes, (1,)).item()
         else:  # segmentation
+            # For segmentation, target is a 2D mask with class indices
             H, W = self.input_size[1:]
             dummy_label = torch.randint(0, self.num_classes, (H, W))
+
         return dummy_input, dummy_label
 
 
@@ -51,7 +56,6 @@ def create_test_data(
     task: str = "classification",
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Creates input and target tensors for testing models."""
-    """Create test input and target tensors."""
     dummy_input = torch.randn(batch_size, *input_size, requires_grad=True)
 
     if task == "classification":
@@ -83,6 +87,9 @@ def verify_output_properties(output: torch.Tensor, task: str, model_name: str) -
 
     # For segmentation, verify probability distribution
     if task == "segmentation":
+        # Reshape output to (batch_size, num_classes, H, W) if necessary
+        if len(output.shape) == 2:
+            output = output.view(-1, output.shape[1], 1, 1)
         probs = F.softmax(output, dim=1)
         assert torch.all(
             (probs >= 0) & (probs <= 1)
@@ -137,9 +144,36 @@ def verify_backward_pass(
 ) -> None:
     """Verify model backward pass."""
     if criterion_name == "cross_entropy":
-        criterion = torch.nn.CrossEntropyLoss()
+        # For segmentation, target shape needs to be modified for CrossEntropyLoss
+        if len(output.shape) == 4:  # This is a segmentation model output (B, C, H, W)
+            # CrossEntropyLoss for segmentation expects target as (B, H, W) with class indices
+            if len(target.shape) == 3:  # Target is already (B, H, W)
+                criterion = torch.nn.CrossEntropyLoss()
+            else:
+                # If target is not the right shape, we need to reshape it
+                raise ValueError(
+                    f"Unexpected target shape for segmentation: {target.shape}"
+                )
+        else:  # Classification
+            criterion = torch.nn.CrossEntropyLoss()
     else:
         raise ValueError(f"Criterion '{criterion_name}' not recognized.")
+
+    # Before computing loss, ensure output and target have compatible dimensions
+    if len(output.shape) == 4 and output.shape[1] != target.shape[0]:
+        # This is likely the segmentation tensor size mismatch issue
+        # Reshape target to have the same spatial dimensions as output if needed
+        if len(target.shape) == 3:  # (B, H, W)
+            # No reshaping needed for (B, H, W) format
+            pass
+        elif len(target.shape) == 4:  # (B, C, H, W)
+            # If target is already 4D, ensure it has the right number of classes
+            if target.shape[1] != output.shape[1]:
+                # Critical mismatch - the number of classes in target doesn't match output
+                raise ValueError(
+                    f"Output has {output.shape[1]} classes but target has {target.shape[1]} dimensions. "
+                    "For segmentation, ensure target format matches expected input for CrossEntropyLoss."
+                )
 
     loss = criterion(output, target)
     loss.backward()

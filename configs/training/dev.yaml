@@ -1,3 +1,4 @@
+# Training specific parameters
 batch_size: 32
 num_workers: 0  # Special value: 0 means auto-detect (will use CPU count / 2)
 
