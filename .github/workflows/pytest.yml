@@ -1,34 +1,38 @@
-name: Run Tests
-
-on:
-  push:
-    branches: [ '*' ]
-  pull_request:
-    branches: [ '*' ]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install .[dev]
-
-    - name: Run tests
-      env:
-        HYDRA_CONFIG_PATH: configs
-        HYDRA_CONFIG_NAME: config
-        HYDRA_TRAINING: test
-        TEST_ENV: true
-        CI_MODE: true
-      run: |
-        python -m pytest tests/ -v
+# NOTE: This GitHub Actions workflow is currently commented out/disabled.
+# Tests are now run as part of pre-commit hooks using the HYDRA_TRAINING=test environment.
+# This file is preserved for future reference or if GitHub-based testing is needed again.
+#
+# name: Run Tests
+#
+# on:
+#   push:
+#     branches: [ '*' ]
+#   pull_request:
+#     branches: [ '*' ]
+#
+# jobs:
+#   test:
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#     - uses: actions/checkout@v3
+#
+#     - name: Set up Python
+#       uses: actions/setup-python@v4
+#       with:
+#         python-version: '3.10'
+#
+#     - name: Install dependencies
+#       run: |
+#         python -m pip install --upgrade pip
+#         pip install .[dev]
+#
+#     - name: Run tests
+#       env:
+#         HYDRA_CONFIG_PATH: configs
+#         HYDRA_CONFIG_NAME: config
+#         HYDRA_TRAINING: test
+#         TEST_ENV: true
+#         CI_MODE: true
+#       run: |
+#         python -m pytest tests/ -v
