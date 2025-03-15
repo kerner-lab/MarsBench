@@ -11,6 +11,18 @@ MarsBench is an initiative to develop a comprehensive benchmarking platform for 
 - **Evaluation:** Test datasets using popular models (e.g., U-Net, SegFormer) and document performance.
 - **Website and Leaderboard:** Develop a website for the MarsBench platform, featuring a leaderboard similar to GLUE or Hugging Face.
 
+## Installation
+
+To install MarsBench and its dependencies:
+
+```bash
+# Install the package with core dependencies
+pip install -e .
+
+# Install with development dependencies (for testing, linting, etc.)
+pip install -e ".[dev]"
+```
+
 ## Tasks and Updates
 
 - **Task 0:** Complete Mars Datasets Documentation. Ensure all datasets have accurate information about train, validation, and test splits, and check for existing SOTA results.
