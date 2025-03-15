@@ -39,3 +39,12 @@ def setup_test_config(monkeypatch):
     # Filter out other common test warnings
     warnings.filterwarnings("ignore", message=".*cuda initialization.*")
     warnings.filterwarnings("ignore", message=".*overflow encountered in exp.*")
+
+
+# Decorator to skip tests that require local data in CI environment
+def skip_if_ci(func):
+    """Decorator to skip tests that require local data when running in CI environment."""
+    return pytest.mark.skipif(
+        os.environ.get("CI_MODE", "false").lower() == "true",
+        reason="Test requires local data, skipping in CI environment",
+    )(func)

@@ -29,5 +29,6 @@ jobs:
         HYDRA_CONFIG_NAME: config
         HYDRA_TRAINING: test
         TEST_ENV: true
+        CI_MODE: true
       run: |
         python -m pytest tests/ -v

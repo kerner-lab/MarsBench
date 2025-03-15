@@ -29,9 +29,7 @@ def import_model_class(model_class_path: str, model_name: str) -> Type[torch.nn.
         module = importlib.import_module(model_class_path)
         return getattr(module, class_name)
     except (ImportError, AttributeError) as e:
-        pytest.fail(
-            f"Failed to import model class '{model_class_path}' for model '{model_name}': {e}"
-        )
+        pytest.fail(f"Failed to import model class '{model_class_path}' for model '{model_name}': {e}")
 
 
 def verify_model_config(cfg: DictConfig, task: str, model_name: str) -> None:
@@ -40,9 +38,7 @@ def verify_model_config(cfg: DictConfig, task: str, model_name: str) -> None:
         pytest.skip(f"Model '{model_name}' for {task} is not ready for testing.")
 
     if cfg.model.get(task, {}).get("class_path", None) is None:
-        pytest.fail(
-            f"Model class path not specified for model '{model_name}' in the configuration."
-        )
+        pytest.fail(f"Model class path not specified for model '{model_name}' in the configuration.")
 
 
 @pytest.mark.parametrize(
@@ -82,21 +78,14 @@ def test_models(model_config_file: str) -> None:
         )
 
     # Check model status
-    if (
-        not hasattr(cfg.model, "status")
-        or cfg.model.status not in cfg.test.model.status
-    ):
-        print(
-            f"Skipping model '{model}' for {task} (status: {getattr(cfg.model, 'status', 'unknown')})"
-        )
+    if not hasattr(cfg.model, "status") or cfg.model.status not in cfg.test.model.status:
+        print(f"Skipping model '{model}' for {task} (status: {getattr(cfg.model, 'status', 'unknown')})")
         pytest.skip(f"Model '{model}' for {task} is not ready for testing.")
 
     print(f"Testing model '{model}' for {task}")
     model_class_path = cfg.model.get("class_path", None)
     if model_class_path is None:
-        pytest.fail(
-            f"Model class path not specified for model '{model}' in the configuration."
-        )
+        pytest.fail(f"Model class path not specified for model '{model}' in the configuration.")
 
     # Import model class
     ModelClass = import_model_class(model_class_path, model)
@@ -139,9 +128,7 @@ def test_models(model_config_file: str) -> None:
     print(f"{model}: Forward pass successful with output shape {output.shape}")
 
     # Test backward pass
-    verify_backward_pass(
-        model, output, dummy_target, cfg.training.criterion.name, model
-    )
+    verify_backward_pass(model, output, dummy_target, cfg.training.criterion.name, model)
     print(f"{model}: Backward pass successful")
 
     # Test training loop

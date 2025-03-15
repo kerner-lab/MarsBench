@@ -91,9 +91,7 @@ def verify_output_properties(output: torch.Tensor, task: str, model_name: str) -
         if len(output.shape) == 2:
             output = output.view(-1, output.shape[1], 1, 1)
         probs = F.softmax(output, dim=1)
-        assert torch.all(
-            (probs >= 0) & (probs <= 1)
-        ), f"Model {model_name} produced invalid probabilities"
+        assert torch.all((probs >= 0) & (probs <= 1)), f"Model {model_name} produced invalid probabilities"
         assert torch.allclose(
             probs.sum(dim=1), torch.ones_like(probs.sum(dim=1))
         ), f"Model {model_name} probabilities don't sum to 1"
@@ -113,26 +111,18 @@ def setup_training(
     val_dataloader = DataLoader(dataset, batch_size=batch_size)
 
     trainer = Trainer(max_epochs=max_epochs, fast_dev_run=True)
-    trainer.fit(
-        model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
-    )
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 
-def verify_model_save_load(
-    model: torch.nn.Module, model_class: Any, cfg: Any, model_name: str
-) -> None:
+def verify_model_save_load(model: torch.nn.Module, model_class: Any, cfg: Any, model_name: str) -> None:
     """Verify model can be saved and loaded correctly."""
     with tempfile.NamedTemporaryFile() as tmp:
         torch.save(model.state_dict(), tmp.name)
         model_loaded = model_class(cfg)
         model_loaded.load_state_dict(torch.load(tmp.name, weights_only=False))
 
-    for param_original, param_loaded in zip(
-        model.parameters(), model_loaded.parameters()
-    ):
-        assert torch.allclose(
-            param_original, param_loaded
-        ), f"{model_name}: Parameters differ after loading."
+    for param_original, param_loaded in zip(model.parameters(), model_loaded.parameters()):
+        assert torch.allclose(param_original, param_loaded), f"{model_name}: Parameters differ after loading."
 
 
 def verify_backward_pass(
@@ -151,9 +141,7 @@ def verify_backward_pass(
                 criterion = torch.nn.CrossEntropyLoss()
             else:
                 # If target is not the right shape, we need to reshape it
-                raise ValueError(
-                    f"Unexpected target shape for segmentation: {target.shape}"
-                )
+                raise ValueError(f"Unexpected target shape for segmentation: {target.shape}")
         else:  # Classification
             criterion = torch.nn.CrossEntropyLoss()
     else:
@@ -178,9 +166,5 @@ def verify_backward_pass(
     loss = criterion(output, target)
     loss.backward()
 
-    grad_norm = sum(
-        p.grad.norm().item() for p in model.parameters() if p.grad is not None
-    )
-    assert (
-        grad_norm > 0
-    ), f"{model_name}: Gradients are not computed during backward pass."
+    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+    assert grad_norm > 0, f"{model_name}: Gradients are not computed during backward pass."
