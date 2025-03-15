@@ -18,10 +18,7 @@ class MarsDataModule(pl.LightningDataModule):
         self.test_dataset: Optional[Dataset] = None
 
         # Calculate optimal workers if not explicitly set
-        if (
-            not hasattr(self.cfg.training, "num_workers")
-            or int(self.cfg.training.num_workers) <= 0
-        ):
+        if not hasattr(self.cfg.training, "num_workers") or int(self.cfg.training.num_workers) <= 0:
             # Use half the CPU count by default (minimum 1)
             self.num_workers = max(1, multiprocessing.cpu_count() // 2)
         else:
@@ -34,9 +31,7 @@ class MarsDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         transforms = get_transforms(self.cfg)
         if self.cfg.task == "classification":
-            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
-                self.cfg, transforms[:2]
-            )
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms[:2])
         elif self.cfg.task == "segmentation":
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
                 self.cfg, transforms[:2], mask_transforms=transforms[2:]

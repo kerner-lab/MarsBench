@@ -57,9 +57,7 @@ class BaseClassificationDataset(Dataset, ABC):
         self.transform = transform
         logger.info(f"Loading {self.__class__.__name__} from {data_dir}")
         self.image_paths, self.labels = self._load_data()
-        logger.info(
-            f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes"
-        )
+        logger.info(f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes")
 
         # Validate image extensions
         for image_path in self.image_paths:
@@ -68,8 +66,7 @@ class BaseClassificationDataset(Dataset, ABC):
                 raise ValueError(f"Invalid image format: {image_path}")
 
         logger.info(
-            f"Dataset initialized with mode: {self.image_type}, "
-            f"transforms: {'applied' if transform else 'none'}"
+            f"Dataset initialized with mode: {self.image_type}, " f"transforms: {'applied' if transform else 'none'}"
         )
 
     @abstractmethod
@@ -96,9 +93,7 @@ class BaseClassificationDataset(Dataset, ABC):
         return len(self.labels)
 
     def __getitem__(self, ind) -> Tuple[torch.Tensor, int]:
-        image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(
-            self.image_type
-        )
+        image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(self.image_type)
         label = self.labels[ind]
 
         if self.transform:

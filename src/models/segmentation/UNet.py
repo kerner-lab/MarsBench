@@ -31,9 +31,7 @@ class UNet(BaseSegmentationModel):
 
         # Handle layer freezing
         if freeze_layers and not pretrained:
-            logger.warning(
-                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
-            )
+            logger.warning("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
             freeze_layers = False
 
         if pretrained and freeze_layers:
@@ -45,9 +43,7 @@ class UNet(BaseSegmentationModel):
                 param.requires_grad = True
             for param in model.segmentation_head.parameters():
                 param.requires_grad = True
-            logger.info(
-                "Froze encoder layers, keeping decoder and segmentation head trainable"
-            )
+            logger.info("Froze encoder layers, keeping decoder and segmentation head trainable")
         else:
             # Make all layers trainable
             for param in model.parameters():

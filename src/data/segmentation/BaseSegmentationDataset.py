@@ -61,9 +61,7 @@ class BaseSegmentationDataset(Dataset, ABC):
         self.mask_transform = mask_transform
         self.split = split
 
-        logger.info(
-            f"Loading {self.__class__.__name__} from {data_dir} (split: {split})"
-        )
+        logger.info(f"Loading {self.__class__.__name__} from {data_dir} (split: {split})")
         self.image_paths, self.ground = self._load_data()
         logger.info(f"Loaded {len(self.image_paths)} image-mask pairs")
 
@@ -104,9 +102,7 @@ class BaseSegmentationDataset(Dataset, ABC):
 
     def __getitem__(self, ind: int) -> Tuple[torch.Tensor, torch.Tensor]:
         # Load image as grayscale (single channel)
-        image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(
-            self.image_type
-        )
+        image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(self.image_type)
 
         # Load mask as grayscale (single channel)
         mask = Image.open(os.path.join(self.data_dir, self.ground[ind])).convert("L")

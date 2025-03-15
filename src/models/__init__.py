@@ -43,9 +43,7 @@ def import_model_class(cfg: DictConfig):
     try:
         model_name = cfg.model.name
         if model_name not in MODEL_REGISTRY:
-            log.error(
-                f"Model {model_name} not found in available models: {list(MODEL_REGISTRY.keys())}"
-            )
+            log.error(f"Model {model_name} not found in available models: {list(MODEL_REGISTRY.keys())}")
             raise ValueError(f"Model {model_name} not found")
 
         # Initialize model

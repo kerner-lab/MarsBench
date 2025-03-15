@@ -30,9 +30,7 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         elif image_type in ["grayscale", "l"]:
             return 1
         else:
-            raise ValueError(
-                f"Unsupported image type: {image_type}. Must be one of: rgb, bgr, grayscale, l"
-            )
+            raise ValueError(f"Unsupported image type: {image_type}. Must be one of: rgb, bgr, grayscale, l")
 
     @abstractmethod
     def _initialize_model(self):
@@ -47,9 +45,7 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
             return self.dice_loss
         elif criterion_name == "combined":
             # Combine CrossEntropy and Dice loss
-            return lambda pred, target: (
-                nn.CrossEntropyLoss()(pred, target) + self.dice_loss(pred, target)
-            )
+            return lambda pred, target: (nn.CrossEntropyLoss()(pred, target) + self.dice_loss(pred, target))
         else:
             raise ValueError(f"Criterion '{criterion_name}' not recognized.")
 
@@ -73,19 +69,13 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         metrics = {f"{prefix}/loss": loss, f"{prefix}/dice": dice, f"{prefix}/iou": iou}
         self.log_dict(metrics, on_step=on_step, on_epoch=on_epoch, prog_bar=True)
 
-    def _log_segmentation(
-        self, batch_idx, images, masks, outputs, prefix="train", max_samples=4
-    ):
+    def _log_segmentation(self, batch_idx, images, masks, outputs, prefix="train", max_samples=4):
         """Helper method to log segmentation visualizations."""
         if not hasattr(self.logger, "experiment") or batch_idx % 100 != 0:
             return
 
         # Get predicted masks
-        pred_masks = (
-            torch.argmax(outputs, dim=1)
-            if outputs.shape[1] > 1
-            else (outputs > 0.5).float()
-        )
+        pred_masks = torch.argmax(outputs, dim=1) if outputs.shape[1] > 1 else (outputs > 0.5).float()
 
         # Log sample predictions
         num_samples = min(max_samples, len(images))
@@ -166,11 +156,7 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         outputs = self(images)
 
         # Convert logits to predicted masks
-        pred_masks = (
-            torch.argmax(outputs, dim=1)
-            if outputs.shape[1] > 1
-            else (outputs > 0.5).float()
-        )
+        pred_masks = torch.argmax(outputs, dim=1) if outputs.shape[1] > 1 else (outputs > 0.5).float()
 
         return pred_masks
 
@@ -226,9 +212,7 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
             outputs = (outputs > 0.5).float()
 
         intersection = (outputs * targets).sum()
-        set_union = (
-            outputs + targets
-        ).sum() - intersection  # |A| + |B| - |Intersection|
+        set_union = (outputs + targets).sum() - intersection  # |A| + |B| - |Intersection|
 
         return (intersection + 1e-8) / (set_union + 1e-8)
 
@@ -243,9 +227,7 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
             optimizer = AdamW(self.parameters(), lr=lr, weight_decay=weight_decay)
         elif optimizer_name.lower() == "sgd":
             momentum = self.cfg.training.optimizer.get("momentum", 0.9)
-            optimizer = SGD(
-                self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay
-            )
+            optimizer = SGD(self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
         else:
             raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
 

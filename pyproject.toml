@@ -32,6 +32,7 @@ dev = [
     "flake8>=4.0.1",
     "isort>=5.10.0",
     "pre-commit>=3.8.0",
+    "flake8-pyproject",
 ]
 
 [tool.pytest]
@@ -48,7 +49,35 @@ filterwarnings = [
 [tool.black]
 line-length = 120
 target-version = ["py36", "py37", "py38", "py39"]
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | legacy_code
+)/
+'''
 
 [tool.isort]
 profile = "black"
 force_single_line = true
+skip_glob = ["legacy_code/**"]
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = ["E203", "W503", "E402", "F403"]
+ignore-long-lines = "^\\s*#|^\\s*\"{3}|^\\s*'{3}"
+per-file-ignores = "tests/*.py:F401"
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "legacy_code",
+]

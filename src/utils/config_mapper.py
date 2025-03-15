@@ -19,9 +19,7 @@ class ConfigLoadError(Exception):
     pass
 
 
-def load_dynamic_configs(
-    cfg: DictConfig, config_dir: Optional[Union[str, Path]] = None
-) -> DictConfig:
+def load_dynamic_configs(cfg: DictConfig, config_dir: Optional[Union[str, Path]] = None) -> DictConfig:
     """
     Load data and model configs dynamically based on task, data_name, and model_name.
 
@@ -41,11 +39,7 @@ def load_dynamic_configs(
     # Get the config directory, defaulting to "configs" relative to working directory
     if config_dir is None:
         # Try to get from hydra context first
-        if (
-            hasattr(cfg, "hydra")
-            and hasattr(cfg.hydra, "runtime")
-            and hasattr(cfg.hydra.runtime, "cwd")
-        ):
+        if hasattr(cfg, "hydra") and hasattr(cfg.hydra, "runtime") and hasattr(cfg.hydra.runtime, "cwd"):
             config_dir = Path(cfg.hydra.runtime.cwd) / "configs"
         else:
             # Fallback to environment variable or default
@@ -58,12 +52,8 @@ def load_dynamic_configs(
 
     # Get mappings based on variables
     mappings = {
-        "data": f"{cfg.task}/{cfg.data_name}"
-        if hasattr(cfg, "task") and hasattr(cfg, "data_name")
-        else None,
-        "model": f"{cfg.task}/{cfg.model_name}"
-        if hasattr(cfg, "task") and hasattr(cfg, "model_name")
-        else None,
+        "data": f"{cfg.task}/{cfg.data_name}" if hasattr(cfg, "task") and hasattr(cfg, "data_name") else None,
+        "model": f"{cfg.task}/{cfg.model_name}" if hasattr(cfg, "task") and hasattr(cfg, "model_name") else None,
     }
 
     # Track what we've loaded for logging
@@ -73,9 +63,7 @@ def load_dynamic_configs(
     for config_type, path_suffix in mappings.items():
         # Skip if mapping is None
         if path_suffix is None:
-            logger.warning(
-                f"Cannot determine {config_type} config path: missing required variables"
-            )
+            logger.warning(f"Cannot determine {config_type} config path: missing required variables")
             continue
 
         # Always force reload when task or model_name/data_name changes
@@ -92,9 +80,7 @@ def load_dynamic_configs(
             if hasattr(config_value, "custom_attribute") or (
                 isinstance(config_value, dict) and "custom_attribute" in config_value
             ):
-                logger.debug(
-                    f"{config_type.capitalize()} config has custom attributes, preserving original"
-                )
+                logger.debug(f"{config_type.capitalize()} config has custom attributes, preserving original")
                 should_preserve = True
                 should_reload = False
 
@@ -102,11 +88,7 @@ def load_dynamic_configs(
             elif hasattr(config_value, "name") and hasattr(cfg, name_param):
                 # Log values for debugging
                 expected_name = getattr(cfg, name_param).lower()
-                current_name = (
-                    config_value.name.lower()
-                    if hasattr(config_value, "name")
-                    else "unknown"
-                )
+                current_name = config_value.name.lower() if hasattr(config_value, "name") else "unknown"
                 logger.debug(
                     f"Checking if {config_type} needs reload: expected={expected_name}, current={current_name}"
                 )
@@ -126,9 +108,7 @@ def load_dynamic_configs(
                     )
 
         if not should_reload:
-            logger.info(
-                f"Skipping {config_type} config reload: existing config is appropriate"
-            )
+            logger.info(f"Skipping {config_type} config reload: existing config is appropriate")
             continue
 
         # Construct path and try to load
@@ -152,18 +132,13 @@ def load_dynamic_configs(
         if (
             not hasattr(cfg, config_type)
             or getattr(cfg, config_type) is None
-            or (
-                isinstance(getattr(cfg, config_type), dict)
-                and len(getattr(cfg, config_type)) == 0
-            )
+            or (isinstance(getattr(cfg, config_type), dict) and len(getattr(cfg, config_type)) == 0)
         ):
             # If config doesn't exist or is empty, set it directly
             setattr(cfg, config_type, type_cfg)
         elif should_preserve:
             # If we want to preserve existing config, don't do anything
-            logger.debug(
-                f"Preserving existing {config_type} config with custom attributes"
-            )
+            logger.debug(f"Preserving existing {config_type} config with custom attributes")
         else:
             # Otherwise merge the loaded config with any existing values
             existing_cfg = getattr(cfg, config_type)

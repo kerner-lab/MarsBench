@@ -39,16 +39,10 @@ class BaseClassificationModel(pl.LightningModule, ABC):
 
     def _log_metrics(self, prefix, loss, acc, on_step=True, on_epoch=True):
         """Helper method to log metrics consistently."""
-        self.log(
-            f"{prefix}/loss", loss, on_step=on_step, on_epoch=on_epoch, prog_bar=True
-        )
-        self.log(
-            f"{prefix}/acc", acc, on_step=on_step, on_epoch=on_epoch, prog_bar=True
-        )
+        self.log(f"{prefix}/loss", loss, on_step=on_step, on_epoch=on_epoch, prog_bar=True)
+        self.log(f"{prefix}/acc", acc, on_step=on_step, on_epoch=on_epoch, prog_bar=True)
 
-    def _log_predictions(
-        self, batch_idx, images, labels, outputs, prefix="train", max_samples=4
-    ):
+    def _log_predictions(self, batch_idx, images, labels, outputs, prefix="train", max_samples=4):
         """Helper method to log predictions periodically."""
         if not hasattr(self.logger, "experiment"):
             return
@@ -156,9 +150,7 @@ class BaseClassificationModel(pl.LightningModule, ABC):
             optimizer = AdamW(self.parameters(), lr=lr, weight_decay=weight_decay)
         elif optimizer_name.lower() == "sgd":
             momentum = self.cfg.training.optimizer.get("momentum", 0.9)
-            optimizer = SGD(
-                self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay
-            )
+            optimizer = SGD(self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
         else:
             raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
         return optimizer

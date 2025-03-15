@@ -95,9 +95,7 @@ def main(cfg: DictConfig) -> None:
             )
 
         # Initialize trainer
-        trainer_config = {
-            k: v for k, v in cfg.training.trainer.items() if k not in ["logger"]
-        }
+        trainer_config = {k: v for k, v in cfg.training.trainer.items() if k not in ["logger"]}
         trainer = Trainer(
             callbacks=callbacks,
             logger=loggers,
