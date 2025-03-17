@@ -15,11 +15,11 @@ class SSD(BaseDetectionModel):
         self.metrics = MeanAveragePrecision(iou_type="bbox")
 
     def _initialize_model(self):
-        num_classes = self.cfg.data.num_classes + 1
-        nms = self.cfg.model.detection.nms
+        num_classes = self.cfg.data.num_classes
+        nms = self.cfg.model.nms
         size = tuple(self.cfg.transforms.image_size)
-        pretrained = self.cfg.model.detection.pretrained
-        freeze_layers = self.cfg.model.detection.freeze_layers
+        pretrained = self.cfg.model.pretrained
+        freeze_layers = self.cfg.model.freeze_layers
 
         if pretrained:
             weights = ResNet34_Weights.DEFAULT

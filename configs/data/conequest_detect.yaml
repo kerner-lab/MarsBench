@@ -1,6 +1,0 @@
-name: ConeQuest
-status: test
-data_dir: /data/hkerner/MarsBench/NewDatasets/conequest_ctx/
-num_classes: 1
-image_type: "rgb"
-task: detection

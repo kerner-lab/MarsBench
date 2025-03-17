@@ -165,7 +165,7 @@ class BaseDetectionDataset(Dataset):
         bboxes = torch.tensor(bboxes, dtype=torch.float32)
         labels = torch.tensor(labels, dtype=torch.int64)
 
-        if self.cfg.model.detection.name.lower() == "efficientdet":
+        if self.cfg.model.name.lower() == "efficientdet":
             bboxes = bboxes[:, [1, 0, 3, 2]]
             bbox_label = "bbox"
             class_label = "cls"

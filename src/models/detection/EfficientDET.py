@@ -11,14 +11,14 @@ class EfficientDET(BaseDetectionModel):
         super(EfficientDET, self).__init__(cfg)
 
     def _initialize_model(self):
-        num_classes = self.cfg.data.num_classes
-        architecture = self.cfg.model.detection.architecture
-        pretrained = self.cfg.model.detection.pretrained
-        freeze_layers = self.cfg.model.detection.freeze_layers
+        num_classes = self.cfg.data.num_classes - 1
+        architecture = self.cfg.model.architecture
+        pretrained = self.cfg.model.pretrained
+        freeze_layers = self.cfg.model.freeze_layers
 
         config = get_efficientdet_config(architecture)
         config.num_classes = num_classes
-        config.image_size = tuple(self.cfg.model.detection.input_size)[1:]
+        config.image_size = tuple(self.cfg.model.input_size)[1:]
 
         model = EfficientDet_effdet(config, pretrained_backbone=pretrained)
 

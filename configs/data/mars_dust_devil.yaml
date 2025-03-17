@@ -1,6 +1,0 @@
-name: Mars_Dust_Devil
-status: test
-data_dir: /data/hkerner/MarsBench/NewDatasets/mars_dust_devil_ctx/
-num_classes: 1
-image_type: "rgb"
-task: detection

@@ -4,6 +4,7 @@ mode: train  # train, test, or predict
 data_name: domars16k
 model_name: resnet18
 dataset_path: /data/hkerner/MarsBench/Datasets
+new_dataset_path: /data/hkerner/MarsBench/NewDatasets
 output_path: outputs
 seed: 42
 
@@ -15,6 +16,7 @@ defaults:
   - training: ${oc.env:HYDRA_TRAINING,dev}  # Use test config in test environment
   - test: default
   - logger: default
+  - optimizer: adam
 
 data:
   split:

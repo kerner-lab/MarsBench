@@ -12,9 +12,9 @@ class FasterRCNN(BaseDetectionModel):
         self.metrics = MeanAveragePrecision(iou_type="bbox")
 
     def _initialize_model(self):
-        num_classes = self.cfg.data.num_classes + 1
-        pretrained = self.cfg.model.detection.pretrained
-        freeze_layers = self.cfg.model.detection.freeze_layers
+        num_classes = self.cfg.data.num_classes
+        pretrained = self.cfg.model.pretrained
+        freeze_layers = self.cfg.model.freeze_layers
 
         if pretrained:
             weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT

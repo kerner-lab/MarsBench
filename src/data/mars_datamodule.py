@@ -2,6 +2,7 @@ import multiprocessing
 from typing import Optional
 
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -41,8 +42,49 @@ class MarsDataModule(pl.LightningDataModule):
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
                 self.cfg, transforms[:2], mask_transforms=transforms[2:]
             )
+        elif self.cfg.task == "detection":
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
+                self.cfg,
+                transforms[:2],
+                bbox_format=self.cfg.model.bbox_format,
+            )
         else:
             raise ValueError(f"Task not yet supported: {self.cfg.task}")
+
+    @staticmethod
+    def detection_collate_fn(batch):
+        images, targets = tuple(zip(*batch))
+        images = torch.stack(images, dim=0)
+        return images, targets
+
+    @staticmethod
+    def detection_collate_fn_v2(batch):
+        images, targets = tuple(zip(*batch))
+        images = torch.stack(images, dim=0)
+
+        boxes = [target["bbox"] for target in targets]
+        labels = [target["cls"] for target in targets]
+        img_sizes = torch.stack([target["img_size"] for target in targets])
+        img_scales = torch.tensor([target["img_scale"] for target in targets])
+
+        annotations = {
+            "bbox": boxes,
+            "cls": labels,
+            "img_size": img_sizes,
+            "img_scale": img_scales,
+        }
+        return images, annotations
+
+    def get_collate_fn(self):
+        print(self.cfg.model.name)
+        if self.cfg.task == "detection":
+            if self.cfg.model.name.lower() == "efficientdet":
+                return MarsDataModule.detection_collate_fn_v2
+            else:
+                print("collate 1 selected")
+                return MarsDataModule.detection_collate_fn
+        else:
+            return None
 
     def train_dataloader(self):
         """Get train dataloader."""
@@ -53,6 +95,7 @@ class MarsDataModule(pl.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             pin_memory=True,
+            collate_fn=self.get_collate_fn(),
         )
 
     def val_dataloader(self):
@@ -64,6 +107,7 @@ class MarsDataModule(pl.LightningDataModule):
             shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
+            collate_fn=self.get_collate_fn(),
         )
 
     def test_dataloader(self):
@@ -75,4 +119,5 @@ class MarsDataModule(pl.LightningDataModule):
             shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
+            collate_fn=self.get_collate_fn(),
         )

@@ -10,11 +10,11 @@ from .BaseDetectionModel import BaseDetectionModel
 class DETR(BaseDetectionModel):
     def __init__(self, cfg):
         super(DETR, self).__init__(cfg)
-        num_classes = self.cfg.data.num_classes + 1
+        num_classes = self.cfg.data.num_classes
 
-        self.weight_dict = self.cfg.model.detection.loss_weight_dict
-        self.losses = self.cfg.model.detection.loss_types
-        NULL_CLASS_COEF = self.cfg.model.detection.null_class_coef
+        self.weight_dict = self.cfg.model.loss_weight_dict
+        self.losses = self.cfg.model.loss_types
+        NULL_CLASS_COEF = self.cfg.model.null_class_coef
 
         matcher = HungarianMatcher()
         self.criterion = SetCriterion(
@@ -26,10 +26,10 @@ class DETR(BaseDetectionModel):
         )
 
     def _initialize_model(self):
-        num_classes = self.cfg.data.num_classes + 1
-        pretrained = self.cfg.model.detection.pretrained
-        freeze_layers = self.cfg.model.detection.freeze_layers
-        num_queries = self.cfg.model.detection.num_queries
+        num_classes = self.cfg.data.num_classes
+        pretrained = self.cfg.model.pretrained
+        freeze_layers = self.cfg.model.freeze_layers
+        num_queries = self.cfg.model.num_queries
 
         print(freeze_layers)
         print(pretrained)
@@ -37,7 +37,7 @@ class DETR(BaseDetectionModel):
         model = torch.hub.load(
             "facebookresearch/detr", "detr_resnet50", pretrained=pretrained
         )
-        model.iou = self.cfg.model.detection.iou
+        model.iou = self.cfg.model.iou
         in_features = model.class_embed.in_features
         model.class_embed = nn.Linear(in_features=in_features, out_features=num_classes)
         model.num_queries = num_queries
