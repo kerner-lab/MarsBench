@@ -33,7 +33,7 @@ class EfficientDET(BaseDetectionModel):
             )
             freeze_layers = False
 
-        if freeze_layers:
+        if pretrained and freeze_layers:
             for param in model.parameters():
                 param.requires_grad = False
 
