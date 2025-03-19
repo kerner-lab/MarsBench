@@ -25,10 +25,9 @@ repos:
         additional_dependencies: ['flake8-pyproject']
 -   repo: local
     hooks:
-    -   id: pytest
-        name: pytest
+    -   id: pytest-check
+        name: pytest-check
         entry: env HYDRA_TRAINING=test pytest
         language: system
         pass_filenames: false
-        types: [python]
-        stages: [commit]
+        always_run: true

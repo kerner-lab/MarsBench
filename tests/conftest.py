@@ -1,8 +1,9 @@
 import os
 import sys
-from pathlib import Path
 
 import pytest
+
+from src.utils.config_mapper import load_dynamic_configs
 
 # Get the absolute path to the project root directory
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -39,6 +40,39 @@ def setup_test_config(monkeypatch):
     # Filter out other common test warnings
     warnings.filterwarnings("ignore", message=".*cuda initialization.*")
     warnings.filterwarnings("ignore", message=".*overflow encountered in exp.*")
+
+
+# Load task-specific configs for testing
+@pytest.fixture
+def segmentation_config():
+    """Load default segmentation config for testing."""
+    from hydra import compose
+    from hydra import initialize
+
+    with initialize(version_base=None, config_path="../configs"):
+        # Load the base config and override with segmentation settings
+        cfg = compose(
+            config_name="config",
+            overrides=["task=segmentation", "data_name=cone_quest", "model_name=unet", "training=test"],
+        )
+        cfg = load_dynamic_configs(cfg)
+    return cfg
+
+
+@pytest.fixture
+def classification_config():
+    """Load default classification config for testing."""
+    from hydra import compose
+    from hydra import initialize
+
+    with initialize(version_base=None, config_path="../configs"):
+        # Load the base config and override with classification settings
+        cfg = compose(
+            config_name="config",
+            overrides=["task=classification", "data_name=domars16k", "model_name=resnet18", "training=test"],
+        )
+        cfg = load_dynamic_configs(cfg)
+    return cfg
 
 
 # Decorator to skip tests that require local data in CI environment
