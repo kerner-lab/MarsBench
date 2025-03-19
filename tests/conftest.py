@@ -25,9 +25,13 @@ def setup_test_config(monkeypatch):
     # Set TEST_ENV to true for test-specific configurations
     monkeypatch.setenv("TEST_ENV", "true")
 
+    # Set TEST_ENV to true for test-specific configurations
+    monkeypatch.setenv("TEST_ENV", "true")
+
     # Disable warnings in pytest
     import warnings
 
+    # Filter out non-critical test warnings
     # Filter out non-critical test warnings
     warnings.filterwarnings(
         "ignore",

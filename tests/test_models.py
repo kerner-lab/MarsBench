@@ -67,6 +67,13 @@ def test_models(model_config_file: str) -> None:
             # Set to 8 classes for all segmentation models to ensure consistency
             num_classes = 8  # Use 8 classes for all segmentation models
 
+        # Set appropriate number of classes based on task
+        if task == "classification":
+            num_classes = 10  # Classification models use 10 classes for testing
+        else:  # segmentation
+            # Set to 8 classes for all segmentation models to ensure consistency
+            num_classes = 8  # Use 8 classes for all segmentation models
+
         cfg = compose(
             config_name="config",
             overrides=[

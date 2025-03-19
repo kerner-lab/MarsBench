@@ -23,6 +23,7 @@ class MarsDataModule(pl.LightningDataModule):
             self.num_workers = max(1, multiprocessing.cpu_count() // 2)
         else:
             self.num_workers = int(self.cfg.training.num_workers)
+            self.num_workers = int(self.cfg.training.num_workers)
 
     def prepare_data(self):
         # Download or process data if needed

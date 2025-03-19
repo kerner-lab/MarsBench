@@ -36,12 +36,15 @@ class ModelTestDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns a random input tensor and target for testing."""
         # Create input with expected shape for the model
+        # Create input with expected shape for the model
         dummy_input = torch.randn(*self.input_size)
 
         if self.task == "classification":
             # For classification, target is a class index
+            # For classification, target is a class index
             dummy_label = torch.randint(0, self.num_classes, (1,)).item()
         else:  # segmentation
+            # For segmentation, target is a 2D mask with class indices
             # For segmentation, target is a 2D mask with class indices
             H, W = self.input_size[1:]
             dummy_label = torch.randint(0, self.num_classes, (H, W))
@@ -87,6 +90,9 @@ def verify_output_properties(output: torch.Tensor, task: str, model_name: str) -
 
     # For segmentation, verify probability distribution
     if task == "segmentation":
+        # Reshape output to (batch_size, num_classes, H, W) if necessary
+        if len(output.shape) == 2:
+            output = output.view(-1, output.shape[1], 1, 1)
         # Reshape output to (batch_size, num_classes, H, W) if necessary
         if len(output.shape) == 2:
             output = output.view(-1, output.shape[1], 1, 1)
@@ -146,6 +152,22 @@ def verify_backward_pass(
             criterion = torch.nn.CrossEntropyLoss()
     else:
         raise ValueError(f"Criterion '{criterion_name}' not recognized.")
+
+    # Before computing loss, ensure output and target have compatible dimensions
+    if len(output.shape) == 4 and output.shape[1] != target.shape[0]:
+        # This is likely the segmentation tensor size mismatch issue
+        # Reshape target to have the same spatial dimensions as output if needed
+        if len(target.shape) == 3:  # (B, H, W)
+            # No reshaping needed for (B, H, W) format
+            pass
+        elif len(target.shape) == 4:  # (B, C, H, W)
+            # If target is already 4D, ensure it has the right number of classes
+            if target.shape[1] != output.shape[1]:
+                # Critical mismatch - the number of classes in target doesn't match output
+                raise ValueError(
+                    f"Output has {output.shape[1]} classes but target has {target.shape[1]} dimensions. "
+                    "For segmentation, ensure target format matches expected input for CrossEntropyLoss."
+                )
 
     # Before computing loss, ensure output and target have compatible dimensions
     if len(output.shape) == 4 and output.shape[1] != target.shape[0]:
