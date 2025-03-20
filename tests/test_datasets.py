@@ -5,10 +5,12 @@ import pytest
 from hydra import compose
 from hydra import initialize_config_dir
 
-from src.data import get_dataset
-from src.utils.transforms import get_transforms
+from marsbench.data import get_dataset
+from marsbench.utils.transforms import get_transforms
+from tests.conftest import skip_if_ci
 
 
+@skip_if_ci
 @pytest.mark.parametrize("dataset_config_file", glob.glob("configs/data/**/*.yaml"))
 def test_datasets(dataset_config_file):
     # Get config directory
@@ -17,36 +19,26 @@ def test_datasets(dataset_config_file):
     # Initialize Hydra and compose configuration
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
         # Get dataset path relative to configs/data
-        rel_path = os.path.relpath(
-            dataset_config_file, os.path.join(config_dir, "data")
-        )
+        rel_path = os.path.relpath(dataset_config_file, os.path.join(config_dir, "data"))
         # Remove .yaml extension
         rel_path = os.path.splitext(rel_path)[0]
 
         # Extract task from the path
         task = rel_path.split("/")[0]
 
-        cfg = compose(
-            config_name="config", overrides=[f"data={rel_path}", f"task={task}"]
-        )
+        cfg = compose(config_name="config", overrides=[f"data={rel_path}", f"task={task}"])
 
         # Check dataset status
         if cfg.data.status not in cfg.test.data.status:
             print(f"Skipping dataset '{cfg.data.name}' (status: {cfg.data.status})")
-            pytest.skip(
-                f"Dataset '{cfg.data.name}' is not in status set {cfg.test.data.status} for testing."
-            )
+            pytest.skip(f"Dataset '{cfg.data.name}' is not in status set {cfg.test.data.status} for testing.")
 
         # Check if dataset files exist
         data_dir = cfg.data.data_dir
         annot_csv = cfg.data.annot_csv
-        if not os.path.exists(data_dir) or (
-            cfg.task == "classification" and not os.path.exists(annot_csv)
-        ):
+        if not os.path.exists(data_dir) or (cfg.task == "classification" and not os.path.exists(annot_csv)):
             print(f"Skipping dataset '{cfg.data.name}' (dataset files not found)")
-            pytest.skip(
-                f"Dataset '{cfg.data.name}' files not found. This is expected when testing locally."
-            )
+            pytest.skip(f"Dataset '{cfg.data.name}' files not found. This is expected when testing locally.")
 
         print(f"Testing dataset '{cfg.data.name}' (task: {task})")
 

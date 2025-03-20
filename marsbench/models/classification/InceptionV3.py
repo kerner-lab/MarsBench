@@ -31,9 +31,7 @@ class InceptionV3(BaseClassificationModel):
         model.AuxLogits.fc = nn.Linear(num_aux_features, num_classes)  # type: ignore
 
         if freeze_layers and not pretrained:
-            logger.warning(
-                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
-            )
+            logger.warning("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
             freeze_layers = False
 
         if freeze_layers:

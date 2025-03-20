@@ -1,17 +1,17 @@
 import logging
 
 from torch import nn
-from torchvision.models import ResNet18_Weights
-from torchvision.models import resnet18
+from torchvision.models import Swin_V2_B_Weights
+from torchvision.models import swin_v2_b
 
 from .BaseClassificationModel import BaseClassificationModel
 
 logger = logging.getLogger(__name__)
 
 
-class ResNet18(BaseClassificationModel):
+class SwinTransformer(BaseClassificationModel):
     def __init__(self, cfg):
-        super(ResNet18, self).__init__(cfg)
+        super(SwinTransformer, self).__init__(cfg)
 
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes
@@ -19,26 +19,25 @@ class ResNet18(BaseClassificationModel):
         freeze_layers = self.cfg.model.freeze_layers
 
         if pretrained:
-            weights = ResNet18_Weights.DEFAULT
+            weights = Swin_V2_B_Weights.DEFAULT
         else:
             weights = None
 
-        model = resnet18(weights=weights)
-        num_features = model.fc.in_features
-        model.fc = nn.Linear(num_features, num_classes)
+        model = swin_v2_b(weights=weights)
+
+        num_features = model.head.in_features
+        model.head = nn.Linear(num_features, num_classes)
 
         if freeze_layers and not pretrained:
-            logger.warning(
-                "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
-            )
+            logger.warning("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
             freeze_layers = False
 
         if pretrained and freeze_layers:
             for param in model.parameters():
                 param.requires_grad = False
-            for param in model.fc.parameters():
+            for param in model.head.parameters():
                 param.requires_grad = True
-            logger.info("Froze backbone layers, keeping final classifier trainable")
+            logger.info("Froze transformer layers, keeping final classifier trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True

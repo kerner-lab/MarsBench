@@ -5,6 +5,7 @@ This test suite verifies the functionality of the dynamic configuration loading
 mechanism provided by the config_mapper module, particularly focusing on the
 load_dynamic_configs function.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -15,8 +16,8 @@ from hydra import initialize_config_dir
 from omegaconf import OmegaConf
 
 # Import the config_mapper functions
-from src.utils.config_mapper import ConfigLoadError
-from src.utils.config_mapper import load_dynamic_configs
+from marsbench.utils.config_mapper import ConfigLoadError
+from marsbench.utils.config_mapper import load_dynamic_configs
 
 
 @pytest.fixture
@@ -50,25 +51,19 @@ def mock_config_dir(tmp_path):
         directory.mkdir(parents=True, exist_ok=True)
 
     # Create test config files
-    classification_data_config = OmegaConf.create(
-        {"name": "TestDataset", "status": "test", "num_classes": 5}
-    )
+    classification_data_config = OmegaConf.create({"name": "TestDataset", "status": "test", "num_classes": 5})
 
     classification_model_config = OmegaConf.create(
         {
             "name": "TestModel",
-            "class_path": "src.models.test.TestModel",
+            "class_path": "marsbench.models.test.TestModel",
             "input_size": [3, 224, 224],
         }
     )
 
-    segmentation_data_config = OmegaConf.create(
-        {"name": "SegDataset", "task": "segmentation", "num_classes": 2}
-    )
+    segmentation_data_config = OmegaConf.create({"name": "SegDataset", "task": "segmentation", "num_classes": 2})
 
-    segmentation_model_config = OmegaConf.create(
-        {"name": "SegModel", "encoder_name": "resnet34"}
-    )
+    segmentation_model_config = OmegaConf.create({"name": "SegModel", "encoder_name": "resnet34"})
 
     # Write config files
     OmegaConf.save(classification_data_config, cls_data_dir / "test_dataset.yaml")
@@ -85,9 +80,7 @@ class TestConfigMapper:
     def test_load_dynamic_configs(self, base_config, mock_config_dir):
         """Test that dynamic configs are loaded correctly."""
         # Load configs from the mock directory
-        result = load_dynamic_configs(
-            base_config, config_dir=mock_config_dir / "configs"
-        )
+        result = load_dynamic_configs(base_config, config_dir=mock_config_dir / "configs")
 
         # Verify data config was loaded
         assert hasattr(result, "data")
@@ -98,12 +91,10 @@ class TestConfigMapper:
         # Verify model config was loaded
         assert hasattr(result, "model")
         assert "testmodel" in str(result.model).lower()
-        assert "src.models.test.testmodel" in str(result.model).lower()
+        assert "marsbench.models.test.testmodel" in str(result.model).lower()
         assert result.model.input_size == [3, 224, 224]
 
-    def test_load_dynamic_configs_with_nonexistent_data(
-        self, base_config, mock_config_dir
-    ):
+    def test_load_dynamic_configs_with_nonexistent_data(self, base_config, mock_config_dir):
         """Test loading configs with nonexistent data file."""
         # Modify config to use nonexistent data
         config = OmegaConf.create(OmegaConf.to_container(base_config))
@@ -116,9 +107,7 @@ class TestConfigMapper:
         # In test environment, it should continue without error
         os.environ["TEST_ENV"] = "1"
         try:
-            result = load_dynamic_configs(
-                config, config_dir=mock_config_dir / "configs"
-            )
+            result = load_dynamic_configs(config, config_dir=mock_config_dir / "configs")
             assert not hasattr(result, "data") or result.data is None
         finally:
             if "TEST_ENV" in os.environ:
@@ -132,9 +121,7 @@ class TestConfigMapper:
         """Test that existing config sections are not overwritten."""
         # Create config with a predefined data section
         config = OmegaConf.create(OmegaConf.to_container(base_config))
-        config.data = OmegaConf.create(
-            {"name": "PredefinedDataset", "custom_attribute": "custom_value"}
-        )
+        config.data = OmegaConf.create({"name": "PredefinedDataset", "custom_attribute": "custom_value"})
 
         # Load dynamic configs
         result = load_dynamic_configs(config, config_dir=mock_config_dir / "configs")
@@ -232,12 +219,8 @@ class TestIntegrationWithProjectConfigs:
             result_resnet = load_dynamic_configs(cfg_resnet)
 
             # Verify classification model configs were loaded correctly
-            assert hasattr(
-                result_resnet, "model"
-            ), "Classification model config not loaded"
-            assert (
-                result_resnet.model.name.lower() == "resnet18"
-            ), "Expected ResNet model"
+            assert hasattr(result_resnet, "model"), "Classification model config not loaded"
+            assert result_resnet.model.name.lower() == "resnet18", "Expected ResNet model"
 
         # Test case 2: Segmentation with UNet
         with initialize_config_dir(config_dir=str(config_dir), version_base="1.1"):
@@ -257,9 +240,7 @@ class TestIntegrationWithProjectConfigs:
             # Verify segmentation model configs were loaded correctly
             assert hasattr(result_unet, "model"), "Segmentation model config not loaded"
             assert result_unet.model.name.lower() == "unet", "Expected UNet model"
-            assert (
-                result_unet.task == "segmentation"
-            ), "Wrong task type for segmentation"
+            assert result_unet.task == "segmentation", "Wrong task type for segmentation"
 
         # Test case 3: Different model for same task
         with initialize_config_dir(config_dir=str(config_dir), version_base="1.1"):
@@ -306,14 +287,10 @@ class TestIntegrationWithProjectConfigs:
 
         # Verify overrides are preserved
         assert result.training.batch_size == 64, "Custom batch_size override was lost"
-        assert (
-            result.training.early_stopping_patience == 10
-        ), "Custom patience override was lost"
+        assert result.training.early_stopping_patience == 10, "Custom patience override was lost"
 
         # Verify model was still loaded
-        assert hasattr(
-            result, "model"
-        ), "Model config not loaded with overrides present"
+        assert hasattr(result, "model"), "Model config not loaded with overrides present"
 
     def test_error_handling(self):
         """Test error handling for invalid configurations."""

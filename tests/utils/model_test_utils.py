@@ -36,12 +36,15 @@ class ModelTestDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns a random input tensor and target for testing."""
         # Create input with expected shape for the model
+        # Create input with expected shape for the model
         dummy_input = torch.randn(*self.input_size)
 
         if self.task == "classification":
             # For classification, target is a class index
+            # For classification, target is a class index
             dummy_label = torch.randint(0, self.num_classes, (1,)).item()
         else:  # segmentation
+            # For segmentation, target is a 2D mask with class indices
             # For segmentation, target is a 2D mask with class indices
             H, W = self.input_size[1:]
             dummy_label = torch.randint(0, self.num_classes, (H, W))
@@ -90,10 +93,11 @@ def verify_output_properties(output: torch.Tensor, task: str, model_name: str) -
         # Reshape output to (batch_size, num_classes, H, W) if necessary
         if len(output.shape) == 2:
             output = output.view(-1, output.shape[1], 1, 1)
+        # Reshape output to (batch_size, num_classes, H, W) if necessary
+        if len(output.shape) == 2:
+            output = output.view(-1, output.shape[1], 1, 1)
         probs = F.softmax(output, dim=1)
-        assert torch.all(
-            (probs >= 0) & (probs <= 1)
-        ), f"Model {model_name} produced invalid probabilities"
+        assert torch.all((probs >= 0) & (probs <= 1)), f"Model {model_name} produced invalid probabilities"
         assert torch.allclose(
             probs.sum(dim=1), torch.ones_like(probs.sum(dim=1))
         ), f"Model {model_name} probabilities don't sum to 1"
@@ -113,26 +117,18 @@ def setup_training(
     val_dataloader = DataLoader(dataset, batch_size=batch_size)
 
     trainer = Trainer(max_epochs=max_epochs, fast_dev_run=True)
-    trainer.fit(
-        model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
-    )
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 
-def verify_model_save_load(
-    model: torch.nn.Module, model_class: Any, cfg: Any, model_name: str
-) -> None:
+def verify_model_save_load(model: torch.nn.Module, model_class: Any, cfg: Any, model_name: str) -> None:
     """Verify model can be saved and loaded correctly."""
     with tempfile.NamedTemporaryFile() as tmp:
         torch.save(model.state_dict(), tmp.name)
         model_loaded = model_class(cfg)
         model_loaded.load_state_dict(torch.load(tmp.name, weights_only=False))
 
-    for param_original, param_loaded in zip(
-        model.parameters(), model_loaded.parameters()
-    ):
-        assert torch.allclose(
-            param_original, param_loaded
-        ), f"{model_name}: Parameters differ after loading."
+    for param_original, param_loaded in zip(model.parameters(), model_loaded.parameters()):
+        assert torch.allclose(param_original, param_loaded), f"{model_name}: Parameters differ after loading."
 
 
 def verify_backward_pass(
@@ -151,9 +147,7 @@ def verify_backward_pass(
                 criterion = torch.nn.CrossEntropyLoss()
             else:
                 # If target is not the right shape, we need to reshape it
-                raise ValueError(
-                    f"Unexpected target shape for segmentation: {target.shape}"
-                )
+                raise ValueError(f"Unexpected target shape for segmentation: {target.shape}")
         else:  # Classification
             criterion = torch.nn.CrossEntropyLoss()
     else:
@@ -175,12 +169,24 @@ def verify_backward_pass(
                     "For segmentation, ensure target format matches expected input for CrossEntropyLoss."
                 )
 
+    # Before computing loss, ensure output and target have compatible dimensions
+    if len(output.shape) == 4 and output.shape[1] != target.shape[0]:
+        # This is likely the segmentation tensor size mismatch issue
+        # Reshape target to have the same spatial dimensions as output if needed
+        if len(target.shape) == 3:  # (B, H, W)
+            # No reshaping needed for (B, H, W) format
+            pass
+        elif len(target.shape) == 4:  # (B, C, H, W)
+            # If target is already 4D, ensure it has the right number of classes
+            if target.shape[1] != output.shape[1]:
+                # Critical mismatch - the number of classes in target doesn't match output
+                raise ValueError(
+                    f"Output has {output.shape[1]} classes but target has {target.shape[1]} dimensions. "
+                    "For segmentation, ensure target format matches expected input for CrossEntropyLoss."
+                )
+
     loss = criterion(output, target)
     loss.backward()
 
-    grad_norm = sum(
-        p.grad.norm().item() for p in model.parameters() if p.grad is not None
-    )
-    assert (
-        grad_norm > 0
-    ), f"{model_name}: Gradients are not computed during backward pass."
+    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+    assert grad_norm > 0, f"{model_name}: Gradients are not computed during backward pass."
