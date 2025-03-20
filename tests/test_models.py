@@ -14,13 +14,6 @@ from omegaconf import DictConfig
 
 from src.models import *
 from tests.utils.detect_model_test_utils import run_detection_model_tests
-
-# from tests.utils.model_test_utils import verify_backward_pass_detection
-# from tests.utils.model_test_utils import verify_backward_pass_detection_detr
-# from tests.utils.model_test_utils import verify_backward_pass_detection_efficientdet
-# from tests.utils.model_test_utils import verify_detection_output_properties
-# from tests.utils.model_test_utils import verify_detr_output_properties
-# from tests.utils.model_test_utils import verify_efficientdet_output_properties
 from tests.utils.model_test_utils import DEFAULT_BATCH_SIZE
 from tests.utils.model_test_utils import create_test_data
 from tests.utils.model_test_utils import get_expected_output_shape

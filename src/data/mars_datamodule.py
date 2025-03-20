@@ -76,12 +76,10 @@ class MarsDataModule(pl.LightningDataModule):
         return images, annotations
 
     def get_collate_fn(self):
-        print(self.cfg.model.name)
         if self.cfg.task == "detection":
             if self.cfg.model.name.lower() == "efficientdet":
                 return MarsDataModule.detection_collate_fn_v2
             else:
-                print("collate 1 selected")
                 return MarsDataModule.detection_collate_fn
         else:
             return None

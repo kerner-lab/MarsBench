@@ -1,3 +1,5 @@
+import logging
+
 import torch.nn as nn
 from torchmetrics.detection import MeanAveragePrecision
 from torchvision.models import ResNet34_Weights
@@ -7,6 +9,8 @@ from torchvision.models.detection.ssd import DefaultBoxGenerator
 from torchvision.models.detection.ssd import SSDHead
 
 from .BaseDetectionModel import BaseDetectionModel
+
+logger = logging.getLogger(__name__)
 
 
 class SSD(BaseDetectionModel):
@@ -67,29 +71,34 @@ class SSD(BaseDetectionModel):
 
             for param in model.head.parameters():
                 param.requires_grad = True
+            logger.info("Froze model layers, keeping head trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True
+            if pretrained:
+                logger.info("Using pretrained weights with all layers trainable")
+            else:
+                logger.info("Training from scratch with all layers trainable")
         return model
 
     def _calculate_metrics(self, outputs, targets):
+        targets_list = []
+        preds_list = []
         for output, target in zip(outputs, targets):
-            targets_dict = [
-                {
-                    "boxes": target["boxes"].detach().cpu(),
-                    "labels": target["labels"].detach().cpu(),
-                }
-            ]
-            preds_dict = [
-                {
-                    "boxes": output["boxes"].detach().cpu(),
-                    "labels": output["labels"].detach().cpu(),
-                    "scores": output["scores"].detach().cpu(),
-                }
-            ]
+            targets_dict = {
+                "boxes": target["boxes"].detach().cpu(),
+                "labels": target["labels"].detach().cpu(),
+            }
+            preds_dict = {
+                "boxes": output["boxes"].detach().cpu(),
+                "labels": output["labels"].detach().cpu(),
+                "scores": output["scores"].detach().cpu(),
+            }
+            targets_list.append(targets_dict)
+            preds_list.append(preds_dict)
 
         self.metrics.reset()
-        self.metrics.update(preds_dict, targets_dict)
+        self.metrics.update(preds_list, targets_list)
         metric_summary = self.metrics.compute()
         return metric_summary
 
@@ -100,7 +109,8 @@ class SSD(BaseDetectionModel):
 
         if self.metrics:
             metric_summary = self._calculate_metrics(outputs, targets)
-            print(f"validation metrics: {metric_summary}")
+            metrics = {"val/map": metric_summary["map"]}
+            self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         images, targets = batch
@@ -109,4 +119,5 @@ class SSD(BaseDetectionModel):
 
         if self.metrics:
             metric_summary = self._calculate_metrics(outputs, targets)
-            print(f"test metrics: {metric_summary}")
+            metrics = {"test/map": metric_summary["map"]}
+            self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)

@@ -1,3 +1,5 @@
+import logging
+
 import torch
 import torch.nn as nn
 
@@ -5,6 +7,8 @@ from src.utils.detr_criterion import SetCriterion
 from src.utils.detr_matcher import HungarianMatcher
 
 from .BaseDetectionModel import BaseDetectionModel
+
+logger = logging.getLogger(__name__)
 
 
 class DETR(BaseDetectionModel):
@@ -31,9 +35,6 @@ class DETR(BaseDetectionModel):
         freeze_layers = self.cfg.model.freeze_layers
         num_queries = self.cfg.model.num_queries
 
-        print(freeze_layers)
-        print(pretrained)
-
         model = torch.hub.load(
             "facebookresearch/detr", "detr_resnet50", pretrained=pretrained
         )
@@ -50,7 +51,7 @@ class DETR(BaseDetectionModel):
             model.query_embed = nn.Embedding(num_queries, 256)
 
         if freeze_layers and not pretrained:
-            print(
+            logger.warning(
                 "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
             )
             freeze_layers = False
@@ -63,6 +64,9 @@ class DETR(BaseDetectionModel):
                 param.requires_grad = True
             for param in model.bbox_embed.parameters():
                 param.requires_grad = True
+            logger.info(
+                "Froze model parameters, keeping class and bbox embedding layer trainable"
+            )
 
             if num_queries != 100:
                 for param in model.query_embed.parameters():
@@ -70,6 +74,10 @@ class DETR(BaseDetectionModel):
         else:
             for param in model.parameters():
                 param.requires_grad = True
+            if pretrained:
+                logger.info("Using pretrained weights with all layers trainable")
+            else:
+                logger.info("Training from scratch with all layers trainable")
 
         return model
 
@@ -86,6 +94,8 @@ class DETR(BaseDetectionModel):
         total_loss = sum(
             loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict
         )
+
+        self._log_metrics("train", total_loss)
 
         return total_loss
 

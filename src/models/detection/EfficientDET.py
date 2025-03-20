@@ -1,9 +1,13 @@
+import logging
+
 from effdet import DetBenchTrain
 from effdet import EfficientDet as EfficientDet_effdet
 from effdet import get_efficientdet_config
 from effdet.efficientdet import HeadNet
 
 from .BaseDetectionModel import BaseDetectionModel
+
+logger = logging.getLogger(__name__)
 
 
 class EfficientDET(BaseDetectionModel):
@@ -28,7 +32,7 @@ class EfficientDET(BaseDetectionModel):
         )
 
         if freeze_layers and not pretrained:
-            print(
+            logger.warning(
                 "freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False"
             )
             freeze_layers = False
@@ -41,9 +45,16 @@ class EfficientDET(BaseDetectionModel):
                 param.requires_grad = True
             for param in model.box_net.parameters():
                 param.requires_grad = True
+            logger.info(
+                "Froze model parameters, keeping class and box network layers trainable"
+            )
         else:
             for param in model.parameters():
                 param.requires_grad = True
+            if pretrained:
+                logger.info("Using pretrained weights with all layers trainable")
+            else:
+                logger.info("Training from scratch with all layers trainable")
 
         return DetBenchTrain(model, config)
 
@@ -53,7 +64,11 @@ class EfficientDET(BaseDetectionModel):
 
         loss_output_dict = self(images, targets)
 
-        return loss_output_dict["loss"]
+        loss = loss_output_dict["loss"]
+
+        self._log_metrics("train", loss)
+
+        return loss
 
     def validation_step(self, batch, batch_idx):
         images, targets = batch

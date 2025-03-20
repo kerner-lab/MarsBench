@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -10,6 +11,8 @@ from lxml import etree
 from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
+
+logger = logging.getLogger(__name__)
 
 
 class BaseDetectionDataset(Dataset):
@@ -26,18 +29,37 @@ class BaseDetectionDataset(Dataset):
         requested_mode = cfg.data.image_type.lower().strip()
         self.image_type = IMAGE_MODES.get(requested_mode)
         if self.image_type is None:
+            logger.error(
+                f"Invalid/unsupported image_type '{requested_mode}'. Valid options are: {list(IMAGE_MODES.keys())}. "
+                "Defaulting to RGB."
+            )
             self.image_type = "RGB"
         self.data_dir = data_dir
         self.transform = transform
         self.bbox_format = bbox_format
         self.split = split
 
+        logger.info(
+            f"Loading {self.__class__.__name__} from {data_dir} (split: {split})"
+        )
         (
             self.image_paths,
             self.annotations,
             self.labels,
             _,  # image_ids
         ) = self._load_data()
+        logger.info(f"Loaded {len(self.image_paths)} images with annotations")
+
+        # Validate image extensions
+        for image_path in self.image_paths:
+            if not image_path.endswith(tuple(cfg.data.valid_image_extensions)):
+                logger.error(f"Invalid image format: {image_path}")
+                raise ValueError(f"Invalid image format: {image_path}")
+
+        logger.info(
+            f"Dataset initialized with mode: {self.image_type}, "
+            f"transforms: {'applied' if transform else 'none'}, "
+        )
 
     def _load_data(self):
         image_paths = sorted(os.listdir(Path(self.data_dir) / self.split / "images"))
@@ -126,9 +148,9 @@ class BaseDetectionDataset(Dataset):
         valid_names = [name for name in names if name in names_with_bbox]
 
         if valid_names == names_with_bbox and valid_names == list(labels.keys()):
-            print("names and annotations in sync")
+            logging.info("name and annotations in sync.")
         else:
-            print("names and annotations not in sync")
+            logging.warning("names and annotations are not in sync.")
 
         image_paths = [
             os.path.join(self.data_dir, self.split, "images", p + image_suffix)

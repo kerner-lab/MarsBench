@@ -24,12 +24,19 @@ class BaseDetectionModel(pl.LightningModule):
     def forward(self, images, targets=None):
         return self.model(images, targets)
 
+    def _log_metrics(self, prefix, loss, on_step=True, on_epoch=True):
+        metrics = {f"{prefix}/loss": loss}
+        self.log_dict(metrics, on_step=on_step, on_epoch=on_epoch, prog_bar=True)
+
     def training_step(self, batch, batch_idx):
         images, targets = batch
         images = images.to(self.DEVICE)
 
         loss_dict = self(images, targets)
         total_loss = sum(loss for loss in loss_dict.values())
+
+        self._log_metrics("train", total_loss)
+
         return total_loss
 
     def configure_optimizers(self):
