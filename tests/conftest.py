@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from src.utils.config_mapper import load_dynamic_configs
+from marsbench.utils.config_mapper import load_dynamic_configs
 
 # Get the absolute path to the project root directory
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

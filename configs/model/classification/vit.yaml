@@ -1,5 +1,5 @@
 name: VisionTransformer
-class_path: src.models.classification.ViT
+class_path: marsbench.models.classification.ViT
 status: ready
 pretrained: true
 freeze_layers: true

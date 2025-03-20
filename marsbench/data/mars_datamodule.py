@@ -5,8 +5,8 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-from src.data import get_dataset
-from src.utils.transforms import get_transforms
+from marsbench.data import get_dataset
+from marsbench.utils.transforms import get_transforms
 
 
 class MarsDataModule(pl.LightningDataModule):

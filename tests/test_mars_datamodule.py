@@ -5,7 +5,7 @@ import torch
 from hydra import compose
 from hydra import initialize_config_dir
 
-from src.data.mars_datamodule import MarsDataModule
+from marsbench.data.mars_datamodule import MarsDataModule
 from tests.conftest import skip_if_ci
 
 

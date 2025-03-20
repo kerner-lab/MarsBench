@@ -1,5 +1,5 @@
 name: Mask2Former
-class_path: src.models.segmentation.Mask2Former
+class_path: marsbench.models.segmentation.Mask2Former
 pretrained: true
 freeze_layers: true
 model_name: facebook/mask2former-swin-tiny-ade-semantic

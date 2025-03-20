@@ -14,8 +14,8 @@ from omegaconf import OmegaConf
 from PIL import Image
 from torchvision import transforms
 
-from src.utils.transforms import get_geometric_transforms
-from src.utils.transforms import get_transforms
+from marsbench.utils.transforms import get_geometric_transforms
+from marsbench.utils.transforms import get_transforms
 
 
 def create_random_image(size: Tuple[int, int], channels: int = 3) -> Image.Image:

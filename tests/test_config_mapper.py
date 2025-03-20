@@ -5,6 +5,7 @@ This test suite verifies the functionality of the dynamic configuration loading
 mechanism provided by the config_mapper module, particularly focusing on the
 load_dynamic_configs function.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -15,8 +16,8 @@ from hydra import initialize_config_dir
 from omegaconf import OmegaConf
 
 # Import the config_mapper functions
-from src.utils.config_mapper import ConfigLoadError
-from src.utils.config_mapper import load_dynamic_configs
+from marsbench.utils.config_mapper import ConfigLoadError
+from marsbench.utils.config_mapper import load_dynamic_configs
 
 
 @pytest.fixture
@@ -55,7 +56,7 @@ def mock_config_dir(tmp_path):
     classification_model_config = OmegaConf.create(
         {
             "name": "TestModel",
-            "class_path": "src.models.test.TestModel",
+            "class_path": "marsbench.models.test.TestModel",
             "input_size": [3, 224, 224],
         }
     )
@@ -90,7 +91,7 @@ class TestConfigMapper:
         # Verify model config was loaded
         assert hasattr(result, "model")
         assert "testmodel" in str(result.model).lower()
-        assert "src.models.test.testmodel" in str(result.model).lower()
+        assert "marsbench.models.test.testmodel" in str(result.model).lower()
         assert result.model.input_size == [3, 224, 224]
 
     def test_load_dynamic_configs_with_nonexistent_data(self, base_config, mock_config_dir):

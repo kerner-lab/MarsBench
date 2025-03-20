@@ -1,5 +1,5 @@
 name: DeepLab
-class_path: src.models.segmentation.DeepLab
+class_path: marsbench.models.segmentation.DeepLab
 status: test
 pretrained: true
 freeze_layers: true

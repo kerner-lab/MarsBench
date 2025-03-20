@@ -5,8 +5,8 @@ import pytest
 from hydra import compose
 from hydra import initialize_config_dir
 
-from src.data import get_dataset
-from src.utils.transforms import get_transforms
+from marsbench.data import get_dataset
+from marsbench.utils.transforms import get_transforms
 from tests.conftest import skip_if_ci
 
 

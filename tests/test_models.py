@@ -12,7 +12,7 @@ from hydra import compose
 from hydra import initialize_config_dir
 from omegaconf import DictConfig
 
-from src.models import *
+from marsbench.models import *
 from tests.utils.model_test_utils import DEFAULT_BATCH_SIZE
 from tests.utils.model_test_utils import create_test_data
 from tests.utils.model_test_utils import get_expected_output_shape

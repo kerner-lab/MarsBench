@@ -33,19 +33,19 @@ run_test() {
 echo "Starting MarsBench Testing Suite..."
 
 # 1. Basic Model Training Test
-run_test "python -m src.main mode=train"
+run_test "python -m marsbench.main mode=train"
 
 # 2. Model Testing
-run_test "python -m src.main mode=test"
+run_test "python -m marsbench.main mode=test"
 
 # 3. Model Prediction
-run_test "python -m src.main mode=predict"
+run_test "python -m marsbench.main mode=predict"
 
 # 4. Multi-GPU Training Test
-run_test "python -m src.main mode=train training.trainer.devices=2"
+run_test "python -m marsbench.main mode=train training.trainer.devices=2"
 
 # 5. Different Model Architecture Test
-run_test "python -m src.main mode=train model_name=resnet50"
+run_test "python -m marsbench.main mode=train model_name=resnet50"
 
 # Print summary
 echo "MarsBench Testing Suite Completed!"
