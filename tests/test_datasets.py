@@ -6,8 +6,9 @@ import torch
 from hydra import compose
 from hydra import initialize_config_dir
 
-from src.data import get_dataset
-from src.utils.transforms import get_transforms
+from marsbench.data import get_dataset
+from marsbench.utils.transforms import get_transforms
+from tests.conftest import skip_if_ci
 from tests.utils.dataset_test_utils import check_bboxes_coco
 from tests.utils.dataset_test_utils import check_bboxes_pascal_voc
 from tests.utils.dataset_test_utils import check_bboxes_yolo
@@ -15,9 +16,7 @@ from tests.utils.dataset_test_utils import check_bboxes_yolo
 
 def initialize_datasets(cfg, transforms, bbox_format=None):
     if cfg.task == "classification":
-        train_dataset, val_dataset, test_dataset = get_dataset(
-            cfg, transforms[:2], subset=cfg.test.data.subset_size
-        )
+        train_dataset, val_dataset, test_dataset = get_dataset(cfg, transforms[:2], subset=cfg.test.data.subset_size)
     elif cfg.task == "segmentation":
         train_dataset, val_dataset, test_dataset = get_dataset(
             cfg,
@@ -38,6 +37,7 @@ def initialize_datasets(cfg, transforms, bbox_format=None):
     return train_dataset, val_dataset, test_dataset
 
 
+@skip_if_ci
 @pytest.mark.parametrize("dataset_config_file", glob.glob("configs/data/**/*.yaml"))
 def test_datasets(dataset_config_file):
     # Get config directory
@@ -46,9 +46,7 @@ def test_datasets(dataset_config_file):
     # Initialize Hydra and compose configuration
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
         # Get dataset path relative to configs/data
-        rel_path = os.path.relpath(
-            dataset_config_file, os.path.join(config_dir, "data")
-        )
+        rel_path = os.path.relpath(dataset_config_file, os.path.join(config_dir, "data"))
         # Remove .yaml extension
         rel_path = os.path.splitext(rel_path)[0]
 
@@ -63,20 +61,14 @@ def test_datasets(dataset_config_file):
         # Check dataset status
         if cfg.data.status not in cfg.test.data.status:
             print(f"Skipping dataset '{cfg.data.name}' (status: {cfg.data.status})")
-            pytest.skip(
-                f"Dataset '{cfg.data.name}' is not in status set {cfg.test.data.status} for testing."
-            )
+            pytest.skip(f"Dataset '{cfg.data.name}' is not in status set {cfg.test.data.status} for testing.")
 
         # Check if dataset files exist
         data_dir = cfg.data.data_dir
         annot_csv = cfg.data.annot_csv if task != "detection" else None
-        if not os.path.exists(data_dir) or (
-            cfg.task == "classification" and not os.path.exists(annot_csv)
-        ):
+        if not os.path.exists(data_dir) or (cfg.task == "classification" and not os.path.exists(annot_csv)):
             print(f"Skipping dataset '{cfg.data.name}' (dataset files not found)")
-            pytest.skip(
-                f"Dataset '{cfg.data.name}' files not found. This is expected when testing locally."
-            )
+            pytest.skip(f"Dataset '{cfg.data.name}' files not found. This is expected when testing locally.")
 
         print(f"Testing dataset '{cfg.data.name}' (task: {task})")
 
@@ -174,9 +166,7 @@ def test_datasets(dataset_config_file):
 
                     # Check bounding boxes based on format
                     if bbox_format == "yolo":
-                        check_bboxes_yolo(
-                            bboxes, expected_image_size, split_name, cfg.data.name
-                        )
+                        check_bboxes_yolo(bboxes, expected_image_size, split_name, cfg.data.name)
                     elif bbox_format == "coco":
                         check_bboxes_coco(
                             bboxes,
@@ -186,9 +176,7 @@ def test_datasets(dataset_config_file):
                             target,
                         )
                     elif bbox_format == "pascal_voc":
-                        check_bboxes_pascal_voc(
-                            bboxes, expected_image_size, split_name, cfg.data.name
-                        )
+                        check_bboxes_pascal_voc(bboxes, expected_image_size, split_name, cfg.data.name)
                     else:
                         raise ValueError(f"Unsupported bbox format: {bbox_format}")
 
@@ -219,9 +207,7 @@ def test_datasets(dataset_config_file):
                 expected_channels = 1 if cfg.data.image_type == "grayscale" else 3
 
                 # Get datasets
-                train_dataset, val_dataset, test_dataset = initialize_datasets(
-                    cfg, transforms, bbox_format
-                )
+                train_dataset, val_dataset, test_dataset = initialize_datasets(cfg, transforms, bbox_format)
 
                 test_split(
                     "train",
@@ -250,9 +236,7 @@ def test_datasets(dataset_config_file):
             transforms = get_transforms(cfg)
 
             # Get datasets
-            train_dataset, val_dataset, test_dataset = initialize_datasets(
-                cfg, transforms
-            )
+            train_dataset, val_dataset, test_dataset = initialize_datasets(cfg, transforms)
 
             # Expected image size and channels
             expected_image_size = cfg.transforms.image_size
@@ -260,7 +244,5 @@ def test_datasets(dataset_config_file):
 
             # Test each split
             test_split("train", train_dataset, expected_image_size, expected_channels)
-            test_split(
-                "validation", val_dataset, expected_image_size, expected_channels
-            )
+            test_split("validation", val_dataset, expected_image_size, expected_channels)
             test_split("test", test_dataset, expected_image_size, expected_channels)

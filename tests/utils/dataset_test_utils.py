@@ -44,12 +44,10 @@ def check_bboxes_pascal_voc(bboxes, expected_image_size, split_name, dataset_nam
     xmin, ymin, xmax, ymax = bboxes[:, 0], bboxes[:, 1], bboxes[:, 2], bboxes[:, 3]
 
     assert (xmax > xmin).all(), (
-        f"Dataset '{dataset_name}' {split_name} split (bbox_format: pascal_voc): "
-        f"xmax should be greater than xmin."
+        f"Dataset '{dataset_name}' {split_name} split (bbox_format: pascal_voc): " f"xmax should be greater than xmin."
     )
     assert (ymax > ymin).all(), (
-        f"Dataset '{dataset_name}' {split_name} split (bbox_format: "
-        f"pascal_voc): ymax should be greater than ymin."
+        f"Dataset '{dataset_name}' {split_name} split (bbox_format: " f"pascal_voc): ymax should be greater than ymin."
     )
     assert (xmin >= 0).all() & (xmax <= expected_image_size[1]).all(), (
         f"Dataset '{dataset_name}' {split_name} split (bbox_format: pascal_voc): "

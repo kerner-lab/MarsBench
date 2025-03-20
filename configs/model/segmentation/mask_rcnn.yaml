@@ -1,5 +1,5 @@
 name: MaskRCNN
-class_path: src.models.segmentation.MaskRCNN
+class_path: marsbench.models.segmentation.MaskRCNN
 status: skip
 pretrained: true
 freeze_layers: true

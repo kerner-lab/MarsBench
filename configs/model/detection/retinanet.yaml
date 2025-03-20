@@ -1,5 +1,5 @@
 name: RetinaNet
-class_path: src.models.detection.RetinaNet
+class_path: marsbench.models.detection.RetinaNet
 pretrained: true
 freeze_layers: true
 bbox_format: pascal_voc

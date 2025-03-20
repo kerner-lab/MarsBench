@@ -12,14 +12,10 @@ def verify_detection_output_properties(output, model_name: str) -> None:
 
     # Iterate over each image's detections.
     for i, detection in enumerate(output):
-        assert isinstance(
-            detection, dict
-        ), f"{model_name}: Output for image {i} should be a dict."
+        assert isinstance(detection, dict), f"{model_name}: Output for image {i} should be a dict."
 
         for key in ["boxes", "labels", "scores"]:
-            assert (
-                key in detection
-            ), f"{model_name}: Missing key '{key}' in output for image {i}."
+            assert key in detection, f"{model_name}: Missing key '{key}' in output for image {i}."
 
         boxes, labels, scores = (
             detection["boxes"],
@@ -27,15 +23,9 @@ def verify_detection_output_properties(output, model_name: str) -> None:
             detection["scores"],
         )
 
-        assert isinstance(
-            boxes, torch.Tensor
-        ), f"{model_name}: 'boxes' for image {i} is not a torch.Tensor."
-        assert isinstance(
-            labels, torch.Tensor
-        ), f"{model_name}: 'labels' for image {i} is not a torch.Tensor."
-        assert isinstance(
-            scores, torch.Tensor
-        ), f"{model_name}: 'scores' for image {i} is not a torch.Tensor."
+        assert isinstance(boxes, torch.Tensor), f"{model_name}: 'boxes' for image {i} is not a torch.Tensor."
+        assert isinstance(labels, torch.Tensor), f"{model_name}: 'labels' for image {i} is not a torch.Tensor."
+        assert isinstance(scores, torch.Tensor), f"{model_name}: 'scores' for image {i} is not a torch.Tensor."
 
         # Verify expected shapes.
         assert (
@@ -52,12 +42,8 @@ def verify_detection_output_properties(output, model_name: str) -> None:
 
         # Check for invalid values.
         for tensor, name in [(boxes, "boxes"), (labels, "labels"), (scores, "scores")]:
-            assert not torch.isnan(
-                tensor
-            ).any(), f"{model_name}: {name} for image {i} contains NaN values."
-            assert not torch.isinf(
-                tensor
-            ).any(), f"{model_name}: {name} for image {i} contains Inf values."
+            assert not torch.isnan(tensor).any(), f"{model_name}: {name} for image {i} contains NaN values."
+            assert not torch.isinf(tensor).any(), f"{model_name}: {name} for image {i} contains Inf values."
 
         assert torch.all(
             (scores >= 0) & (scores <= 1)
@@ -77,20 +63,12 @@ def verify_detr_output_properties(output: dict, model_name: str) -> None:
 
     pred_logits = output["pred_logits"]
     pred_boxes = output["pred_boxes"]
-    assert isinstance(
-        pred_logits, torch.Tensor
-    ), f"{model_name}: 'pred_logits' should be a tensor."
-    assert isinstance(
-        pred_boxes, torch.Tensor
-    ), f"{model_name}: 'pred_boxes' should be a tensor."
+    assert isinstance(pred_logits, torch.Tensor), f"{model_name}: 'pred_logits' should be a tensor."
+    assert isinstance(pred_boxes, torch.Tensor), f"{model_name}: 'pred_boxes' should be a tensor."
 
     # Check shapes
-    assert (
-        pred_logits.ndim == 3
-    ), f"{model_name}: 'pred_logits' should have 3 dimensions, got {pred_logits.ndim}."
-    assert (
-        pred_boxes.ndim == 3
-    ), f"{model_name}: 'pred_boxes' should have 3 dimensions, got {pred_boxes.ndim}."
+    assert pred_logits.ndim == 3, f"{model_name}: 'pred_logits' should have 3 dimensions, got {pred_logits.ndim}."
+    assert pred_boxes.ndim == 3, f"{model_name}: 'pred_boxes' should have 3 dimensions, got {pred_boxes.ndim}."
 
     # Check for invalid values
     for tensor, name in [(pred_logits, "pred_logits"), (pred_boxes, "pred_boxes")]:
@@ -99,9 +77,7 @@ def verify_detr_output_properties(output: dict, model_name: str) -> None:
 
     # DETR typically returns normalized boxes.
     if not torch.all((pred_boxes >= 0) & (pred_boxes <= 1)):
-        raise AssertionError(
-            f"{model_name}: 'pred_boxes' values must be between 0 and 1."
-        )
+        raise AssertionError(f"{model_name}: 'pred_boxes' values must be between 0 and 1.")
 
     # Softmax over the last dimension of pred_logits -> sum = 1
     pred_probs = torch.softmax(pred_logits, dim=-1)
@@ -117,9 +93,7 @@ def verify_detr_output_properties(output: dict, model_name: str) -> None:
 
 def verify_efficientdet_output_properties(detections, model_name: str) -> None:
     """Verify model output properties for EfficientDet."""
-    assert isinstance(
-        detections, torch.Tensor
-    ), f"{model_name}: Detections should be a tensor, got {type(detections)}"
+    assert isinstance(detections, torch.Tensor), f"{model_name}: Detections should be a tensor, got {type(detections)}"
     assert (
         detections.ndim == 3 and detections.shape[-1] == 6
     ), f"{model_name}: Detections should have shape (batch, num_detections, 6), got {detections.shape}."
@@ -130,35 +104,23 @@ def verify_efficientdet_output_properties(detections, model_name: str) -> None:
     # Check bboxes and score are valid.
     assert torch.all(x1 < x2), f"{model_name}: Not all detections satisfy x1 < x2."
     assert torch.all(y1 < y2), f"{model_name}: Not all detections satisfy y1 < y2."
-    assert torch.all(
-        (score >= 0) & (score <= 1)
-    ), f"{model_name}: Some detection scores are not in [0, 1]."
+    assert torch.all((score >= 0) & (score <= 1)), f"{model_name}: Some detection scores are not in [0, 1]."
 
-    print(
-        f"{model_name}: EfficientDet detections verified successfully. Detections shape: {detections.shape}"
-    )
+    print(f"{model_name}: EfficientDet detections verified successfully. Detections shape: {detections.shape}")
 
 
 def verify_backward_pass_detection(model, loss_dict, model_name) -> None:
     """Verify model backward pass for standard detection models."""
 
-    assert isinstance(
-        loss_dict, dict
-    ), f"{model_name}: Expected loss_dict to be a dict, got {type(loss_dict)}."
+    assert isinstance(loss_dict, dict), f"{model_name}: Expected loss_dict to be a dict, got {type(loss_dict)}."
 
     total_loss = sum(loss for loss in loss_dict.values())
 
     total_loss.backward()
-    grad_norm = sum(
-        p.grad.norm().item() for p in model.parameters() if p.grad is not None
-    )
-    assert (
-        grad_norm > 0
-    ), f"{model_name}: Gradients are not computed during backward pass (grad norm: {grad_norm})."
+    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+    assert grad_norm > 0, f"{model_name}: Gradients are not computed during backward pass (grad norm: {grad_norm})."
 
-    print(
-        f"{model_name}: Backward pass verified successfully, total grad norm: {grad_norm}"
-    )
+    print(f"{model_name}: Backward pass verified successfully, total grad norm: {grad_norm}")
 
 
 def verify_backward_pass_detection_detr(model, output, target, model_name) -> None:
@@ -166,40 +128,24 @@ def verify_backward_pass_detection_detr(model, output, target, model_name) -> No
     criterion = model.criterion
     weight_dict = criterion.weight_dict
     loss_dict = criterion(output, target)
-    total_loss = sum(
-        loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict
-    )
+    total_loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
     total_loss.backward()
-    grad_norm = sum(
-        p.grad.norm().item() for p in model.parameters() if p.grad is not None
-    )
-    assert (
-        grad_norm > 0
-    ), f"{model_name}: Gradients are not computed during backward pass (grad norm: {grad_norm})."
+    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+    assert grad_norm > 0, f"{model_name}: Gradients are not computed during backward pass (grad norm: {grad_norm})."
 
-    print(
-        f"{model_name}: Backward pass verified successfully, total grad norm: {grad_norm}"
-    )
+    print(f"{model_name}: Backward pass verified successfully, total grad norm: {grad_norm}")
 
 
 def verify_backward_pass_detection_efficientdet(model, loss, model_name) -> None:
     """Verify model backward pass for EfficientDET."""
     loss.backward()
-    grad_norm = sum(
-        p.grad.norm().item() for p in model.parameters() if p.grad is not None
-    )
-    assert (
-        grad_norm > 0
-    ), f"{model_name}: Gradients not computed (grad norm: {grad_norm})."
-    print(
-        f"{model_name}: Backward pass verified successfully with grad norm: {grad_norm}"
-    )
+    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+    assert grad_norm > 0, f"{model_name}: Gradients not computed (grad norm: {grad_norm})."
+    print(f"{model_name}: Backward pass verified successfully with grad norm: {grad_norm}")
 
 
-def verify_detection_model_output_and_backward_pass(
-    model, model_name, dummy_input, dummy_target, cfg
-):
+def verify_detection_model_output_and_backward_pass(model, model_name, dummy_input, dummy_target, cfg):
     device = next(model.parameters()).device
     training_mode = model.training
     dummy_target = [{k: v.to(device) for k, v in t.items()} for t in dummy_target]
@@ -237,9 +183,7 @@ def verify_detection_model_output_and_backward_pass(
         verify_efficientdet_output_properties(detections, model_name)
 
         loss_dict = model(dummy_input, dummy_target)
-        verify_backward_pass_detection_efficientdet(
-            model, loss_dict["loss"], model_name
-        )
+        verify_backward_pass_detection_efficientdet(model, loss_dict["loss"], model_name)
 
     else:
         dummy_input = dummy_input.to(device)
@@ -255,9 +199,7 @@ def verify_detection_model_output_and_backward_pass(
         verify_backward_pass_detection(model, loss_dict, model_name)
 
 
-def run_detection_model_tests(
-    cfg, model, model_class, model_name, input_size, batch_size
-):
+def run_detection_model_tests(cfg, model, model_class, model_name, input_size, batch_size):
     dummy_input, dummy_target = create_test_data(
         batch_size=batch_size,
         input_size=input_size,
@@ -267,9 +209,7 @@ def run_detection_model_tests(
         bbox_format=cfg.model.bbox_format,
     )
 
-    verify_detection_model_output_and_backward_pass(
-        model, model_name, dummy_input, dummy_target, cfg
-    )
+    verify_detection_model_output_and_backward_pass(model, model_name, dummy_input, dummy_target, cfg)
 
     setup_training(
         model=model,

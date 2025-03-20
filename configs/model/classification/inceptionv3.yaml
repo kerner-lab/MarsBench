@@ -1,5 +1,5 @@
 name: InceptionV3
-class_path: src.models.classification.InceptionV3
+class_path: marsbench.models.classification.InceptionV3
 status: ready
 pretrained: true
 freeze_layers: true
