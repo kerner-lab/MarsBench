@@ -1,6 +1,7 @@
 """
 UNet model implementation for Mars surface image segmentation.
 """
+
 import logging
 
 import segmentation_models_pytorch as smp

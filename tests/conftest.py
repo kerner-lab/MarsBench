@@ -1,3 +1,7 @@
+"""
+Conftest file for MarsBench tests.
+"""
+
 import os
 import sys
 
