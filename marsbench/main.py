@@ -1,98 +1,50 @@
+"""
+Main entry point for MarsBench training, testing, and prediction pipelines.
+"""
 import logging
 
 import hydra
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.loggers import MLFlowLogger
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loggers import WandbLogger
 
-from .data.mars_datamodule import MarsDataModule
-from .models import import_model_class
-from .utils.config_mapper import load_dynamic_configs
-from .utils.seed import seed_everything
+from marsbench.data.mars_datamodule import MarsDataModule
+from marsbench.training import run_prediction
+from marsbench.training import run_testing
+from marsbench.training import run_training
+from marsbench.training import setup_callbacks
+from marsbench.training import setup_model
+from marsbench.utils.config_mapper import load_dynamic_configs
+from marsbench.utils.logger import setup_loggers
+from marsbench.utils.seed import seed_everything
 
 log = logging.getLogger(__name__)
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig):
     """Main training pipeline.
 
     Args:
         cfg (DictConfig): Hydra configuration
     """
     try:
-        # Update the configuration with dynamically loaded configs based on task, data_name, and model_name
-        # This handles loading the appropriate data and model configs automatically
+        # Load dynamic configs
         cfg = load_dynamic_configs(cfg)
 
-        # Set seed if provided
-        if cfg.get("seed"):
+        # Set up seed for reproducibility
+        if "seed" in cfg:
+            log.info(f"Setting seed to {cfg.seed}")
             seed_everything(cfg.seed)
 
-        # Create components
+        # Set up model (new or pre-trained)
+        model = setup_model(cfg)
+
+        # Create data module
         data_module = MarsDataModule(cfg)
-        model = import_model_class(cfg)
 
-        # Setup callbacks
-        callbacks = [
-            EarlyStopping(monitor="val/loss", patience=5, mode="min"),
-            ModelCheckpoint(
-                monitor="val/loss",
-                save_top_k=1,
-                mode="min",
-                filename="best-{epoch:02d}-{val_loss:.4f}",
-            ),
-            ModelCheckpoint(save_last=True, save_top_k=0, filename="last"),
-        ]
-
-        # Setup loggers
-        loggers = []
-        if cfg.logger.wandb.enabled:
-            loggers.append(
-                WandbLogger(
-                    project=cfg.logger.wandb.project,
-                    name=cfg.logger.wandb.name,
-                    entity=cfg.logger.wandb.entity,
-                    tags=cfg.logger.wandb.tags,
-                    notes=cfg.logger.wandb.notes,
-                    save_code=cfg.logger.wandb.save_code,
-                    mode=cfg.logger.wandb.mode,
-                )
-            )
-
-        if cfg.logger.mlflow.enabled:
-            loggers.append(
-                MLFlowLogger(
-                    experiment_name=cfg.logger.mlflow.experiment_name,
-                    tracking_uri=cfg.logger.mlflow.tracking_uri,
-                    run_name=cfg.logger.mlflow.run_name,
-                    tags=cfg.logger.mlflow.tags,
-                    save_dir=cfg.logger.mlflow.save_dir,
-                )
-            )
-
-        if cfg.logger.tensorboard.enabled:
-            loggers.append(
-                TensorBoardLogger(
-                    save_dir=cfg.logger.tensorboard.save_dir,
-                    name=cfg.logger.tensorboard.name,
-                    version=cfg.logger.tensorboard.version,
-                )
-            )
-
-        if cfg.logger.csv.enabled:
-            loggers.append(
-                CSVLogger(
-                    save_dir=cfg.logger.csv.save_dir,
-                    name=cfg.logger.csv.name,
-                    version=cfg.logger.csv.version,
-                )
-            )
+        # Setup callbacks and loggers
+        callbacks = setup_callbacks(cfg)
+        loggers = setup_loggers(cfg)
 
         # Initialize trainer
         trainer_config = {k: v for k, v in cfg.training.trainer.items() if k not in ["logger"]}
@@ -103,13 +55,13 @@ def main(cfg: DictConfig) -> None:
             **trainer_config,
         )
 
-        # Run based on mode
+        # Dispatch to appropriate mode handler
         if cfg.mode == "train":
-            trainer.fit(model, data_module)
+            run_training(trainer, model, data_module, cfg)
         elif cfg.mode == "test":
-            trainer.test(model, data_module)
+            run_testing(trainer, model, data_module, cfg)
         elif cfg.mode == "predict":
-            trainer.predict(model, data_module)
+            run_prediction(trainer, model, data_module, cfg)
         else:
             raise ValueError(f"Unknown mode: {cfg.mode}")
 

@@ -1,3 +1,6 @@
+"""
+Classification models for Mars surface image classification tasks.
+"""
 from .InceptionV3 import InceptionV3
 from .ResNet18 import ResNet18
 from .ResNet50 import ResNet50

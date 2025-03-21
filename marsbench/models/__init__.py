@@ -1,3 +1,6 @@
+"""
+Model registry and import utilities for MarsBench.
+"""
 import logging
 import os
 
@@ -22,7 +25,7 @@ MODEL_REGISTRY = {
     "ResNet50": ResNet50,
     "SqueezeNet": SqueezeNet,
     "SwinTransformer": SwinTransformer,
-    "ViT": ViT,
+    "VisionTransformer": ViT,
     "UNet": UNet,
     "DeepLab": DeepLab,
 }
@@ -35,7 +38,7 @@ def import_model_class(cfg: DictConfig):
         cfg (DictConfig): Configuration containing model information
 
     Returns:
-        model: Instantiated model
+        The model class (not instantiated)
 
     Raises:
         ValueError: If model is not found
@@ -46,14 +49,13 @@ def import_model_class(cfg: DictConfig):
             log.error(f"Model {model_name} not found in available models: {list(MODEL_REGISTRY.keys())}")
             raise ValueError(f"Model {model_name} not found")
 
-        # Initialize model
+        # Return the model class (not instantiated)
         model_class = MODEL_REGISTRY[model_name]
-        model = model_class(cfg)
-        log.info(f"Successfully initialized {model_name}")
-        return model
+        log.info(f"Successfully imported {model_name} class")
+        return model_class
 
     except Exception as e:
-        log.error(f"Failed to import model: {str(e)}")
+        log.error(f"Failed to import model class: {str(e)}")
         raise
 
 
@@ -66,9 +68,7 @@ if __name__ == "__main__":
                 "task=classification",
                 "model_name=vit",
                 "data_name=domars16k",
-                "seed=0",
-                "training.max_epochs=5",
-                "training.batch_size=16",
             ],
         )
-    import_model_class(cfg)
+    model_class = import_model_class(cfg)
+    model = model_class(cfg)
