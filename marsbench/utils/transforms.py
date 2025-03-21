@@ -1,3 +1,7 @@
+"""
+Image transformation utilities for data preprocessing and augmentation.
+"""
+
 import logging
 
 from torchvision import transforms

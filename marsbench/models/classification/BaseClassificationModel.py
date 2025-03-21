@@ -1,3 +1,6 @@
+"""
+Abstract base class for all Mars surface image classification models.
+"""
 from abc import ABC
 from abc import abstractmethod
 

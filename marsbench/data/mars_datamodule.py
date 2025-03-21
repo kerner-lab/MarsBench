@@ -1,3 +1,6 @@
+"""
+PyTorch Lightning data module for Mars datasets.
+"""
 import multiprocessing
 from typing import Optional
 

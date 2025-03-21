@@ -1,3 +1,7 @@
+"""
+ResNet50 model implementation for Mars surface image classification.
+"""
+
 import logging
 
 from torch import nn
