@@ -1,19 +1,18 @@
 # MarsBench
 
-MarsBench is an initiative to develop a comprehensive benchmarking platform for Mars science datasets, similar to GeoBench. It aims to organize, evaluate, and benchmark datasets related to Mars research for various machine learning (ML) tasks.
+MarsBench is a comprehensive benchmarking framework for computer vision tasks on Mars surface images. It provides a unified platform for training, evaluating, and comparing machine learning models across various Mars datasets for classification, segmentation, and detection tasks.
 
-## Overview
+## Features
 
-**Objective:** To create a centralized resource for Mars science datasets, providing ML-readiness, evaluations, and a leaderboard for state-of-the-art (SOTA) results.
-
-**Tasks:**
-- **Dataset Curation:** Collect and organize Mars datasets. Ensure they are ML-ready with proper splits and categorization (e.g., classification, segmentation, object detection).
-- **Evaluation:** Test datasets using popular models (e.g., U-Net, SegFormer) and document performance.
-- **Website and Leaderboard:** Develop a website for the MarsBench platform, featuring a leaderboard similar to GLUE or Hugging Face.
+- **Unified Interface**: Common framework for training and evaluating models across multiple datasets
+- **Model Zoo**: Pre-configured implementations of popular vision models (ResNet, ViT, Swin Transformer, UNet, etc.)
+- **Dataset Collection**: Standardized access to Mars image datasets with consistent APIs
+- **Experiment Tracking**: Integration with WandB, TensorBoard, and CSV loggers
+- **Flexible Configuration**: Hydra-based configuration system for experiment management
+- **Reproducibility**: Automatic tracking of random seeds and experiment configurations
+- **Extensibility**: Easy addition of new models and datasets
 
 ## Installation
-
-To install MarsBench and its dependencies:
 
 ```bash
 # Install the package with core dependencies
@@ -23,60 +22,121 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
-## Tasks and Updates
+## Quick Start
 
-- **Task 0:** Complete Mars Datasets Documentation. Ensure all datasets have accurate information about train, validation, and test splits, and check for existing SOTA results.
-- **Task 1:** Search for Additional Datasets. Explore platforms like Zenodo, Kaggle, Radiant ML, and DataVerse for new datasets.
-- **Task 2:** Group Datasets and Prepare Pipelines:
-  - **Classification:** Use models like ResNet, ViT, YOLO, MobileNet, Swin Transformer.
-  - **Segmentation:** Evaluate using models like U-Net, DeepLab.
+To train a model:
 
-## Data Storage
+```bash
+python -m marsbench.main task=classification model_name=resnet18 data_name=domars16k data_path=/path/to/dataset
+```
 
-Datasets are stored in the following directory:
+To test a model (after training):
 
-```  /data/hkerner/MarsBench ```
+```bash
+python -m marsbench.main mode=test task=classification model_name=resnet18 data_name=domars16k checkpoint_path=outputs/classification/domars16k/resnet18/YYYY-MM-DD_HH-MM-SS/checkpoints/best.ckpt
+```
 
+To generate predictions:
 
-## MarsBench: Classification Task Workflow
+```bash
+python -m marsbench.main mode=predict task=classification model_name=resnet18 data_name=domars16k checkpoint_path=outputs/classification/domars16k/resnet18/YYYY-MM-DD_HH-MM-SS/checkpoints/best.ckpt
+```
 
-**Objective:** Evaluate various models on Mars Science datasets for classification tasks.
+## Configuration
 
-1. **Project Setup**
-   - **Directory Structure:** Store datasets and results in `/data/hkerner/MarsBench`.
-   - **Libraries:** Use essential libraries like `torch`, `wandb`, and `cv2` for data processing and model training.
+MarsBench uses Hydra for configuration management. The main configuration is located in `configs/config.yaml` with task-specific configurations in the respective subdirectories:
 
-2. **Data Preparation**
-   - **Custom Dataset Classes:** Implement dataset classes inheriting from `CustomDataset` to handle various Mars datasets:
-     - `MarsDataset`: For Mars Image Content Classification.
-     - `DoMars16k`: For the DoMars16k dataset.
-     - `DeepMars_Landmark`: For DeepMars Landmark dataset.
-     - `DeepMars_Surface`: For DeepMars Surface dataset.
-     - `MartianFrostDataset`: For Martian Frost dataset, including handling JSON labels.
+- `configs/model/classification/`: Classification model configurations
+- `configs/model/segmentation/`: Segmentation model configurations
+- `configs/model/detection/`: Detection model configurations
+- `configs/data/classification/`: Classification dataset configurations
+- `configs/data/segmentation/`: Segmentation dataset configurations
+- `configs/data/detection/`: Detection dataset configurations
+- `configs/training/`: Training hyperparameters and settings
+- `configs/transforms/`: Image transformation settings
+- `configs/logger/`: Logging configuration
+- `configs/callbacks/`: PyTorch Lightning callback settings
 
-3. **Dataset Handling**
-   - **Loading Data:** Read image paths and labels from text files or directory structures.
-   - **Data Splitting:** Organize data into training, validation, and test sets based on provided splits or create new splits if necessary.
+Override any configuration parameter using the command line:
 
-4. **Model Training**
-   - **Models:** Use models like ResNet50, VIT-16, and Swin-Transformer.
-   - **Training Process:**
-     - **Initialization:** Set up model, loss function, and optimizer.
-     - **Training Loop:** For each epoch, iterate through batches of training data, perform forward and backward passes, and update model weights.
-     - **Validation:** Evaluate model performance on the validation set to track accuracy and loss.
+```bash
+python -m marsbench.main task=classification model_name=resnet18 data_name=domars16k training.batch_size=64 training.optimizer.lr=0.0005
+```
 
-5. **Metrics and Logging**
-   - **Metrics Tracking:** Record metrics such as training loss, validation loss, accuracy, precision, recall, and F1-score.
-   - **Wandb Integration:** Log training and validation metrics using Weights & Biases (Wandb) for visualization and analysis.
+## Supported Datasets
 
-6. **Results Evaluation**
-   - **Initial Results:** Review performance metrics from initial runs. Fine-tune models if necessary.
-   - **Final Results:** Aggregate results and compare model performance on different datasets.
+### Classification
+- **DoMars16k**: Mars terrain classification (15 classes)
+- **MSLNet**: Mars Science Laboratory image classification (19 classes)
+- **HiRISENet**: High-Resolution Imaging Science Experiment images
+- **DeepMars_Surface**: Mars surface type classification
+- **DeepMars_Landmark**: Mars landmark classification
+- **MartianFrost**: Mars frost detection
 
-7. **Documentation and Updates**
-   - **Results Table:** Create a results table documenting metrics for different models and datasets.
-   - **Future Work:** Incorporate additional models or datasets and refine existing pipelines based on performance.
+### Segmentation
+- **ConeQuest**: Segmentation of cone-like structures on Mars surface
 
-## Contributing
+### Detection
+- To be added
 
-Contributions are welcome! Please fork the repository and submit a pull request with your changes.
+## Supported Models
+
+### Classification
+- ResNet18, ResNet50
+- Vision Transformer (ViT)
+- Swin Transformer
+- InceptionV3
+- SqueezeNet
+
+### Segmentation
+- UNet
+- DeepLab
+
+### Detection
+- To be added
+
+## Project Structure
+
+```
+marsbench/
+├── configs/                # Hydra configuration files
+├── marsbench/              # Main package
+│   ├── data/               # Dataset implementations
+│   │   ├── classification/ # Classification datasets
+│   │   └── segmentation/   # Segmentation datasets
+│   ├── models/             # Model implementations
+│   │   ├── classification/ # Classification models
+│   │   └── segmentation/   # Segmentation models
+│   ├── training/           # Training utilities
+│   ├── utils/              # Helper functions
+│   └── main.py             # Entry point
+├── tests/                  # Unit tests
+├── examples/               # Example scripts
+└── outputs/                # Generated outputs (predictions, checkpoints)
+```
+
+## Development
+
+### Adding a New Dataset
+
+1. Create a new dataset implementation in `marsbench/data/classification/` or `marsbench/data/segmentation/`
+2. Inherit from `BaseClassificationDataset` or `BaseSegmentationDataset`
+3. Implement the `_load_data` method
+4. Add dataset configuration in `configs/data/classification/` or `configs/data/segmentation/`
+5. Register the dataset in `marsbench/data/__init__.py`
+
+### Adding a New Model
+
+1. Create a new model implementation in `marsbench/models/classification/` or `marsbench/models/segmentation/`
+2. Inherit from `BaseClassificationModel` or `BaseSegmentationModel`
+3. Implement the `_initialize_model` method
+4. Add model configuration in `configs/model/classification/` or `configs/model/segmentation/`
+5. Register the model in `marsbench/models/__init__.py`
+
+## Testing
+
+Run the test suite:
+
+```bash
+pytest tests/
+```
