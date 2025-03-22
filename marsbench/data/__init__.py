@@ -1,3 +1,7 @@
+"""
+Dataset loading and preprocessing utilities for MarsBench.
+"""
+
 import logging
 from typing import Optional
 from typing import Tuple
@@ -34,7 +38,7 @@ def get_dataset(
         transforms (Tuple[torch.nn.Module, torch.nn.Module]):
             Tuple of train and val transforms.
         subset (Union[int, None], optional):
-            Number of samples to use for training. Defaults to None.
+            Number of samples to use for training. Prioritizes cfg.data.subset over this argument.
         mask_transforms (Optional[Tuple[torch.nn.Module, torch.nn.Module]], optional):
             Tuple of train and val mask transforms. Defaults to None.
 
@@ -212,6 +216,8 @@ def get_dataset(
     else:
         raise ValueError(f"Task not supported: {cfg.task}")
 
+    # Apply subset if specified
+    subset = cfg.data.subset if cfg.data.get("subset", None) is not None else subset
     if subset is not None and subset > 0:
         train_dataset = Subset(
             train_dataset,

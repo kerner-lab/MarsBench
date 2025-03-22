@@ -1,3 +1,7 @@
+"""
+MartianFrost dataset for Mars frost feature classification.
+"""
+
 import os
 from typing import List
 from typing import Literal

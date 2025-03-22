@@ -1,3 +1,6 @@
+"""
+Classification datasets for Mars surface image classification tasks.
+"""
 from .BaseClassificationDataset import BaseClassificationDataset
 from .DeepMars_Landmark import DeepMars_Landmark
 from .DeepMars_Surface import DeepMars_Surface

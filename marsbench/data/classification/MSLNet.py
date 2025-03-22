@@ -1,3 +1,7 @@
+"""
+Mars Science Laboratory (MSL) image dataset for Mars rover image classification.
+"""
+
 import os
 from typing import List
 from typing import Literal

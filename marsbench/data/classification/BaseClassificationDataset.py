@@ -1,3 +1,7 @@
+"""
+Base class for all Mars surface image classification datasets.
+"""
+
 import logging
 import os
 from abc import ABC

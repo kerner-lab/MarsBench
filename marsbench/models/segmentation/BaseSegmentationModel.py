@@ -1,3 +1,7 @@
+"""
+Abstract base class for all Mars surface image segmentation models.
+"""
+
 from abc import ABC
 from abc import abstractmethod
 
