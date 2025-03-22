@@ -38,16 +38,16 @@ class BaseDetectionModel(pl.LightningModule):
         return total_loss
 
     def configure_optimizers(self):
-        optimizer_name = self.cfg.optimizer.name
-        lr = self.cfg.optimizer.lr
-        weight_decay = self.cfg.optimizer.get("weight_decay", 0.0)
+        optimizer_name = self.cfg.training.optimizer.name
+        lr = self.cfg.training.optimizer.lr
+        weight_decay = self.cfg.training.optimizer.get("weight_decay", 0.0)
 
-        if optimizer_name == "adam":
+        if optimizer_name.lower() == "adam":
             optimizer = Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
-        elif optimizer_name == "adamw":
+        elif optimizer_name.lower() == "adamw":
             optimizer = AdamW(self.parameters(), lr=lr, weight_decay=weight_decay)
-        elif optimizer_name == "sgd":
-            momentum = self.cfg.optimizer.get("momentum", 0.9)
+        elif optimizer_name.lower() == "sgd":
+            momentum = self.cfg.training.optimizer.get("momentum", 0.9)
             optimizer = SGD(self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
         else:
             raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")

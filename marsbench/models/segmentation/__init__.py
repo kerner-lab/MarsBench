@@ -1,3 +1,6 @@
+"""
+Segmentation models for Mars surface image segmentation tasks.
+"""
 from .BaseSegmentationModel import BaseSegmentationModel
 from .DeepLab import DeepLab
 from .UNet import UNet

@@ -1,9 +1,5 @@
 """
 Tests for the config_mapper module.
-
-This test suite verifies the functionality of the dynamic configuration loading
-mechanism provided by the config_mapper module, particularly focusing on the
-load_dynamic_configs function.
 """
 
 import os
