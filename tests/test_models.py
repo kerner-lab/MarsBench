@@ -101,7 +101,6 @@ def test_models(model_config_file: str) -> None:
     model.train()
 
     if task == "detection":
-        print(model_name)
         run_detection_model_tests(
             cfg=cfg,
             model=model,

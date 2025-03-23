@@ -46,10 +46,6 @@ def test_mars_datamodule(dataset_name, task):
                 ],
             )
 
-    print("*" * 80)
-    print("*" * 80)
-    print(cfg.model)
-
     # Skip if dataset status is not ready
     if cfg.data.status not in cfg.test.data.status:
         print(f"Skipping dataset '{dataset_name}' (status: {cfg.data.status})")
@@ -145,10 +141,6 @@ def test_mars_datamodule(dataset_name, task):
             ), f"{dataset_name} {split_name} should have {1 if cfg.data.image_type == 'grayscale' else 3} channels"
 
             # Check targets
-            print("*" * 80)
-            print("*" * 80)
-            print(targets)
-            print(type(targets))
             assert isinstance(targets, (list, tuple)) and isinstance(
                 targets[0], dict
             ), f"{dataset_name} {split_name} targets should be tuple of dictionaries"

@@ -42,7 +42,7 @@ class DETR(BaseDetectionModel):
         model.num_queries = num_queries
 
         if num_queries != 100:
-            print("Warning: Changing query count requires full reinitialization of query embeddings!")
+            logger.warning("Changing query count requires full reinitialization of query embeddings!")
             model.num_queries = num_queries
             model.query_embed = nn.Embedding(num_queries, 256)
 
@@ -98,7 +98,7 @@ class DETR(BaseDetectionModel):
         weight_dict = self.criterion.weight_dict
         total_loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
-        print(f"Validation Loss: {total_loss}")
+        self._log_metrics("val", total_loss)
 
     def test_step(self, batch, batch_idx):
         images, targets = batch
@@ -109,4 +109,4 @@ class DETR(BaseDetectionModel):
         weight_dict = self.criterion.weight_dict
         total_loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
-        print(f"Test Loss: {total_loss}")
+        self._log_metrics("test", total_loss)

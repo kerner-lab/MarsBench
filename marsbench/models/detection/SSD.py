@@ -58,7 +58,7 @@ class SSD(BaseDetectionModel):
         )
 
         if freeze_layers and not pretrained:
-            print("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
+            logger.warning("freeze_layers is set to True but model is not pretrained. Setting freeze_layers to False")
             freeze_layers = False
 
         if pretrained and freeze_layers:
