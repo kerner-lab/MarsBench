@@ -13,6 +13,7 @@ from hydra import initialize_config_dir
 from omegaconf import DictConfig
 
 from marsbench.models import *
+from tests.utils.detect_model_test_utils import run_detection_model_tests
 from tests.utils.model_test_utils import DEFAULT_BATCH_SIZE
 from tests.utils.model_test_utils import create_test_data
 from tests.utils.model_test_utils import get_expected_output_shape
@@ -63,16 +64,11 @@ def test_models(model_config_file: str) -> None:
         # Set appropriate number of classes based on task
         if task == "classification":
             num_classes = 10  # Classification models use 10 classes for testing
-        else:  # segmentation
+        elif task == "segmentation":
             # Set to 8 classes for all segmentation models to ensure consistency
             num_classes = 8  # Use 8 classes for all segmentation models
-
-        # Set appropriate number of classes based on task
-        if task == "classification":
-            num_classes = 10  # Classification models use 10 classes for testing
-        else:  # segmentation
-            # Set to 8 classes for all segmentation models to ensure consistency
-            num_classes = 8  # Use 8 classes for all segmentation models
+        else:
+            num_classes = 2
 
         cfg = compose(
             config_name="config",
@@ -96,6 +92,7 @@ def test_models(model_config_file: str) -> None:
 
     # Import model class
     ModelClass = import_model_class(model_class_path, model)
+    model_name = cfg.model.name
 
     # Setup model parameters
     input_size = cfg.model.get("input_size", [3, 224, 224])
@@ -103,52 +100,63 @@ def test_models(model_config_file: str) -> None:
     model = ModelClass(cfg)
     model.train()
 
-    # Create test data
-    dummy_input, dummy_target = create_test_data(
-        batch_size=batch_size,
-        input_size=input_size,
-        num_classes=cfg.data.num_classes,
-        task=task,
-    )
+    if task == "detection":
+        run_detection_model_tests(
+            cfg=cfg,
+            model=model,
+            model_class=ModelClass,
+            model_name=model_name,
+            input_size=input_size,
+            batch_size=batch_size,
+        )
 
-    # Test forward pass
-    output = model(dummy_input)
-    expected_output_shape = get_expected_output_shape(
-        batch_size=batch_size,
-        num_classes=cfg.data.num_classes,
-        input_size=input_size,
-        task=task,
-    )
+    else:
+        # Create test data
+        dummy_input, dummy_target = create_test_data(
+            batch_size=batch_size,
+            input_size=input_size,
+            num_classes=cfg.data.num_classes,
+            task=task,
+        )
 
-    # Handle tuple outputs
-    if isinstance(output, tuple) and cfg.model.name in cfg.test.model.with_tuple_output:
-        output = output[0]
-    elif isinstance(output, tuple):
-        pytest.fail(f"Not expecting tuple as output for Model: '{model}'.")
+        # Test forward pass
+        output = model(dummy_input)
+        expected_output_shape = get_expected_output_shape(
+            batch_size=batch_size,
+            num_classes=cfg.data.num_classes,
+            input_size=input_size,
+            task=task,
+        )
 
-    assert (
-        output.shape == expected_output_shape
-    ), f"{model}: Expected output shape {expected_output_shape}, got {output.shape}"
+        # Handle tuple outputs
+        if isinstance(output, tuple) and cfg.model.name in cfg.test.model.with_tuple_output:
+            output = output[0]
+        elif isinstance(output, tuple):
+            pytest.fail(f"Not expecting tuple as output for Model: '{model}'.")
 
-    # Verify output properties
-    verify_output_properties(output, task, model)
-    print(f"{model}: Forward pass successful with output shape {output.shape}")
+        assert (
+            output.shape == expected_output_shape
+        ), f"{model}: Expected output shape {expected_output_shape}, got {output.shape}"
 
-    # Test backward pass
-    verify_backward_pass(model, output, dummy_target, cfg.training.criterion.name, model)
-    print(f"{model}: Backward pass successful")
+        # Verify output properties
+        verify_output_properties(output, task, model)
+        print(f"{model}: Forward pass successful with output shape {output.shape}")
 
-    # Test training loop
-    setup_training(
-        model=model,
-        input_size=input_size,
-        num_classes=cfg.data.num_classes,
-        task=task,
-        batch_size=cfg.training.batch_size,
-        max_epochs=cfg.training.trainer.max_epochs,
-    )
-    print(f"{model}: Training integration test successful")
+        # Test backward pass
+        verify_backward_pass(model, output, dummy_target, cfg.training.criterion.name, model)
+        print(f"{model}: Backward pass successful")
 
-    # Test model save/load
-    verify_model_save_load(model, ModelClass, cfg, model)
-    print(f"{model}: Model saving and loading successful")
+        # Test training loop
+        setup_training(
+            model=model,
+            input_size=input_size,
+            num_classes=cfg.data.num_classes,
+            task=task,
+            batch_size=cfg.training.batch_size,
+            max_epochs=cfg.training.trainer.max_epochs,
+        )
+        print(f"{model}: Training integration test successful")
+
+        # Test model save/load
+        verify_model_save_load(model, ModelClass, cfg, model)
+        print(f"{model}: Model saving and loading successful")

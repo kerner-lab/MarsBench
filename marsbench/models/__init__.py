@@ -14,6 +14,11 @@ from .classification import ResNet50
 from .classification import SqueezeNet
 from .classification import SwinTransformer
 from .classification import ViT
+from .detection import DETR
+from .detection import SSD
+from .detection import EfficientDET
+from .detection import FasterRCNN
+from .detection import RetinaNet
 from .segmentation import DeepLab
 from .segmentation import UNet
 
@@ -29,6 +34,11 @@ MODEL_REGISTRY = {
     "VisionTransformer": ViT,
     "UNet": UNet,
     "DeepLab": DeepLab,
+    "DETR": DETR,
+    "EfficientDET": EfficientDET,
+    "FasterRCNN": FasterRCNN,
+    "RetinaNet": RetinaNet,
+    "SSD": SSD,
 }
 
 
