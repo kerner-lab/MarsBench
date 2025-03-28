@@ -1,3 +1,7 @@
+"""
+SSD model implementation for object detection in Mars surface images.
+"""
+
 import logging
 
 import torch.nn as nn

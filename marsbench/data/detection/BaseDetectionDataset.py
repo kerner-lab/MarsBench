@@ -1,9 +1,18 @@
+"""
+Base class for all Mars surface image detection datasets.
+"""
+
 import json
 import logging
 import os
+from abc import ABC
 from collections import defaultdict
 from pathlib import Path
+from typing import Callable
+from typing import List
 from typing import Literal
+from typing import Optional
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -15,12 +24,12 @@ from torch.utils.data import Dataset
 logger = logging.getLogger(__name__)
 
 
-class BaseDetectionDataset(Dataset):
+class BaseDetectionDataset(Dataset, ABC):
     def __init__(
         self,
         cfg: DictConfig,
         data_dir: str,
-        transform=None,
+        transform: Optional[Callable[[Image.Image, dict], dict]] = None,
         bbox_format: Literal["coco", "yolo", "pascal_voc"] = None,
         split: Literal["train", "val", "test"] = "train",
     ):
@@ -58,7 +67,7 @@ class BaseDetectionDataset(Dataset):
             f"Dataset initialized with mode: {self.image_type}, " f"transforms: {'applied' if transform else 'none'}, "
         )
 
-    def _load_data(self):
+    def _load_data(self) -> Tuple[List[str], List[List[float]], List[List[int]], List[str]]:
         image_paths = sorted(os.listdir(Path(self.data_dir) / self.split / "images"))
         image_suffix = Path(image_paths[0]).suffix
         names = [Path(p).stem for p in image_paths]
@@ -146,10 +155,10 @@ class BaseDetectionDataset(Dataset):
             valid_names,
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.image_paths)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, dict]:
         image = Image.open(self.image_paths[idx]).convert(self.image_type)
         bboxes = self.annotations[idx]
         labels = self.labels[idx]

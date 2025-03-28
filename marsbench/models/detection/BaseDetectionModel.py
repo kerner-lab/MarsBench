@@ -1,3 +1,8 @@
+"""
+Abstract base class for all Mars surface image detection models.
+"""
+
+from abc import ABC
 from abc import abstractmethod
 
 import pytorch_lightning as pl
@@ -7,7 +12,7 @@ from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
 
 
-class BaseDetectionModel(pl.LightningModule):
+class BaseDetectionModel(pl.LightningModule, ABC):
     def __init__(self, cfg):
         super(BaseDetectionModel, self).__init__()
         self.cfg = cfg

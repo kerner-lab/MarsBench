@@ -1,3 +1,7 @@
+"""
+FasterRCNN model implementation for object detection in Mars surface images.
+"""
+
 import logging
 
 from torchmetrics.detection import MeanAveragePrecision

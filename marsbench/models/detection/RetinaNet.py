@@ -1,3 +1,8 @@
+"""
+RetinaNet model implementation for object detection in Mars surface images.
+"""
+
+
 import logging
 from functools import partial
 

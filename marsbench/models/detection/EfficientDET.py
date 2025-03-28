@@ -1,3 +1,7 @@
+"""
+EfficientDET model implementation for object detection in Mars surface images.
+"""
+
 import logging
 
 from effdet import DetBenchTrain
