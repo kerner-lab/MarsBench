@@ -1,0 +1,7 @@
+name: SSD
+class_path: marsbench.models.detection.SSD
+pretrained: true
+freeze_layers: true
+bbox_format: pascal_voc
+nms: 0.45
+status: test

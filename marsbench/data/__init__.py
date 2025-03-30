@@ -18,6 +18,8 @@ from .classification import DoMars16k
 from .classification import HiRISENet
 from .classification import MartianFrost
 from .classification import MSLNet
+from .detection import ConeQuest as ConeQuestDetection
+from .detection import Mars_Dust_Devil
 from .segmentation import ConeQuest
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ def get_dataset(
     transforms: Tuple[torch.nn.Module, torch.nn.Module],
     subset: Union[int, None] = None,
     mask_transforms: Optional[Tuple[torch.nn.Module, torch.nn.Module]] = None,
+    bbox_format: Optional[str] = None,
 ) -> Tuple[Dataset, Dataset, Dataset]:
     """
     Returns a train, val, and test dataset.
@@ -208,6 +211,55 @@ def get_dataset(
                 data_dir=cfg.data.data_dir,
                 transform=transforms[1],
                 mask_transform=mask_transforms[1],
+                split="test",
+            )
+        else:
+            raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}")
+
+    # Detection datasets
+    elif cfg.task == "detection":
+        if cfg.data.name == "ConeQuest":
+            train_dataset = ConeQuestDetection(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[0],
+                bbox_format=bbox_format,
+                split="train",
+            )
+            val_dataset = ConeQuestDetection(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                bbox_format=bbox_format,
+                split="val",
+            )
+            test_dataset = ConeQuestDetection(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                bbox_format=bbox_format,
+                split="test",
+            )
+        elif cfg.data.name == "Mars_Dust_Devil":
+            train_dataset = Mars_Dust_Devil(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[0],
+                bbox_format=bbox_format,
+                split="train",
+            )
+            val_dataset = Mars_Dust_Devil(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                bbox_format=bbox_format,
+                split="val",
+            )
+            test_dataset = Mars_Dust_Devil(
+                cfg=cfg,
+                data_dir=cfg.data.data_dir,
+                transform=transforms[1],
+                bbox_format=bbox_format,
                 split="test",
             )
         else:

@@ -1,0 +1,11 @@
+name: DETR
+class_path: marsbench.models.detection.DETR
+pretrained: true
+freeze_layers: true
+bbox_format: yolo
+loss_weight_dict : {'loss_ce': 1, 'loss_bbox': 1, 'loss_giou': 1}
+loss_types: ['labels', 'boxes', 'cardinality']
+null_class_coef: 0.5
+num_queries: 100
+iou: 0.6
+status: test
