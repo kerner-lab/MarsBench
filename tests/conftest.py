@@ -36,7 +36,6 @@ def setup_test_config(monkeypatch):
     import warnings
 
     # Filter out non-critical test warnings
-    # Filter out non-critical test warnings
     warnings.filterwarnings(
         "ignore",
         message="The `srun` command is available on your system but is not used",
