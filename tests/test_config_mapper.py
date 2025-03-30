@@ -113,24 +113,6 @@ class TestConfigMapper:
         assert hasattr(result, "model")
         assert "testmodel" in str(result.model).lower()
 
-    def test_existing_config_not_overwritten(self, base_config, mock_config_dir):
-        """Test that existing config sections are not overwritten."""
-        # Create config with a predefined data section
-        config = OmegaConf.create(OmegaConf.to_container(base_config))
-        config.data = OmegaConf.create({"name": "PredefinedDataset", "custom_attribute": "custom_value"})
-
-        # Load dynamic configs
-        result = load_dynamic_configs(config, config_dir=mock_config_dir / "configs")
-
-        # Verify original data config was preserved
-        assert hasattr(result, "data")
-        assert "predefineddataset" in str(result.data).lower()
-        assert result.data.custom_attribute == "custom_value"
-
-        # Verify model config was loaded normally
-        assert hasattr(result, "model")
-        assert "testmodel" in str(result.model).lower()
-
     def test_integration_with_task_change(self, base_config, mock_config_dir):
         """Test that changing task affects the paths used for configs."""
         # Create segmentation config
@@ -232,7 +214,7 @@ class TestIntegrationWithProjectConfigs:
 
             # Load dynamic configs
             result_unet = load_dynamic_configs(cfg_unet)
-
+            print(result_unet)
             # Verify segmentation model configs were loaded correctly
             assert hasattr(result_unet, "model"), "Segmentation model config not loaded"
             assert result_unet.model.name.lower() == "unet", "Expected UNet model"

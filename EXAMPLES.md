@@ -11,7 +11,7 @@ This document provides ready-to-use examples for running MarsBench commands in v
 python -m marsbench.main task=classification model_name=resnet18 data_name=domars16k
 
 # Segmentation training with specific data path
-python -m marsbench.main task=segmentation model_name=UNet data_name=conequest dataset_path=/path/to/data
+python -m marsbench.main task=segmentation model_name=unet data_name=cone_quest dataset_path=/path/to/data
 
 # Training with test after training
 python -m marsbench.main task=classification model_name=resnet50 data_name=msl_net test_after_training=true
