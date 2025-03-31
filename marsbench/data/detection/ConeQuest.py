@@ -1,3 +1,7 @@
+"""
+ConeQuest dataset for Mars volcanic cone detection.
+"""
+
 from typing import Literal
 
 from omegaconf import DictConfig

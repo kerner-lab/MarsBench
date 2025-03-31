@@ -1,3 +1,7 @@
+"""
+Mars Dust Devil dataset for Mars dust devil detection.
+"""
+
 from typing import Literal
 
 from omegaconf import DictConfig

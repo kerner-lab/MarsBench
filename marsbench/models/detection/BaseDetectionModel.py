@@ -1,3 +1,8 @@
+"""
+Abstract base class for all Mars surface image detection models.
+"""
+
+from abc import ABC
 from abc import abstractmethod
 
 import pytorch_lightning as pl
@@ -7,7 +12,7 @@ from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
 
 
-class BaseDetectionModel(pl.LightningModule):
+class BaseDetectionModel(pl.LightningModule, ABC):
     def __init__(self, cfg):
         super(BaseDetectionModel, self).__init__()
         self.cfg = cfg
@@ -37,6 +42,26 @@ class BaseDetectionModel(pl.LightningModule):
 
         return total_loss
 
+    def validation_step(self, batch, batch_idx):
+        images, targets = batch
+        images = images.to(self.DEVICE)
+        outputs = self(images)
+
+        if self.metrics:
+            metric_summary = self._calculate_metrics(outputs, targets)
+            metrics = {"val/map": metric_summary["map"]}
+            self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
+
+    def test_step(self, batch, batch_idx):
+        images, targets = batch
+        images = images.to(self.DEVICE)
+        outputs = self(images)
+
+        if self.metrics:
+            metric_summary = self._calculate_metrics(outputs, targets)
+            metrics = {"test/map": metric_summary["map"]}
+            self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
+
     def configure_optimizers(self):
         optimizer_name = self.cfg.training.optimizer.name
         lr = self.cfg.training.optimizer.lr
@@ -53,3 +78,24 @@ class BaseDetectionModel(pl.LightningModule):
             raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
 
         return optimizer
+
+    def _calculate_metrics(self, outputs, targets):
+        targets_list = []
+        preds_list = []
+        for output, target in zip(outputs, targets):
+            targets_dict = {
+                "boxes": target["boxes"].detach().cpu(),
+                "labels": target["labels"].detach().cpu(),
+            }
+            preds_dict = {
+                "boxes": output["boxes"].detach().cpu(),
+                "labels": output["labels"].detach().cpu(),
+                "scores": output["scores"].detach().cpu(),
+            }
+            targets_list.append(targets_dict)
+            preds_list.append(preds_dict)
+
+        self.metrics.reset()
+        self.metrics.update(preds_list, targets_list)
+        metric_summary = self.metrics.compute()
+        return metric_summary
