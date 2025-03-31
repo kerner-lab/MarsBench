@@ -12,6 +12,11 @@ import wandb
 from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
+from torchmetrics import AUROC
+from torchmetrics import Accuracy
+from torchmetrics import F1Score
+from torchmetrics import Precision
+from torchmetrics import Recall
 
 
 class BaseClassificationModel(pl.LightningModule, ABC):
@@ -25,6 +30,16 @@ class BaseClassificationModel(pl.LightningModule, ABC):
         self.save_hyperparameters(cfg)
         self.val_outputs = []
         self.test_outputs = []
+
+        # metrics
+        self.test_results = {}
+        self.accuracy = Accuracy(task="multiclass", num_classes=self.cfg.data.num_classes)
+        self.precision = Precision(task="multiclass", num_classes=self.cfg.data.num_classes)
+        self.recall = Recall(task="multiclass", num_classes=self.cfg.data.num_classes)
+        self.f1 = F1Score(
+            task="multiclass", num_classes=self.cfg.data.num_classes, multidim_average="global", average="weighted"
+        )
+        self.auroc = AUROC(task="multiclass", num_classes=self.cfg.data.num_classes)
 
     @abstractmethod
     def _initialize_model(self):
@@ -113,7 +128,7 @@ class BaseClassificationModel(pl.LightningModule, ABC):
         return loss
 
     def on_test_epoch_end(self):
-        if not self.test_outputs or not hasattr(self.logger, "experiment"):
+        if not self.test_outputs or (self.logger and not hasattr(self.logger, "experiment")):
             return
 
         # Aggregate predictions
@@ -124,15 +139,18 @@ class BaseClassificationModel(pl.LightningModule, ABC):
         _, preds = torch.max(all_preds, dim=1)
 
         # Log confusion matrix
-        self.logger.experiment.log(
-            {
-                "test/confusion_matrix": wandb.plot.confusion_matrix(
-                    probs=None,
-                    y_true=all_labels.cpu().numpy(),
-                    preds=preds.cpu().numpy(),
-                )
-            }
-        )
+        if self.logger:
+            self.logger.experiment.log(
+                {
+                    "test/confusion_matrix": wandb.plot.confusion_matrix(
+                        probs=None,
+                        y_true=all_labels.cpu().numpy(),
+                        preds=preds.cpu().numpy(),
+                    )
+                }
+            )
+
+        self.test_results = self._calculate_metrics_benchmark(all_preds, all_labels)
 
         # Clear stored outputs
         self.test_outputs.clear()
@@ -164,3 +182,27 @@ class BaseClassificationModel(pl.LightningModule, ABC):
         correct = (preds == labels).sum().float()
         acc = correct / labels.size(0)
         return acc
+
+    def _calculate_metrics_benchmark(self, outputs, labels):
+        _, preds = torch.max(outputs, dim=1)
+        probs = torch.softmax(outputs, dim=1)
+
+        accuracy = self.accuracy(preds, labels)
+        precision = self.precision(preds, labels)
+        recall = self.recall(preds, labels)
+        f1_score = self.f1(preds, labels)
+        auroc_score = self.auroc(probs, labels)
+
+        self.accuracy.reset()
+        self.precision.reset()
+        self.recall.reset()
+        self.f1.reset()
+        self.auroc.reset()
+
+        return {
+            "accuracy": round(float(accuracy.item()), 4),
+            "precision": round(float(precision.item()), 4),
+            "recall": round(float(recall.item()), 4),
+            "f1_score": round(float(f1_score.item()), 4),
+            "auroc_score": round(float(auroc_score.item()), 4),
+        }

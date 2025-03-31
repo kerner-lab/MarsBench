@@ -83,8 +83,8 @@ def test_run_testing():
     cfg = OmegaConf.create({})
 
     # Mock the test results
-    test_results = [{"test/accuracy": 0.95}]
-    trainer.test.return_value = test_results
+    test_results = {"test/accuracy": 0.95}
+    model.test_results = test_results
 
     # Mock save_benchmark_results to avoid file operations
     with patch("marsbench.training.execution.save_benchmark_results") as mock_save:
@@ -129,15 +129,16 @@ def test_save_benchmark_results(tmp_path):
     # Create minimal config with required fields
     cfg = OmegaConf.create(
         {
-            "model": {"name": "testmodel"},
-            "data": {"name": "testdata", "num_classes": 10},
-            "data_name": "testdata",
+            "task": "classification",
+            "model": {"name": "ResNet18", "pretrained": False},
+            "data": {"name": "domars16k", "num_classes": 10},
+            "data_name": "domars16k",
             "output_path": str(tmp_path),
         }
     )
 
     # Simple results
-    results = [{"accuracy": 0.95}]
+    results = {"accuracy": 0.95}
 
     # Mock pandas for CSV operations
     mock_df = MagicMock()

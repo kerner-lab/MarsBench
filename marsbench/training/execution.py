@@ -43,8 +43,9 @@ def run_testing(trainer: Trainer, model: pl.LightningModule, data_module: MarsDa
         cfg: Configuration
     """
     log.info("Starting testing")
-    results = trainer.test(model, data_module)
-    save_benchmark_results(cfg, results)
+    _ = trainer.test(model, data_module)
+    metrics = model.test_results
+    save_benchmark_results(cfg, metrics)
 
 
 def run_prediction(trainer: Trainer, model: pl.LightningModule, data_module: MarsDataModule, cfg: DictConfig):

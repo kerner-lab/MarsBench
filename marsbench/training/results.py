@@ -35,7 +35,7 @@ def save_benchmark_results(cfg: DictConfig, results: List):
     os.makedirs(benchmark_dir, exist_ok=True)
 
     # Prefix (model name + dataset)
-    prefix = f"benchmark_{cfg.model.name}_{cfg.data_name}"
+    prefix = f"benchmark_{cfg.task}"
 
     # Consolidated results file
     results_file = os.path.join(benchmark_dir, f"{prefix}_results.csv")
@@ -43,8 +43,24 @@ def save_benchmark_results(cfg: DictConfig, results: List):
     # Current timestamp for this run
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
+    if not cfg.model.pretrained:
+        training_type = "scratch"
+    elif cfg.model.freeze_layers:
+        training_type = "feature_extractor"
+    else:
+        training_type = "transfer_learning"
+
     # Prepare entry for this run
-    entry = {"timestamp": timestamp, "model": cfg.model.name, "dataset": cfg.data_name, "results": results[0]}
+    entry = {
+        "timestamp": timestamp,
+        "model": cfg.model.name,
+        "dataset": cfg.data_name,
+        "training_type": training_type,
+        "number_of_samples": "-",
+        "random_seed": "-",
+        "model_checkpoint": "last",
+        **results,
+    }
 
     # Load existing results or create new file
     try:
