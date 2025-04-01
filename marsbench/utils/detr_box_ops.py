@@ -5,6 +5,19 @@ import torch
 from torchvision.ops.boxes import box_area
 
 
+def yolo_to_voc_batch(bboxes, img_size):
+    img_w, img_h = img_size[0], img_size[1]
+    scale = torch.tensor([img_w, img_h, img_w, img_h], device=bboxes.device)
+    bboxes_abs = bboxes * scale
+
+    xy = bboxes_abs[:, :2]
+    wh = bboxes_abs[:, 2:]
+    top_left = xy - wh / 2
+    bottom_right = xy + wh / 2
+
+    return torch.cat([top_left, bottom_right], dim=1).int()
+
+
 def box_cxcywh_to_xyxy(x):
     x_c, y_c, w, h = x.unbind(-1)
     b = [(x_c - 0.5 * w), (y_c - 0.5 * h), (x_c + 0.5 * w), (y_c + 0.5 * h)]

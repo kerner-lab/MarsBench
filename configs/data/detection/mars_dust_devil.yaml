@@ -1,6 +1,6 @@
 name: Mars_Dust_Devil
 status: test
-data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/mars_dust_devil_ctx/
+data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/mars_dust_devil/
 num_classes: 2
 image_type: "rgb"
 task: detection
