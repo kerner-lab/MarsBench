@@ -13,13 +13,14 @@ import hydra
 import numpy as np
 import pandas as pd
 import torch
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
 
 log = logging.getLogger(__name__)
 
 
-def save_benchmark_results(cfg: DictConfig, results: List):
+def save_benchmark_results(cfg: DictConfig, results: Dict):
     """Save benchmark results to JSON file.
 
     Args:
@@ -40,11 +41,19 @@ def save_benchmark_results(cfg: DictConfig, results: List):
     # Consolidated results file
     results_file = os.path.join(benchmark_dir, f"{prefix}_results.csv")
 
-    # Current timestamp for this run
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # timestamp for this run
+    run_dir = HydraConfig.get().run.dir
+    run_id = "_".join(run_dir.split("/")[-3:])
 
+    # determine model checkpoint
+    if cfg.test_after_training:
+        model_checkpoint = "ckpt_last"
+    else:
+        model_checkpoint = cfg.model.name
+
+    # model training setup
     if not cfg.model.pretrained:
-        training_type = "scratch"
+        training_type = "scratch_training"
     elif cfg.model.freeze_layers:
         training_type = "feature_extractor"
     else:
@@ -52,13 +61,13 @@ def save_benchmark_results(cfg: DictConfig, results: List):
 
     # Prepare entry for this run
     entry = {
-        "timestamp": timestamp,
-        "model": cfg.model.name,
+        "run_id": run_id,
+        "model": cfg.model_name,
         "dataset": cfg.data_name,
         "training_type": training_type,
         "number_of_samples": "-",
-        "random_seed": "-",
-        "model_checkpoint": "last",
+        "random_seed": cfg.seed,
+        "model_checkpoint": model_checkpoint,
         **results,
     }
 
@@ -82,7 +91,7 @@ def save_benchmark_results(cfg: DictConfig, results: List):
         log.info("Falling back to individual file saving")
 
         # Save to individual file as fallback
-        individual_file = os.path.join(benchmark_dir, f"{prefix}_{timestamp}.csv")
+        individual_file = os.path.join(benchmark_dir, f"{prefix}_{run_id}.csv")
         pd.DataFrame([entry]).to_csv(individual_file, index=False)
 
         log.info(f"Benchmark results saved to individual file: {individual_file}")

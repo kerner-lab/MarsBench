@@ -1,5 +1,6 @@
 """Tests for the training module functions"""
 import os
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -133,7 +134,10 @@ def test_save_benchmark_results(tmp_path):
             "model": {"name": "ResNet18", "pretrained": False},
             "data": {"name": "domars16k", "num_classes": 10},
             "data_name": "domars16k",
+            "model_name": "resnet18",
             "output_path": str(tmp_path),
+            "test_after_training": False,
+            "seed": 42,
         }
     )
 
@@ -145,11 +149,16 @@ def test_save_benchmark_results(tmp_path):
     mock_df_cls = MagicMock(return_value=mock_df)
     mock_concat = MagicMock(return_value=mock_df)
 
+    dummy_run = SimpleNamespace(dir="/dummy/path/to/run_dir")
+    dummy_hydra_config = SimpleNamespace(run=dummy_run)
+
     # Mock various dependencies
     with patch("hydra.utils.get_original_cwd", return_value=str(tmp_path)), patch(
         "pandas.DataFrame", mock_df_cls
     ), patch("pandas.concat", mock_concat), patch("pandas.read_csv", side_effect=FileNotFoundError), patch(
         "os.path.exists", return_value=False
+    ), patch(
+        "marsbench.training.results.HydraConfig.get", return_value=dummy_hydra_config
     ):
 
         # Run the function
