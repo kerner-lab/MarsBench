@@ -5,11 +5,15 @@ Abstract base class for all Mars surface image detection models.
 from abc import ABC
 from abc import abstractmethod
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
+
+from marsbench.utils.detect_metrics import compute_object_metrics
+from marsbench.utils.detect_metrics import match_bboxes
 
 
 class BaseDetectionModel(pl.LightningModule, ABC):
@@ -18,6 +22,8 @@ class BaseDetectionModel(pl.LightningModule, ABC):
         self.cfg = cfg
         self.DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.model = self._initialize_model().to(self.DEVICE)
+        self.test_outputs = []
+        self.test_results = {}
 
     @abstractmethod
     def _initialize_model(self):
@@ -52,6 +58,13 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             metrics = {"val/map": metric_summary["map"]}
             self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
 
+        self.model.train()
+        loss_dict = self(images, targets)
+        total_loss = sum(loss for loss in loss_dict.values())
+        self.model.eval()
+
+        self._log_metrics("val", total_loss)
+
     def test_step(self, batch, batch_idx):
         images, targets = batch
         images = images.to(self.DEVICE)
@@ -61,6 +74,42 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             metric_summary = self._calculate_metrics(outputs, targets)
             metrics = {"test/map": metric_summary["map"]}
             self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
+
+        for target, output in zip(targets, outputs):
+            self.test_outputs.append(
+                {
+                    "gt_bboxes": target["boxes"].detach().cpu().numpy(),
+                    "pred_bboxes": output["boxes"].detach().cpu().numpy(),
+                    "pred_score": output["scores"].detach().cpu().numpy(),
+                }
+            )
+
+    def on_test_epoch_end(self):
+        object_iou = []
+        object_accuracy = []
+        object_precision = []
+        object_recall = []
+
+        for sample in self.test_outputs:
+            object_iou.append(match_bboxes(sample["gt_bboxes"], sample["pred_bboxes"]))
+            current_accuracy, current_precision, current_recall = compute_object_metrics(
+                sample["gt_bboxes"], sample["pred_bboxes"], 0.5
+            )
+            object_accuracy.append(current_accuracy)
+            object_precision.append(current_precision)
+            object_recall.append(current_recall)
+
+        object_iou_mean = np.mean(object_iou)
+        object_accuracy_mean = np.mean(object_accuracy)
+        object_precision_mean = np.mean(object_precision)
+        object_recall_mean = np.mean(object_recall)
+
+        self.test_results = {
+            "object_iou_mean": round(float(object_iou_mean), 6),
+            "object_accuracy_mean": round(float(object_accuracy_mean), 6),
+            "object_precision_mean": round(float(object_precision_mean), 6),
+            "object_recall_mean": round(float(object_recall_mean), 6),
+        }
 
     def configure_optimizers(self):
         optimizer_name = self.cfg.training.optimizer.name

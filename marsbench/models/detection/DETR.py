@@ -7,6 +7,7 @@ import logging
 import torch
 import torch.nn as nn
 
+from marsbench.utils.detr_box_ops import yolo_to_voc_batch
 from marsbench.utils.detr_criterion import SetCriterion
 from marsbench.utils.detr_matcher import HungarianMatcher
 
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 class DETR(BaseDetectionModel):
     def __init__(self, cfg):
         super(DETR, self).__init__(cfg)
+        self.bbox = []
+        self.img_size = []
         num_classes = self.cfg.data.num_classes
 
         self.weight_dict = self.cfg.model.loss_weight_dict
@@ -114,3 +117,12 @@ class DETR(BaseDetectionModel):
         total_loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
         self._log_metrics("test", total_loss)
+
+        img_size = targets[0]["img_size"]
+        for i in range(len(images)):
+            voc_boxes = yolo_to_voc_batch(outputs["pred_boxes"][i], img_size)
+            gt_boxes = yolo_to_voc_batch(targets[i]["boxes"], img_size)
+
+            self.test_outputs.append(
+                {"gt_bboxes": gt_boxes.detach().cpu().numpy(), "pred_bboxes": voc_boxes.detach().cpu().numpy()}
+            )

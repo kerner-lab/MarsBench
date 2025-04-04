@@ -27,11 +27,12 @@ def test_main_train_mode():
             "task": "classification",
             "mode": "train",
             "model": {"name": "ResNet18"},
-            "data": {"name": "testdata"},
-            "data_name": "testdata",
+            "data": {"name": "domars16k"},
+            "data_name": "domars16k",
             "training": {"trainer": {"accelerator": "cpu"}},
             "output_path": "outputs",
             "seed": 42,
+            "dataset_path": "/data/hkerner/MarsBench/Datasets",
         }
     )
 
@@ -82,11 +83,12 @@ def test_main_test_mode():
             "task": "classification",
             "mode": "test",
             "model": {"name": "ResNet18"},
-            "data": {"name": "testdata"},
-            "data_name": "testdata",
+            "data": {"name": "domars16k"},
+            "data_name": "domars16k",
             "training": {"trainer": {"accelerator": "cpu"}},
             "output_path": "outputs",
             "seed": 42,
+            "dataset_path": "/data/hkerner/MarsBench/Datasets",
         }
     )
 
@@ -129,12 +131,13 @@ def test_main_predict_mode():
             "task": "classification",
             "mode": "predict",
             "model": {"name": "ResNet18"},
-            "data": {"name": "testdata"},
-            "data_name": "testdata",
+            "data": {"name": "domars16k"},
+            "data_name": "domars16k",
             "training": {"trainer": {"accelerator": "cpu"}},
             "output_path": "outputs",
             "prediction_output_path": "predictions",
             "seed": 42,
+            "dataset_path": "/data/hkerner/MarsBench/Datasets",
         }
     )
 
@@ -177,10 +180,11 @@ def test_main_invalid_mode():
             "task": "classification",
             "mode": "invalid_mode",
             "model": {"name": "ResNet18"},
-            "data": {"name": "testdata"},
-            "data_name": "testdata",
+            "data": {"name": "domars16k"},
+            "data_name": "domars16k",
             "training": {"trainer": {"accelerator": "cpu"}},
             "output_path": "outputs",
+            "dataset_path": "/data/hkerner/MarsBench/Datasets",
         }
     )
 
@@ -213,11 +217,12 @@ def test_main_error_handling():
             "task": "classification",
             "mode": "train",
             "model": {"name": "ResNet18"},
-            "data": {"name": "testdata"},
-            "data_name": "testdata",
+            "data": {"name": "domars16k"},
+            "data_name": "domars16k",
             "training": {"trainer": {"accelerator": "cpu"}},
             "output_path": "outputs",
             "seed": 42,
+            "dataset_path": "/data/hkerner/MarsBench/Datasets",
         }
     )
 

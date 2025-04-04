@@ -1,6 +1,6 @@
 name: ConeQuest
 status: test
-data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/conequest_ctx/
+data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/conequest/
 num_classes: 2
 image_type: "rgb"
 task: detection

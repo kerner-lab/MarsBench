@@ -75,7 +75,7 @@ class EfficientDET(BaseDetectionModel):
         images = images.to(self.DEVICE)
         outputs = self(images, targets)
 
-        # output keys: loss, class_loss, box_loss
+        # output keys: loss, class_loss, box_loss, detections
         loss = outputs["loss"]
         self._log_metrics("val", loss)
 
@@ -86,3 +86,13 @@ class EfficientDET(BaseDetectionModel):
 
         loss = outputs["loss"]
         self._log_metrics("test", loss)
+
+        for i in range(len(images)):
+            detections = outputs["detections"][i]
+            self.test_outputs.append(
+                {
+                    "gt_bboxes": targets["bbox"][i].detach().cpu().numpy(),
+                    "pred_bboxes": detections[:, :4].detach().cpu().numpy(),
+                    "pred_score": detections[:, 4].detach().cpu().numpy(),
+                }
+            )
