@@ -11,6 +11,7 @@ import torch
 from hydra import compose
 from hydra import initialize_config_dir
 from omegaconf import DictConfig
+from omegaconf import OmegaConf
 
 from marsbench.models import *
 from tests.utils.detect_model_test_utils import run_detection_model_tests
@@ -79,6 +80,13 @@ def test_models(model_config_file: str) -> None:
                 f"data.num_classes={num_classes}",  # Use consistent class count
             ],
         )
+
+        OmegaConf.set_struct(cfg.model, False)  # Allows modification of model parameters
+        if cfg.training_type in ["scratch_training", "feature_extraction", "transfer_learning"]:
+            cfg.model.pretrained = False if cfg.training_type == "scratch_training" else True
+            cfg.model.freeze_layers = True if cfg.training_type == "feature_extraction" else False
+        else:
+            raise ValueError(f"Training type '{cfg.training_type}' not recognized.")
 
     # Check model status
     if not hasattr(cfg.model, "status") or cfg.model.status not in cfg.test.model.status:

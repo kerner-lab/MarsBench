@@ -1,6 +1,4 @@
 name: ResNet50
 class_path: marsbench.models.classification.ResNet50
 status: ready
-pretrained: true
-freeze_layers: true
 input_size: [3, 224, 224]

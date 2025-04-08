@@ -37,9 +37,8 @@ def get_geometric_transforms(image_size: tuple, is_train: bool = True):
     )
 
 
-def get_image_transforms(cfg):
+def get_image_transforms(cfg, image_size):
     """Get transforms for images with normalization from config."""
-    image_size = tuple(cfg.transforms.image_size)
     # Get image mode from config
     requested_mode = cfg.data.image_type.lower().strip()
     image_mode = IMAGE_MODES.get(requested_mode)
@@ -89,8 +88,7 @@ def get_mask_transforms(geometric_transform):
     return transform
 
 
-def get_bbox_transforms(cfg):
-    image_size = tuple(cfg.transforms.image_size)
+def get_bbox_transforms(cfg, image_size):
     bbox_format = cfg.model.bbox_format
     requested_mode = cfg.data.image_type.lower().strip()
     image_mode = IMAGE_MODES.get(requested_mode)
@@ -130,12 +128,15 @@ def get_bbox_transforms(cfg):
 
 def get_transforms(cfg):
     """Get appropriate transforms based on task."""
+    image_size = (
+        tuple(cfg.model.input_size)[1:] if cfg.model.get("input_size", None) else tuple(cfg.transforms.image_size)
+    )
     (
         train_transform,
         val_transform,
         train_geometric,
         val_geometric,
-    ) = get_image_transforms(cfg)
+    ) = get_image_transforms(cfg, image_size)
 
     if cfg.task == "segmentation":
         # Use training geometric transforms for training masks, validation for validation
@@ -143,7 +144,7 @@ def get_transforms(cfg):
         val_mask_transform = get_mask_transforms(val_geometric)
         return train_transform, val_transform, train_mask_transform, val_mask_transform
     elif cfg.task == "detection":
-        train_transform, val_transform = get_bbox_transforms(cfg)
+        train_transform, val_transform = get_bbox_transforms(cfg, image_size)
         return train_transform, val_transform
 
     return train_transform, val_transform

@@ -51,20 +51,12 @@ def save_benchmark_results(cfg: DictConfig, results: Dict):
     else:
         model_checkpoint = cfg.model.name
 
-    # model training setup
-    if not cfg.model.pretrained:
-        training_type = "scratch_training"
-    elif cfg.model.freeze_layers:
-        training_type = "feature_extractor"
-    else:
-        training_type = "transfer_learning"
-
     # Prepare entry for this run
     entry = {
         "run_id": run_id,
         "model": cfg.model_name,
         "dataset": cfg.data_name,
-        "training_type": training_type,
+        "training_type": cfg.training_type,
         "number_of_samples": "-",
         "random_seed": cfg.seed,
         "model_checkpoint": model_checkpoint,

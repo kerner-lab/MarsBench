@@ -1,6 +1,4 @@
 name: UNet
 class_path: marsbench.models.segmentation.UNet
 status: test
-pretrained: true
-freeze_layers: true
 encoder_name: resnet34
