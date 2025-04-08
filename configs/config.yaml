@@ -5,6 +5,7 @@ data_name: domars16k
 model_name: resnet18
 dataset_path: /data/hkerner/MarsBench/Datasets
 new_dataset_path: /data/hkerner/MarsBench/NewDatasets
+training_type: feature_extraction  # Supported: scratch_training, feature_extraction, transfer_learning
 output_path: outputs
 seed: 42
 test_after_training: false  # Whether to run test after training is complete

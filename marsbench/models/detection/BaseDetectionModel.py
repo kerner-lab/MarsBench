@@ -20,6 +20,11 @@ class BaseDetectionModel(pl.LightningModule, ABC):
     def __init__(self, cfg):
         super(BaseDetectionModel, self).__init__()
         self.cfg = cfg
+        if self.cfg.training_type in ["scratch_training", "feature_extraction", "transfer_learning"]:
+            self.cfg.model.pretrained = False if self.cfg.training_type == "scratch_training" else True
+            self.cfg.model.freeze_layers = True if self.cfg.training_type == "feature_extraction" else False
+        else:
+            raise ValueError(f"Training type '{self.cfg.training_type}' not recognized.")
         self.DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.model = self._initialize_model().to(self.DEVICE)
         self.test_outputs = []

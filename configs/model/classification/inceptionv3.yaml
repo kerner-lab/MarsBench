@@ -1,6 +1,4 @@
 name: InceptionV3
 class_path: marsbench.models.classification.InceptionV3
 status: ready
-pretrained: true
-freeze_layers: true
 input_size: [3, 299, 299]

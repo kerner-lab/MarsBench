@@ -1,7 +1,5 @@
 name: EfficientDET
 class_path: marsbench.models.detection.EfficientDET
-pretrained: true
-freeze_layers: true
 bbox_format: pascal_voc
 prediction_confidence_threshold: 0.2
 wbf_iou_threshold: 0.44

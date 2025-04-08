@@ -55,7 +55,7 @@ def save_benchmark_results(cfg: DictConfig, results: Dict):
     if not cfg.model.pretrained:
         training_type = "scratch_training"
     elif cfg.model.freeze_layers:
-        training_type = "feature_extractor"
+        training_type = "feature_extraction"
     else:
         training_type = "transfer_learning"
 

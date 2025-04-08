@@ -25,6 +25,11 @@ class BaseClassificationModel(pl.LightningModule, ABC):
     def __init__(self, cfg):
         super(BaseClassificationModel, self).__init__()
         self.cfg = cfg
+        if self.cfg.training_type in ["scratch_training", "feature_extraction", "transfer_learning"]:
+            self.cfg.model.pretrained = False if self.cfg.training_type == "scratch_training" else True
+            self.cfg.model.freeze_layers = True if self.cfg.training_type == "feature_extraction" else False
+        else:
+            raise ValueError(f"Training type '{self.cfg.training_type}' not recognized.")
         self.model = self._initialize_model()
         self.criterion = self._initialize_criterion()
         self.save_hyperparameters(cfg)

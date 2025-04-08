@@ -1,6 +1,4 @@
 name: VisionTransformer
 class_path: marsbench.models.classification.ViT
 status: ready
-pretrained: true
-freeze_layers: true
 input_size: [3, 224, 224]
