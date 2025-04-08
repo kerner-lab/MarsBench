@@ -138,6 +138,7 @@ def test_save_benchmark_results(tmp_path):
             "output_path": str(tmp_path),
             "test_after_training": False,
             "seed": 42,
+            "training_type": "feature_extraction",
         }
     )
 
