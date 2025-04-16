@@ -1,5 +1,5 @@
 """
-ConeQuest dataset for Mars volcanic cone binary segmentation.
+MarsData dataset for rock binary segmentation.
 """
 
 import logging
@@ -16,7 +16,7 @@ from PIL import Image
 from .BaseSegmentationDataset import BaseSegmentationDataset
 
 
-class ConeQuest(BaseSegmentationDataset):
+class MarsData(BaseSegmentationDataset):
     def __init__(
         self,
         cfg: DictConfig,

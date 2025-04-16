@@ -4,6 +4,7 @@ Main entry point for MarsBench training, testing, and prediction pipelines.
 import logging
 
 import hydra
+import torch
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 
@@ -17,10 +18,13 @@ from marsbench.utils.config_mapper import load_dynamic_configs
 from marsbench.utils.logger import setup_loggers
 from marsbench.utils.seed import seed_everything
 
+# Enable tensor core operations for improved performance on supported GPUs
+torch.set_float32_matmul_precision("medium")
+
 log = logging.getLogger(__name__)
 
 
-@hydra.main(version_base=None, config_path="../configs", config_name="config")
+@hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig):
     """Main training pipeline.
 

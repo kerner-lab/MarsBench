@@ -36,15 +36,13 @@ class MarsDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         transforms = get_transforms(self.cfg)
         if self.cfg.task == "classification":
-            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms[:2])
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms)
         elif self.cfg.task == "segmentation":
-            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
-                self.cfg, transforms[:2], mask_transforms=transforms[2:]
-            )
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms)
         elif self.cfg.task == "detection":
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
                 self.cfg,
-                transforms[:2],
+                transforms,
                 bbox_format=self.cfg.model.bbox_format,
             )
         else:

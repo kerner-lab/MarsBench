@@ -51,17 +51,14 @@ def setup_test_config(monkeypatch):
 
 # Load task-specific configs for testing
 @pytest.fixture
-def segmentation_config():
-    """Load default segmentation config for testing."""
+def config():
+    """Load default config for testing."""
     from hydra import compose
     from hydra import initialize
 
-    with initialize(version_base=None, config_path="../configs"):
-        # Load the base config and override with segmentation settings
-        cfg = compose(
-            config_name="config",
-            overrides=["task=segmentation", "data_name=cone_quest", "model_name=unet", "training=test"],
-        )
+    with initialize(version_base=None, config_path="../marsbench/configs"):
+        # Load the base config with minimal settings
+        cfg = compose(config_name="config", overrides=["training=test"])
         cfg = load_dynamic_configs(cfg)
     return cfg
 
@@ -72,11 +69,27 @@ def classification_config():
     from hydra import compose
     from hydra import initialize
 
-    with initialize(version_base=None, config_path="../configs"):
+    with initialize(version_base=None, config_path="../marsbench/configs"):
         # Load the base config and override with classification settings
         cfg = compose(
             config_name="config",
             overrides=["task=classification", "data_name=domars16k", "model_name=resnet18", "training=test"],
+        )
+        cfg = load_dynamic_configs(cfg)
+    return cfg
+
+
+@pytest.fixture
+def segmentation_config():
+    """Load default segmentation config for testing."""
+    from hydra import compose
+    from hydra import initialize
+
+    with initialize(version_base=None, config_path="../marsbench/configs"):
+        # Load the base config and override with segmentation settings
+        cfg = compose(
+            config_name="config",
+            overrides=["task=segmentation", "data_name=cone_quest", "model_name=unet", "training=test"],
         )
         cfg = load_dynamic_configs(cfg)
     return cfg

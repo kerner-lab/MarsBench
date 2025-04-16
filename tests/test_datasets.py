@@ -20,18 +20,17 @@ from tests.utils.dataset_test_utils import check_bboxes_yolo
 
 def initialize_datasets(cfg, transforms, bbox_format=None):
     if cfg.task == "classification":
-        train_dataset, val_dataset, test_dataset = get_dataset(cfg, transforms[:2], subset=cfg.test.data.subset_size)
+        train_dataset, val_dataset, test_dataset = get_dataset(cfg, transforms, subset=cfg.test.data.subset_size)
     elif cfg.task == "segmentation":
         train_dataset, val_dataset, test_dataset = get_dataset(
             cfg,
-            transforms[:2],
+            transforms,
             subset=cfg.test.data.subset_size,
-            mask_transforms=transforms[2:],
         )
     elif cfg.task == "detection":
         train_dataset, val_dataset, test_dataset = get_dataset(
             cfg,
-            transforms[:2],
+            transforms,
             subset=cfg.test.data.subset_size,
             bbox_format=bbox_format,
         )
@@ -42,10 +41,10 @@ def initialize_datasets(cfg, transforms, bbox_format=None):
 
 
 @skip_if_ci
-@pytest.mark.parametrize("dataset_config_file", glob.glob("configs/data/**/*.yaml"))
+@pytest.mark.parametrize("dataset_config_file", glob.glob("marsbench/configs/data/**/*.yaml"))
 def test_datasets(dataset_config_file):
     # Get config directory
-    config_dir = os.path.abspath("configs")
+    config_dir = os.path.abspath("marsbench/configs")
 
     # Initialize Hydra and compose configuration
     with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
@@ -55,7 +54,7 @@ def test_datasets(dataset_config_file):
         rel_path = os.path.splitext(rel_path)[0]
 
         # Extract task from the path
-        task = rel_path.split("/")[0]
+        task = rel_path.split("/")[-2]
 
         cfg = compose(
             config_name="config",
@@ -69,7 +68,7 @@ def test_datasets(dataset_config_file):
 
         # Check if dataset files exist
         data_dir = cfg.data.data_dir
-        annot_csv = cfg.data.annot_csv if task != "detection" else None
+        annot_csv = cfg.data.annot_csv if task == "classification" else None
         if not os.path.exists(data_dir) or (cfg.task == "classification" and not os.path.exists(annot_csv)):
             print(f"Skipping dataset '{cfg.data.name}' (dataset files not found)")
             pytest.skip(f"Dataset '{cfg.data.name}' files not found. This is expected when testing locally.")
@@ -104,23 +103,20 @@ def test_datasets(dataset_config_file):
                     ), f"Dataset '{cfg.data.name}' {split_name} split: Label {label} out of range [0, {num_classes - 1}]."  # noqa: E501
                 elif cfg.task == "segmentation":
                     image, mask = sample
-                    # Check mask shape - should be [1, H, W] for segmentation
-                    assert len(mask.shape) == 3, (
-                        f"Dataset '{cfg.data.name}' {split_name} split: Mask should be 3D tensor [C, H, W], "
+                    # Check mask shape - should be [H, W] for segmentation
+                    assert len(mask.shape) == 2, (
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask should be 2D tensor [H, W], "
                         f"got shape {mask.shape}"
                     )
-                    assert mask.shape[0] == 1, (
-                        f"Dataset '{cfg.data.name}' {split_name} split: Mask should have 1 channel, "
-                        f"got {mask.shape[0]} channels"
-                    )
-                    assert mask.shape[1:] == image.shape[1:], (
-                        f"Dataset '{cfg.data.name}' {split_name} split: Mask spatial dimensions {mask.shape[1:]} "
+                    assert mask.shape == image.shape[1:], (
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask spatial dimensions {mask.shape} "
                         f"do not match image dimensions {image.shape[1:]}"
                     )
-                    # For segmentation, check that mask values are valid
-                    assert mask.min() >= 0 and mask.max() <= 1, (
-                        f"Dataset '{cfg.data.name}' {split_name} split: Mask values should be between 0 and 1, "
-                        f"got min={mask.min()}, max={mask.max()}"
+                    # For segmentation, check that mask values are valid class indices
+                    num_classes = cfg.data.num_classes
+                    assert mask.min() >= 0 and mask.max() < num_classes, (
+                        f"Dataset '{cfg.data.name}' {split_name} split: Mask values should be "
+                        f"between 0 and {num_classes - 1}, got min={mask.min()}, max={mask.max()}"
                     )
                 elif cfg.task == "detection":
                     image, target = sample

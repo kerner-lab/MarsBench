@@ -1,9 +1,16 @@
 # Logger Configuration
+log_step: false
+log_epoch: true
+prog_bar: true
+log_samples_every: 50  # None or int. Log sample predictions every N batches
+visualization_style: overlay
+log_images_every_n_epochs: 5
+
 # WandB Logger Configuration
 wandb:
   enabled: true
   project: "marsbench"
-  name: null  # auto-generated from model/dataset if null
+  name: "${task}-${model_name}-${data_name}-${now:%Y-%m-%d_%H-%M-%S}"
   entity: null  # your wandb username/org
   tags: []
   notes: null

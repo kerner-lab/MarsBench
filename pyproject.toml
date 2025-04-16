@@ -22,7 +22,17 @@ dependencies = [
     "pillow>=10.2.0",
     "segmentation-models-pytorch>=0.4.0",
     "wandb>=0.18.5",
+    "albumentations>=1.3.1",
+    "lxml>=5.1.0",
+    "effdet>=0.4.0",
+    "torchmetrics>=1.7.0",
+    "tensorboard>=2.15.0",
+    "rasterio>=1.4.3",
+    "opencv-python>=4.10",
 ]
+
+[tool.setuptools]
+packages = ["marsbench"]
 
 [project.optional-dependencies]
 dev = [

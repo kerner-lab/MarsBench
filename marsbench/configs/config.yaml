@@ -8,7 +8,7 @@ new_dataset_path: /data/hkerner/MarsBench/NewDatasets
 training_type: feature_extraction  # Supported: scratch_training, feature_extraction, transfer_learning
 output_path: outputs
 seed: 42
-test_after_training: false  # Whether to run test after training is complete
+test_after_training: true  # Whether to run test after training is complete
 prediction_output_path: null  # Custom path for prediction outputs, if null uses output_path/predictions
 
 # Model loading options
