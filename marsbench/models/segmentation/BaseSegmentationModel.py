@@ -2,16 +2,18 @@
 Abstract base class for all Mars surface image segmentation models.
 """
 
+import logging
 from abc import ABC
 from abc import abstractmethod
 from typing import Literal
 
 import matplotlib.pyplot as plt
-import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb
+from pytorch_lightning import LightningModule
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
 from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
@@ -22,8 +24,10 @@ from torchmetrics.segmentation import GeneralizedDiceScore
 from torchmetrics.segmentation import MeanIoU
 from torchvision.utils import make_grid
 
+logger = logging.getLogger(__name__)
 
-class BaseSegmentationModel(pl.LightningModule, ABC):
+
+class BaseSegmentationModel(LightningModule, ABC):
     """Abstract base class for segmentation models."""
 
     #######################
@@ -51,10 +55,9 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         self.visualization_samples = {}
 
         # Visualization settings
-        self.log_images_every_n_epochs = self.cfg.training.get("log_images_every_n_epochs", 5)
-        self.visualization_style = self.cfg.training.get("visualization_style", "grid")  # "grid" or "diff"
-        self.overlay_alpha = self.cfg.training.get("overlay_alpha", 0.5)  # Transparency for visualizations
-        self.max_samples = self.cfg.training.get("max_vis_samples", 4)  # Maximum number of samples to visualize
+        self.log_images_every_n_epochs = self.cfg.logger.get("log_images_every_n_epochs", 3)
+        self.overlay_alpha = self.cfg.logger.get("overlay_alpha", 0.5)  # Transparency for visualizations
+        self.max_samples = self.cfg.logger.get("max_vis_samples", 4)  # Maximum number of samples to visualize
 
         self.save_hyperparameters(cfg)
 
@@ -309,7 +312,9 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
 
         # Log loss for progress bar
         self.log(f"{prefix}/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=False, sync_dist=True)
-
+        self.log(
+            "global_rank", self.global_rank, on_step=False, on_epoch=True, prog_bar=False, logger=False, sync_dist=True
+        )
         return {"loss": loss}
 
     def training_step(self, batch, batch_idx):
@@ -350,108 +355,46 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
             self.visualization_samples[prefix]["masks"] = masks[:max_samples].detach().cpu()
             self.visualization_samples[prefix]["outputs"] = outputs[:max_samples].detach().cpu()
 
-    def _create_diff_visualization(self, img, mask, pred, num_classes):
-        """
-        Create a difference visualization highlighting correct and incorrect predictions.
+    def _log_metrics_for_phase(self, prefix):
+        """Log all metrics for the given phase."""
+        metrics = getattr(self, f"{prefix}_metrics")
+        all_metrics = {}
+        # Log regular metrics
+        for name, metric in metrics.items():
+            if not name.startswith("per_class_"):
+                value = metric.compute()
+                all_metrics[f"{prefix}/{name}"] = value
+        # Log per-class metrics
+        for metric_type in ["dice", "iou", "precision", "recall"]:
+            per_class_values = metrics[f"per_class_{metric_type}"].compute()
+            for class_idx in range(self.cfg.data.num_classes):
+                class_name = self._get_class_name(class_idx)
+                all_metrics[f"{prefix}/{class_name}/{metric_type}"] = per_class_values[class_idx]
 
-        Args:
-            img: Original image tensor (C, H, W)
-            mask: Ground truth mask tensor (H, W)
-            pred: Prediction mask tensor (H, W)
-            num_classes: Number of classes in the segmentation task
+                # Store in test_results for later use
+                if prefix == "test":
+                    self.test_results[f"{class_name}_{metric_type}"] = round(float(per_class_values[class_idx]), 4)
+        self.log_dict(all_metrics, on_epoch=True, on_step=False, sync_dist=True)
 
-        Returns:
-            Tuple of tensors (original_img, diff_map, pred_colored)
-        """
-        # Ensure image has 3 channels and is normalized
-        if img.shape[0] == 1:
-            img = img.repeat(3, 1, 1)
-
-        if img.max() > 1.0:
-            img = img / 255.0
-
-        # Create a difference mask (red=wrong, green=correct)
-        diff_mask = torch.zeros((3, mask.shape[0], mask.shape[1]), dtype=torch.float32)
-
-        # Mark correct predictions in green
-        correct = mask == pred
-        diff_mask[1, correct] = 1.0  # Green channel
-
-        # Mark incorrect predictions in red
-        incorrect = mask != pred
-        diff_mask[0, incorrect] = 1.0  # Red channel
-
-        # Overlay diff on the original image
-        alpha = self.overlay_alpha
-        diff_overlay = img * (1 - alpha) + diff_mask * alpha
-
-        # Create a colormap for class visualizations
-        colormap = plt.cm.get_cmap("tab20", num_classes)
-
-        # Create colored prediction mask
-        pred_colored = torch.zeros((3, pred.shape[0], pred.shape[1]), dtype=torch.float32)
-
-        for class_idx in range(num_classes):
-            color = torch.tensor(colormap(class_idx)[:3], dtype=torch.float32)
-            pred_locations = pred == class_idx
-
-            for c in range(3):
-                pred_colored[c][pred_locations] = color[c]
-
-        return img, diff_overlay, pred_colored
-
-    def _create_grid_visualization(self, img, mask, pred, num_classes):
-        """
-        Create a standard grid visualization with colored class masks.
-
-        Args:
-            img: Original image tensor (C, H, W)
-            mask: Ground truth mask tensor (H, W)
-            pred: Prediction mask tensor (H, W)
-            num_classes: Number of classes in the segmentation task
-
-        Returns:
-            Tuple of tensors (original_img, colored_mask, colored_pred)
-        """
-        # Ensure image has 3 channels and is normalized
-        if img.shape[0] == 1:
-            img = img.repeat(3, 1, 1)
-
-        if img.max() > 1.0:
-            img = img / 255.0
-
-        # Create a colormap
-        colormap = plt.cm.get_cmap("tab20", num_classes)
-
-        # Convert masks to colored images using the colormap
-        mask_vis = torch.zeros((3, mask.shape[0], mask.shape[1]), dtype=torch.float32)
-        pred_vis = torch.zeros((3, pred.shape[0], pred.shape[1]), dtype=torch.float32)
-
-        for class_idx in range(num_classes):
-            # Get color for this class
-            color = torch.tensor(colormap(class_idx)[:3], dtype=torch.float32)
-
-            # Apply color to masks
-            mask_locations = mask == class_idx
-            pred_locations = pred == class_idx
-
-            for c in range(3):  # RGB channels
-                mask_vis[c][mask_locations] = color[c]
-                pred_vis[c][pred_locations] = color[c]
-
-        return img, mask_vis, pred_vis
+        # Reset metrics after logging
+        for name, metric in metrics.items():
+            metric.reset()
 
     def _log_visualizations(self, prefix):
         """
-        Create and log visualization images to Wandb.
-
-        Creates visualizations based on the configured style:
-        - "grid": Original image, ground truth mask, predicted mask
-        - "diff": Original image, difference visualization, prediction mask
+        Create and log visualization images.
         """
-        # Skip if no visualizations available or not using a logger
+        # Only on main process, after epoch 0, every n epochs, and with samples
+        logger.info(f"Logging visualizations for {prefix} phase")
+        logger.info(
+            f"_log_visualizations guard: gz={self.trainer.is_global_zero}, "
+            f"epoch={self.current_epoch}, "
+            f"has_samples={len(self.visualization_samples[prefix]['images'])}>0, "
+            f"mod_ok={self.current_epoch % self.log_images_every_n_epochs == 0}"
+        )
         if (
-            not hasattr(self.logger, "experiment")
+            not self.trainer.is_global_zero
+            or self.current_epoch == 0
             or prefix not in self.visualization_samples
             or len(self.visualization_samples[prefix]["images"]) == 0
             or self.current_epoch % self.log_images_every_n_epochs != 0
@@ -466,48 +409,92 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         preds = torch.argmax(outputs, dim=1)
 
         num_samples = min(self.max_samples, len(images))
-        num_classes = self.cfg.data.num_classes
+        colormap = plt.cm.get_cmap("tab20", self.cfg.data.num_classes)
 
         # Prepare visualization tensors
         all_images = []
-
+        logger.info(f"Preparing visualization tensors for {prefix} phase")
         for i in range(num_samples):
             # Get image, ground truth, and prediction
             img = images[i].cpu()
             mask = masks[i].cpu()
             pred = preds[i].cpu()
 
-            if self.visualization_style == "diff":
-                # Create error visualization
-                img, mask_vis, pred_vis = self._create_diff_visualization(img, mask, pred, num_classes)
-            else:  # Default "grid" style
-                img, mask_vis, pred_vis = self._create_grid_visualization(img, mask, pred, num_classes)
+            if img.shape[0] == 1:
+                img = img.repeat(3, 1, 1)
+
+            m = torch.tensor(self.cfg.transforms.rgb.mean).view(3, 1, 1)
+            s = torch.tensor(self.cfg.transforms.rgb.std).view(3, 1, 1)
+            img = img * s + m
+            img = img.clamp(0, 1)
+
+            # Create a difference mask (red=wrong, green=correct)
+            diff_mask = torch.zeros((3, mask.shape[0], mask.shape[1]), dtype=torch.float32)
+
+            # Mark correct predictions in green
+            correct = mask == pred
+            diff_mask[1, correct] = 1.0  # Green channel
+
+            # Mark incorrect predictions in red
+            incorrect = mask != pred
+            diff_mask[0, incorrect] = 1.0  # Red channel
+
+            # Overlay diff on the original image
+            alpha = self.overlay_alpha
+            diff_overlay = img * (1 - alpha) + diff_mask * alpha
+
+            # Create a difference visualization
+            mask_vis = torch.zeros((3, mask.shape[0], mask.shape[1]), dtype=torch.float32)
+            pred_vis = torch.zeros((3, pred.shape[0], pred.shape[1]), dtype=torch.float32)
+
+            for class_idx in range(self.cfg.data.num_classes):
+                color = torch.tensor(colormap(class_idx)[:3], dtype=torch.float32)
+                mask_locations = mask == class_idx
+                pred_locations = pred == class_idx
+
+                for c in range(3):  # RGB channels
+                    mask_vis[c][mask_locations] = color[c]
+                    pred_vis[c][pred_locations] = color[c]
 
             # Add to the list of images
-            all_images.extend([img, mask_vis, pred_vis])
+            all_images.extend([img, mask_vis, pred_vis, diff_overlay])
+        logger.info(f"Created visualization tensors for {prefix} phase")
 
-        # Create a grid of images
-        grid = make_grid(all_images, nrow=3)  # 3 columns: original, ground truth/diff, prediction
-
-        # Log to wandb with appropriate caption
-        if self.visualization_style == "diff":
-            caption = f"Epoch {self.current_epoch}: Original | Diff (green=correct, red=error) | Prediction"
+        # Create a grid of images and log via Lightning
+        grid = make_grid(all_images, nrow=4)
+        caption = [
+            f"Epoch {self.current_epoch}: Original | Ground Truth | Prediction | Diff (green=correct, red=error)"
+        ]
+        if isinstance(self.logger, WandbLogger):
+            self.logger.log_image(
+                f"visualizations/{prefix}",
+                [grid],
+                caption=caption,
+                step=self.current_epoch,
+            )
+            logger.info(f"Logged visualizations with WandB for {prefix} phase")
+        elif isinstance(self.logger, TensorBoardLogger):
+            self.logger.experiment.add_image(
+                f"visualizations/{prefix}",
+                grid,
+                global_step=self.current_epoch,
+            )
+            logger.info(f"Logged visualizations with TensorBoard for {prefix} phase")
         else:
-            caption = f"Epoch {self.current_epoch}: Original | Ground Truth | Prediction"
-
-        self.logger.experiment.log(
-            {f"{prefix}/visualizations": wandb.Image(grid, caption=caption), "epoch": self.current_epoch}
-        )
+            logger.warning(f"Logger {self.logger} does not support image logging.")
 
     #######################
     # Lifecycle Hooks
     #######################
 
     def on_train_epoch_end(self):
-        self._log_metrics_for_phase("train")
-        self._log_visualizations("train")
+        # self._log_metrics_for_phase("train")
+        # self._log_visualizations("train")
+        pass
 
     def on_validation_epoch_end(self):
+        self._log_metrics_for_phase("train")
+        self._log_visualizations("train")
         self._log_metrics_for_phase("val")
         self._log_visualizations("val")
 
@@ -518,35 +505,3 @@ class BaseSegmentationModel(pl.LightningModule, ABC):
         # Ensure loss is also in test_results
         if "test/loss" in self.trainer.callback_metrics:
             self.test_results["loss"] = round(float(self.trainer.callback_metrics["test/loss"]), 4)
-
-    def _log_metrics_for_phase(self, prefix):
-        """Log all metrics for the given phase."""
-        metrics = getattr(self, f"{prefix}_metrics")
-        all_metrics = {}
-
-        # Log regular metrics
-        for name, metric in metrics.items():
-            if not name.startswith("per_class_"):
-                value = metric.compute()
-                all_metrics[f"{prefix}/{name}"] = value
-
-        # Log per-class metrics
-        for metric_type in ["dice", "iou", "precision", "recall"]:
-            per_class_values = metrics[f"per_class_{metric_type}"].compute()
-            for class_idx in range(self.cfg.data.num_classes):
-                class_name = self._get_class_name(class_idx)
-                all_metrics[f"{prefix}/{class_name}_{metric_type}"] = per_class_values[class_idx]
-
-                # Store in test_results for later use
-                if prefix == "test":
-                    self.test_results[f"{class_name}_{metric_type}"] = round(float(per_class_values[class_idx]), 4)
-
-        self.log_dict(all_metrics, on_epoch=True, on_step=False, sync_dist=True)
-
-        # Reset metrics after logging
-        for name, metric in metrics.items():
-            metric.reset()
-
-        # Log current epoch to wandb
-        if hasattr(self.logger, "experiment"):
-            self.logger.experiment.log({"epoch": self.current_epoch})
