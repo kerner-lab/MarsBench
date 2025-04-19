@@ -18,6 +18,7 @@ from .detection import EfficientDET
 from .detection import FasterRCNN
 from .detection import RetinaNet
 from .segmentation import DeepLab
+from .segmentation import Segformer
 from .segmentation import UNet
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ MODEL_REGISTRY = {
     "segmentation": {
         "UNet": UNet,
         "DeepLab": DeepLab,
+        "Segformer": Segformer,
     },
     "detection": {
         "DETR": DETR,
