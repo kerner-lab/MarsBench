@@ -12,6 +12,8 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from torch.utils.data import Subset
 
+from marsbench.data.segmentation.Mask2FormerWrapper import Mask2FormerWrapper
+
 from .classification import DeepMars_Landmark
 from .classification import DeepMars_Surface
 from .classification import DoMars16k
@@ -100,6 +102,12 @@ def get_dataset(
     train_dataset = instantiate_dataset(dataset_cls, cfg, transforms[0], "train", bbox_format)
     val_dataset = instantiate_dataset(dataset_cls, cfg, transforms[1], "val", bbox_format)
     test_dataset = instantiate_dataset(dataset_cls, cfg, transforms[1], "test", bbox_format)
+
+    # Dataset wrapper for Mask2Former
+    if cfg.model.name.lower() == "mask2former":
+        train_dataset = Mask2FormerWrapper(train_dataset)
+        val_dataset = Mask2FormerWrapper(val_dataset)
+        test_dataset = Mask2FormerWrapper(test_dataset)
 
     # Apply subset if specified (prioritizing cfg.data.subset)
     actual_subset = cfg.data.get("subset", None) or subset

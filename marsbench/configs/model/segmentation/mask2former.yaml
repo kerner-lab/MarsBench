@@ -1,5 +1,5 @@
 name: Mask2Former
 class_path: marsbench.models.segmentation.Mask2Former
 model_name: facebook/mask2former-swin-tiny-ade-semantic
-input_size: [512, 512]
-status: skip
+input_size: [3, 512, 512]
+status: test

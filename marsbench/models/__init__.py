@@ -18,6 +18,7 @@ from .detection import EfficientDET
 from .detection import FasterRCNN
 from .detection import RetinaNet
 from .segmentation import DeepLab
+from .segmentation import Mask2Former
 from .segmentation import Segformer
 from .segmentation import UNet
 
@@ -37,6 +38,7 @@ MODEL_REGISTRY = {
         "UNet": UNet,
         "DeepLab": DeepLab,
         "Segformer": Segformer,
+        "Mask2Former": Mask2Former,
     },
     "detection": {
         "DETR": DETR,
