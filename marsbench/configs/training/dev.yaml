@@ -1,17 +1,39 @@
 # Training specific parameters
 batch_size: 32
-num_workers: 0  # Special value: 0 means auto-detect (will use CPU count / 2)
+num_workers: 4  # Special value: 0 means auto-detect (will use CPU count / 2)
+monitor_on: 'val/loss'
+ignore_index: -100  # int (-100 to skip ignoring)
 
 # Optimzer
 optimizer:
-  name: 'Adam'  # Supported: 'Adam', 'AdamW', 'SGD'
+  name: 'AdamW'  # Supported: 'Adam', 'AdamW', 'SGD'
   lr: 0.001
   weight_decay: 0.0
   # momentum: 0.9 # Only relevant for SGD
 
+scheduler:
+  name: 'cosine' # [cosine, step, plateau]
+  enabled: false
+  # Cosine params
+  t_max: 100
+  eta_min: 1e-6
+  # Step params
+  step_size: 10
+  gamma: 0.1
+  # ReduceLROnPlateau params
+  patience: 5
+  factor: 0.1
+  monitor: ${oc.select:training.monitor_on}
+
 # loss
+# classification supported: cross_entropy
+# segmentation supported: cross_entropy, generalized_dice, combined (cross_entropy + generalized_dice)
 criterion:
   name: 'cross_entropy'
+  alpha: 0.5 # combined loss parameter: alpha * cross_entropy + (1 - alpha) * generalized_dice
+  weight_type: 'square' # [uniform, simple, square] only for generalized_dice or combined
+  smooth: 1e-5 # only for generalized_dice or combined
+
 
 # Early stopping
 early_stopping_patience: 5

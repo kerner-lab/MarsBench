@@ -119,12 +119,19 @@ def test_mars_datamodule(dataset_name, task):
             assert (
                 masks.shape[0] == batch_size
             ), f"{dataset_name} {split_name} batch size mismatch between images and masks"
+
+            # Masks should be 2D tensors [H, W] per batch item
+            assert len(masks.shape) == 3, f"{dataset_name} {split_name} masks should be 3D (batch, height, width)"
+
+            # Check that spatial dimensions match between images and masks
             assert (
-                masks.shape[2:] == images.shape[2:]
+                masks.shape[1:] == images.shape[2:]
             ), f"{dataset_name} {split_name} spatial dimensions should match between images and masks"
+
+            # Check that mask values are valid class indices
             assert (masks >= 0).all() and (
-                masks <= 1
-            ).all(), f"{dataset_name} {split_name} mask values should be in range [0, 1]"
+                masks < cfg.data.num_classes
+            ).all(), f"{dataset_name} {split_name} mask values should be in range [0, {cfg.data.num_classes-1}]"
 
         elif task == "detection":
             # For detection, we expect (images, targets)

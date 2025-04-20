@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+from transformers import Mask2FormerImageProcessor
 
 from marsbench.data import get_dataset
 from marsbench.utils.transforms import get_transforms
@@ -21,6 +22,7 @@ class MarsDataModule(pl.LightningDataModule):
         self.train_dataset: Optional[Dataset] = None
         self.val_dataset: Optional[Dataset] = None
         self.test_dataset: Optional[Dataset] = None
+        self.image_processor = None
 
         # Calculate optimal workers if not explicitly set
         if not hasattr(self.cfg.training, "num_workers") or int(self.cfg.training.num_workers) <= 0:
@@ -36,15 +38,18 @@ class MarsDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         transforms = get_transforms(self.cfg)
         if self.cfg.task == "classification":
-            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms[:2])
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms)
         elif self.cfg.task == "segmentation":
-            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
-                self.cfg, transforms[:2], mask_transforms=transforms[2:]
-            )
+            self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(self.cfg, transforms)
+            if self.cfg.model.name.lower() == "mask2former":
+                self.image_processor = Mask2FormerImageProcessor(
+                    ignore_index=self.cfg.training.ignore_index,
+                    reduce_labels=False,
+                )
         elif self.cfg.task == "detection":
             self.train_dataset, self.val_dataset, self.test_dataset = get_dataset(
                 self.cfg,
-                transforms[:2],
+                transforms,
                 bbox_format=self.cfg.model.bbox_format,
             )
         else:
@@ -74,12 +79,35 @@ class MarsDataModule(pl.LightningDataModule):
         }
         return images, annotations
 
+    def mask2former_collate_fn(self, batch):
+        inputs = list(zip(*batch))
+        images = inputs[0]
+        segmentation_maps = inputs[1]
+
+        processed_batch = self.image_processor(
+            images,
+            segmentation_maps=segmentation_maps,
+            return_tensors="pt",
+            do_resize=False,
+            do_rescale=False,
+            do_normalize=False,
+        )
+
+        processed_batch["orig_image"] = inputs[2]
+        processed_batch["orig_mask"] = inputs[3]
+        return processed_batch
+
     def get_collate_fn(self):
         if self.cfg.task == "detection":
             if self.cfg.model.name.lower() == "efficientdet":
                 return MarsDataModule.detection_collate_fn_v2
             else:
                 return MarsDataModule.detection_collate_fn
+        elif self.cfg.task == "segmentation":
+            if self.cfg.model.name.lower() == "mask2former":
+                return self.mask2former_collate_fn
+            else:
+                return None
         else:
             return None
 

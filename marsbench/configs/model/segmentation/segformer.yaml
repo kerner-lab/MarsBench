@@ -1,0 +1,4 @@
+name: Segformer
+class_path: marsbench.models.segmentation.Segformer
+status: test
+encoder_name: resnet34

@@ -12,11 +12,11 @@ from typing import Literal
 from typing import Optional
 from typing import Tuple
 
+import numpy as np
 import torch
 from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import transforms
 
 logger = logging.getLogger(__name__)
 
@@ -96,13 +96,14 @@ class BaseClassificationDataset(Dataset, ABC):
     def __len__(self) -> int:
         return len(self.labels)
 
-    def __getitem__(self, ind) -> Tuple[torch.Tensor, int]:
-        image = Image.open(os.path.join(self.data_dir, self.image_paths[ind])).convert(self.image_type)
-        label = self.labels[ind]
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+        image = np.array(Image.open(os.path.join(self.data_dir, self.image_paths[idx])).convert(self.image_type))
+        label = self.labels[idx]
 
         if self.transform:
-            image = self.transform(image)
+            transformed = self.transform(image=image)
+            image = transformed["image"]
         else:
-            image = transforms.ToTensor()(image)
+            image = torch.from_numpy(image)
 
         return image, label

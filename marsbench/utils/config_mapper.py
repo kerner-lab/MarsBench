@@ -2,6 +2,7 @@
 Utility functions for mapping configuration overrides to the correct config files.
 """
 
+import importlib.resources as pkg_resources
 import logging
 import os
 from pathlib import Path
@@ -40,16 +41,41 @@ def load_dynamic_configs(cfg: DictConfig, config_dir: Optional[Union[str, Path]]
     # Clone the configuration to avoid modifying the original
     cfg = OmegaConf.create(OmegaConf.to_container(cfg, resolve=True))
 
-    # Get the config directory, defaulting to "configs" relative to working directory
+    # Get the config directory, defaulting to package resources
     if config_dir is None:
         try:
-            original_cwd = get_original_cwd()
-            config_dir = Path(original_cwd) / "configs"
-        except Exception:
-            hydra_config_path = os.getenv("HYDRA_CONFIG_PATH", "configs")
-            config_dir = Path(hydra_config_path)
+            # First try to use the package resources (new approach)
+            try:
+                # For Python 3.9+ we can use files()
+                config_dir = Path(pkg_resources.files("marsbench") / "configs")
+                logger.info(f"Using package resources for configs: {config_dir}")
+            except (ImportError, AttributeError):
+                # Fallback for older Python versions
+                from importlib import import_module
+
+                config_dir = Path(import_module("marsbench").__file__).parent / "configs"
+                logger.info(f"Using module path for configs: {config_dir}")
+
+            # Check if the package resource path exists
+            if not config_dir.exists():
+                # If package resources don't have configs, fall back to the original methods
+                raise FileNotFoundError("Package configs not found")
+
+        except Exception as e:
+            logger.warning(f"Could not find package configs: {e}, falling back to working directory")
+            try:
+                # Try to get the original working directory (Hydra method)
+                original_cwd = get_original_cwd()
+                config_dir = Path(original_cwd) / "configs"
+                logger.info(f"Using working directory for configs: {config_dir}")
+            except Exception:
+                # Fall back to environment variable or default
+                hydra_config_path = os.getenv("HYDRA_CONFIG_PATH", "configs")
+                config_dir = Path(hydra_config_path)
+                logger.info(f"Using environment variable for configs: {config_dir}")
     else:
         config_dir = Path(config_dir)
+        logger.info(f"Using specified config directory: {config_dir}")
 
     if not config_dir.exists():
         raise ConfigLoadError(f"Config directory {config_dir} does not exist")

@@ -1,7 +1,7 @@
 # Early Stopping
 early_stopping:
   _target_: pytorch_lightning.callbacks.early_stopping.EarlyStopping
-  monitor: 'val/loss'
+  monitor: ${oc.select:training.monitor_on}
   patience: ${oc.select:training.early_stopping_patience, 1}
   mode: 'min'
   enabled: true
@@ -9,10 +9,10 @@ early_stopping:
 # Best Model Checkpoint
 best_checkpoint:
   _target_: pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint
-  monitor: 'val/loss'
+  monitor: ${oc.select:training.monitor_on}
   save_top_k: 1
   mode: 'min'
-  filename: 'best-{epoch:02d}-{val_loss:.4f}'
+  filename: 'best-{epoch:02d}'
   save_last: false
   enabled: true
   dirpath: 'checkpoints'

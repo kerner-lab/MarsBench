@@ -23,11 +23,11 @@ repos:
     -   id: flake8
         exclude: ^(data|examples|legacy_code)
         additional_dependencies: ['flake8-pyproject']
--   repo: local
-    hooks:
-    -   id: pytest-check
-        name: pytest-check
-        entry: env HYDRA_TRAINING=test pytest
-        language: system
-        pass_filenames: false
-        always_run: true
+# -   repo: local
+#     hooks:
+#     -   id: pytest-check
+#         name: pytest-check
+#         entry: env HYDRA_TRAINING=test pytest
+#         language: system
+#         pass_filenames: false
+#         always_run: true

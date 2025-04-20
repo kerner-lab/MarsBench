@@ -2,7 +2,9 @@
 
 import glob
 import importlib
+import importlib.resources as pkg_resources
 import os
+from pathlib import Path
 from typing import Any
 from typing import Type
 
@@ -22,6 +24,9 @@ from tests.utils.model_test_utils import setup_training
 from tests.utils.model_test_utils import verify_backward_pass
 from tests.utils.model_test_utils import verify_model_save_load
 from tests.utils.model_test_utils import verify_output_properties
+
+# Get the path to the marsbench configs directory
+marsbench_configs_dir = Path(pkg_resources.files("marsbench") / "configs")
 
 
 def import_model_class(model_class_path: str, model_name: str) -> Type[torch.nn.Module]:
@@ -45,20 +50,20 @@ def verify_model_config(cfg: DictConfig, task: str, model_name: str) -> None:
 
 @pytest.mark.parametrize(
     "model_config_file",
-    glob.glob("configs/model/**/*.yaml", recursive=True),
+    glob.glob(str(marsbench_configs_dir / "model/**/*.yaml"), recursive=True),
     ids=lambda x: os.path.splitext(os.path.basename(x))[0],
 )
 def test_models(model_config_file: str) -> None:
     """Tests model initialization, forward/backward passes, and training loop."""
     # Extract task and model name from the config file path
-    rel_path = os.path.relpath(model_config_file, "configs/model")
+    rel_path = os.path.relpath(model_config_file, str(marsbench_configs_dir / "model"))
     task = rel_path.split(os.sep)[0]  # classification or segmentation
     model = os.path.splitext(os.path.basename(model_config_file))[0]
 
-    config_dir = os.path.abspath("configs")
+    config_dir = marsbench_configs_dir
 
     # Initialize Hydra and compose configuration
-    with initialize_config_dir(config_dir=config_dir, version_base="1.1"):
+    with initialize_config_dir(config_dir=str(config_dir), version_base="1.1"):
         # Set default dataset based on task
         default_dataset = "domars16k" if task == "classification" else "cone_quest"
 
