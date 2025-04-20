@@ -17,11 +17,11 @@ from pytorch_lightning.loggers import WandbLogger
 from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
-from torchmetrics import Accuracy
-from torchmetrics import Precision
-from torchmetrics import Recall
-from torchmetrics.segmentation import GeneralizedDiceScore
-from torchmetrics.segmentation import MeanIoU
+from torchmetrics.functional import accuracy
+from torchmetrics.functional import precision
+from torchmetrics.functional import recall
+from torchmetrics.functional.segmentation import generalized_dice_score
+from torchmetrics.functional.segmentation import mean_iou
 from torchvision.utils import make_grid
 
 logger = logging.getLogger(__name__)
@@ -47,12 +47,8 @@ class BaseSegmentationModel(LightningModule, ABC):
         self.model = self._initialize_model()
         self.criterion = self._initialize_criterion()
 
-        # Initialize metrics in setup() instead
-        self.train_metrics = None
-        self.val_metrics = None
-        self.test_metrics = None
+        # Test results
         self.test_results = {}
-        self.visualization_samples = {}
 
         # Visualization settings
         self.log_images_every_n_epochs = self.cfg.logger.get("log_images_every_n_epochs", 3)
@@ -92,60 +88,6 @@ class BaseSegmentationModel(LightningModule, ABC):
             return lambda pred, target: self.generalized_dice_loss(pred, target, weight_type=weight_type)
         else:
             raise ValueError(f"Criterion '{criterion_name}' not recognized.")
-
-    def _create_metrics(self):
-        """Create metrics for evaluation."""
-        segmentation_config = {
-            "num_classes": self.cfg.data.num_classes,
-            "include_background": True,
-            "input_format": "index",
-        }
-        classification_config = {"task": "multiclass", "num_classes": self.cfg.data.num_classes}
-
-        metrics = torch.nn.ModuleDict(
-            {
-                "dice": GeneralizedDiceScore(
-                    **segmentation_config, weight_type=self.cfg.training.criterion.get("weight_type", "square")
-                ),
-                "iou": MeanIoU(**segmentation_config),
-                "accuracy": Accuracy(**classification_config),
-                "precision": Precision(**classification_config, average="macro"),
-                "recall": Recall(**classification_config, average="macro"),
-                # Per-class metrics
-                "per_class_dice": GeneralizedDiceScore(
-                    **segmentation_config,
-                    weight_type=self.cfg.training.criterion.get("weight_type", "square"),
-                    per_class=True,
-                ),
-                "per_class_iou": MeanIoU(**segmentation_config, per_class=True),
-                "per_class_precision": Precision(**classification_config, average=None),
-                "per_class_recall": Recall(**classification_config, average=None),
-            }
-        )
-
-        return metrics
-
-    def setup(self, stage=None):
-        """Called by PyTorch Lightning when the model is being set up."""
-        # Create metrics for each stage
-        self.train_metrics = self._create_metrics()
-        self.val_metrics = self._create_metrics()
-        self.test_metrics = self._create_metrics()
-
-        # Initialize visualization samples
-        self.visualization_samples = {
-            "train": {"images": [], "masks": [], "outputs": []},
-            "val": {"images": [], "masks": [], "outputs": []},
-            "test": {"images": [], "masks": [], "outputs": []},
-        }
-
-    def on_fit_start(self):
-        """Called by PyTorch Lightning when fit begins."""
-        # Move metrics to the correct device
-        device = self.device
-        for metrics in [self.train_metrics, self.val_metrics, self.test_metrics]:
-            for name, metric in metrics.items():
-                metrics[name] = metric.to(device)
 
     #######################
     # Model Infrastructure
@@ -291,30 +233,18 @@ class BaseSegmentationModel(LightningModule, ABC):
 
         pred_indices = torch.argmax(outputs, dim=1).long()
         masks_long = masks.long()
+        metrics = {f"{prefix}/loss": loss}
+        metrics.update(self._calculate_metrics_for_step(prefix, pred_indices, masks_long))
+        # Log metrics at step level
+        self.log_dict(metrics, on_step=False, on_epoch=True, sync_dist=True, prog_bar=True)
 
-        # Get the correct metrics for the current phase
-        metrics = getattr(self, f"{prefix}_metrics")
-
-        # Update metrics
-        for name, metric in metrics.items():
-            if name.startswith("per_class_"):
-                continue  # Handle per-class metrics separately
-            metric.update(pred_indices, masks_long)
-
-        # Update per-class metrics
-        metrics["per_class_dice"].update(pred_indices, masks_long)
-        metrics["per_class_iou"].update(pred_indices, masks_long)
-        metrics["per_class_precision"].update(pred_indices, masks_long)
-        metrics["per_class_recall"].update(pred_indices, masks_long)
-
-        # Store visualization samples from first batch
-        self._update_visualization_samples(prefix, images, masks, outputs, batch_idx)
-
-        # Log loss for progress bar
-        self.log(f"{prefix}/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=False, sync_dist=True)
-        self.log(
-            "global_rank", self.global_rank, on_step=False, on_epoch=True, prog_bar=False, logger=False, sync_dist=True
-        )
+        if (
+            self.log_images_every_n_epochs is not None
+            and batch_idx == 0
+            and self.trainer.is_global_zero
+            and self.current_epoch % self.log_images_every_n_epochs == 0
+        ):
+            self._log_visualizations(images, masks, outputs, prefix)
         return {"loss": loss}
 
     def training_step(self, batch, batch_idx):
@@ -346,65 +276,50 @@ class BaseSegmentationModel(LightningModule, ABC):
             else self.cfg.mapping.get(class_idx, f"class_{class_idx}")
         )
 
-    def _update_visualization_samples(self, prefix, images, masks, outputs, batch_idx):
-        """Store visualization samples from first batch only."""
-        if batch_idx == 0 and len(self.visualization_samples[prefix]["images"]) == 0:
-            # Store only a few samples to save memory
-            max_samples = min(4, images.shape[0])
-            self.visualization_samples[prefix]["images"] = images[:max_samples].detach().cpu()
-            self.visualization_samples[prefix]["masks"] = masks[:max_samples].detach().cpu()
-            self.visualization_samples[prefix]["outputs"] = outputs[:max_samples].detach().cpu()
+    def _calculate_metrics_for_step(self, prefix, pred_indices, masks_long) -> dict:
+        """Calculate metrics for a single step."""
+        metrics = {}
+        # Compute functional metrics per batch
+        num_classes = self.cfg.data.num_classes
+        metrics[f"{prefix}/accuracy"] = accuracy(pred_indices, masks_long, task="multiclass", num_classes=num_classes)
+        metrics[f"{prefix}/precision"] = precision(pred_indices, masks_long, task="multiclass", num_classes=num_classes)
+        metrics[f"{prefix}/recall"] = recall(pred_indices, masks_long, task="multiclass", num_classes=num_classes)
+        metrics[f"{prefix}/dice"] = generalized_dice_score(
+            pred_indices, masks_long, input_format="index", num_classes=num_classes
+        ).mean()
+        metrics[f"{prefix}/iou"] = mean_iou(
+            pred_indices, masks_long, input_format="index", num_classes=num_classes
+        ).mean()
 
-    def _log_metrics_for_phase(self, prefix):
-        """Log all metrics for the given phase."""
-        metrics = getattr(self, f"{prefix}_metrics")
-        all_metrics = {}
-        # Log regular metrics
-        for name, metric in metrics.items():
-            if not name.startswith("per_class_"):
-                value = metric.compute()
-                all_metrics[f"{prefix}/{name}"] = value
-        # Log per-class metrics
-        for metric_type in ["dice", "iou", "precision", "recall"]:
-            per_class_values = metrics[f"per_class_{metric_type}"].compute()
-            for class_idx in range(self.cfg.data.num_classes):
-                class_name = self._get_class_name(class_idx)
-                all_metrics[f"{prefix}/{class_name}/{metric_type}"] = per_class_values[class_idx]
+        # Compute per-class metrics
+        per_class_accuracy = accuracy(
+            pred_indices, masks_long, task="multiclass", num_classes=num_classes, average="none"
+        )
+        per_class_precision = precision(
+            pred_indices, masks_long, task="multiclass", num_classes=num_classes, average="none"
+        )
+        per_class_recall = recall(pred_indices, masks_long, task="multiclass", num_classes=num_classes, average="none")
+        per_class_dice = generalized_dice_score(
+            pred_indices, masks_long, input_format="index", num_classes=num_classes, per_class=True
+        ).mean(dim=0)
+        per_class_iou = mean_iou(
+            pred_indices, masks_long, input_format="index", num_classes=num_classes, per_class=True
+        ).mean(dim=0)
+        for i, (acc, prec, rec, dice, iou) in enumerate(
+            zip(per_class_accuracy, per_class_precision, per_class_recall, per_class_dice, per_class_iou)
+        ):
+            class_name = self._get_class_name(i)
+            metrics[f"{prefix}/{class_name}/accuracy"] = acc.item()
+            metrics[f"{prefix}/{class_name}/precision"] = prec.item()
+            metrics[f"{prefix}/{class_name}/recall"] = rec.item()
+            metrics[f"{prefix}/{class_name}/dice"] = dice.item()
+            metrics[f"{prefix}/{class_name}/iou"] = iou.item()
+        return metrics
 
-                # Store in test_results for later use
-                if prefix == "test":
-                    self.test_results[f"{class_name}_{metric_type}"] = round(float(per_class_values[class_idx]), 4)
-        self.log_dict(all_metrics, on_epoch=True, on_step=False, sync_dist=True)
-
-        # Reset metrics after logging
-        for name, metric in metrics.items():
-            metric.reset()
-
-    def _log_visualizations(self, prefix):
+    def _log_visualizations(self, images, masks, outputs, prefix):
         """
         Create and log visualization images.
         """
-        # Only on main process, after epoch 0, every n epochs, and with samples
-        logger.info(f"Logging visualizations for {prefix} phase")
-        logger.info(
-            f"_log_visualizations guard: gz={self.trainer.is_global_zero}, "
-            f"epoch={self.current_epoch}, "
-            f"has_samples={len(self.visualization_samples[prefix]['images'])}>0, "
-            f"mod_ok={self.current_epoch % self.log_images_every_n_epochs == 0}"
-        )
-        if (
-            not self.trainer.is_global_zero
-            or self.current_epoch == 0
-            or prefix not in self.visualization_samples
-            or len(self.visualization_samples[prefix]["images"]) == 0
-            or self.current_epoch % self.log_images_every_n_epochs != 0
-        ):
-            return
-
-        images = self.visualization_samples[prefix]["images"]
-        masks = self.visualization_samples[prefix]["masks"]
-        outputs = self.visualization_samples[prefix]["outputs"]
-
         # Get predictions from outputs
         preds = torch.argmax(outputs, dim=1)
 
@@ -413,7 +328,6 @@ class BaseSegmentationModel(LightningModule, ABC):
 
         # Prepare visualization tensors
         all_images = []
-        logger.info(f"Preparing visualization tensors for {prefix} phase")
         for i in range(num_samples):
             # Get image, ground truth, and prediction
             img = images[i].cpu()
@@ -458,7 +372,6 @@ class BaseSegmentationModel(LightningModule, ABC):
 
             # Add to the list of images
             all_images.extend([img, mask_vis, pred_vis, diff_overlay])
-        logger.info(f"Created visualization tensors for {prefix} phase")
 
         # Create a grid of images and log via Lightning
         grid = make_grid(all_images, nrow=4)
@@ -472,36 +385,19 @@ class BaseSegmentationModel(LightningModule, ABC):
                 caption=caption,
                 step=self.current_epoch,
             )
-            logger.info(f"Logged visualizations with WandB for {prefix} phase")
         elif isinstance(self.logger, TensorBoardLogger):
             self.logger.experiment.add_image(
                 f"visualizations/{prefix}",
                 grid,
                 global_step=self.current_epoch,
             )
-            logger.info(f"Logged visualizations with TensorBoard for {prefix} phase")
         else:
             logger.warning(f"Logger {self.logger} does not support image logging.")
 
     #######################
     # Lifecycle Hooks
     #######################
-
-    def on_train_epoch_end(self):
-        # self._log_metrics_for_phase("train")
-        # self._log_visualizations("train")
-        pass
-
-    def on_validation_epoch_end(self):
-        self._log_metrics_for_phase("train")
-        self._log_visualizations("train")
-        self._log_metrics_for_phase("val")
-        self._log_visualizations("val")
-
     def on_test_epoch_end(self):
-        self._log_metrics_for_phase("test")
-        self._log_visualizations("test")
-
-        # Ensure loss is also in test_results
-        if "test/loss" in self.trainer.callback_metrics:
-            self.test_results["loss"] = round(float(self.trainer.callback_metrics["test/loss"]), 4)
+        for metric in self.trainer.callback_metrics:
+            if metric.startswith("test/"):
+                self.test_results[metric] = round(float(self.trainer.callback_metrics[metric]), 4)

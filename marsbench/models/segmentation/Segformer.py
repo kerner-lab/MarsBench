@@ -10,6 +10,7 @@ from .BaseSegmentationModel import BaseSegmentationModel
 
 logger = logging.getLogger(__name__)
 
+
 class Segformer(BaseSegmentationModel):
     def __init__(self, cfg):
         super(Segformer, self).__init__(cfg)
