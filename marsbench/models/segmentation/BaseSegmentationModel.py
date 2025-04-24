@@ -211,8 +211,6 @@ class BaseSegmentationModel(LightningModule, ABC):
         self._log_vis_grid("val")
 
     def on_test_epoch_end(self):
-        """Skip scalar logging; log a single W&B table + visuals instead."""
-        # emit test metrics collection, not a string identifier
         self._emit(self.test_metrics)
         self._log_vis_grid("test")
 
