@@ -7,6 +7,7 @@ import logging
 import os
 from abc import ABC
 from abc import abstractmethod
+from pathlib import Path
 from typing import Callable
 from typing import List
 from typing import Literal
@@ -52,7 +53,7 @@ class BaseSegmentationDataset(Dataset, ABC):
                 "Defaulting to RGB."
             )
             self.image_type = "RGB"
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir)
         self.transform = transform
         self.split = split
 
@@ -73,13 +74,13 @@ class BaseSegmentationDataset(Dataset, ABC):
                 logger.error(f"Invalid image format: {image_path}")
                 raise ValueError(f"Invalid image format: {image_path}")
 
-        if os.path.exists(self.data_dir.parent / "mapping.json"):
-            with open(self.data_dir.parent / "mapping.json", "r") as f:
+        if os.path.exists(self.data_dir / "mapping.json"):
+            with open(self.data_dir / "mapping.json", "r") as f:
                 self.cfg.mapping = {
                     int(k): v.strip().lower().replace(" ", "_").replace("-", "_") for k, v in json.load(f).items()
                 }
 
-            logger.info(f"Loaded mapping from {self.data_dir.parent / 'mapping.json'}")
+            logger.info(f"Loaded mapping from {self.data_dir / 'mapping.json'}")
             if len(self.cfg.mapping) != self.cfg.data.num_classes:
                 logger.warning(
                     f"Number of classes in mapping ({len(self.cfg.mapping)}) does not "
