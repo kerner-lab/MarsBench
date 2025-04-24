@@ -1,7 +1,0 @@
-name: HiRISENet
-status: test
-data_dir: ${oc.decode:${oc.select:dataset_path, .}}/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/map-proj-v3_2/
-annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/annotation.csv
-txt_file: ${oc.decode:${oc.select:dataset_path, .}}/Mars_Image_Cont_Class_Landmark/hirise-map-proj-v3_2/labels-map-proj_v3_2_train_val_test.txt
-num_classes: 8
-image_type: "rgb"

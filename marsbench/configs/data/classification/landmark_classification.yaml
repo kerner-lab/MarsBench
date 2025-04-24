@@ -1,0 +1,6 @@
+name: Landmark_Classification
+status: test
+data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/landmark_classification/data/
+annot_csv: ${oc.decode:${oc.select:new_dataset_path, .}}/landmark_classification/annotation.csv
+num_classes: 8
+image_type: "rgb"

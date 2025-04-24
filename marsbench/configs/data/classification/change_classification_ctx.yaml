@@ -1,0 +1,6 @@
+name: Change_Classification_CTX
+status: test
+data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/change_classification_ctx/data/
+annot_csv: ${oc.decode:${oc.select:new_dataset_path, .}}/change_classification_ctx/annotation.csv
+num_classes: 2
+image_type: "rgb"

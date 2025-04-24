@@ -1,6 +1,6 @@
 """
-DoMars16k dataset for Mars surface feature classification.
 """
+
 
 import os
 from typing import List
@@ -13,9 +13,8 @@ import pandas as pd
 from .BaseClassificationDataset import BaseClassificationDataset
 
 
-class DoMars16k(BaseClassificationDataset):
+class Atmospheric_Dust_Classification_RDR(BaseClassificationDataset):
     """
-    DoMars16k dataset https://zenodo.org/records/4291940
     """
 
     def __init__(
@@ -30,7 +29,7 @@ class DoMars16k(BaseClassificationDataset):
         self.annot = pd.read_csv(annot_csv)
         self.annot = self.annot[self.annot["split"] == split]
         data_dir = data_dir + f"/{split}"
-        super(DoMars16k, self).__init__(cfg, data_dir, transform)
+        super(Atmospheric_Dust_Classification_RDR, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[str], List[int]]:
         image_ids = self.annot["file_id"].astype(str).tolist()

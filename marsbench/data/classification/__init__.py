@@ -1,20 +1,24 @@
 """
 Classification datasets for Mars surface image classification tasks.
 """
+from .Atmospheric_Dust_Classification_EDR import Atmospheric_Dust_Classification_EDR
+from .Atmospheric_Dust_Classification_RDR import Atmospheric_Dust_Classification_RDR
 from .BaseClassificationDataset import BaseClassificationDataset
-from .DeepMars_Landmark import DeepMars_Landmark
-from .DeepMars_Surface import DeepMars_Surface
+from .Change_Classification_CTX import Change_Classification_CTX
+from .Change_Classification_HiRISE import Change_Classification_HiRISE
 from .DoMars16k import DoMars16k
-from .HiRISENet import HiRISENet
-from .MartianFrost import MartianFrost
-from .MSLNet import MSLNet
+from .Frost_Classification import Frost_Classification
+from .Landmark_Classification import Landmark_Classification
+from .Surface_Classification import Surface_Classification
 
 __all__ = [
     "BaseClassificationDataset",
-    "DeepMars_Landmark",
-    "DeepMars_Surface",
     "DoMars16k",
-    "HiRISENet",
-    "MartianFrost",
-    "MSLNet",
+    "Landmark_Classification",
+    "Surface_Classification",
+    "Frost_Classification",
+    "Atmospheric_Dust_Classification_RDR",
+    "Atmospheric_Dust_Classification_EDR",
+    "Change_Classification_HiRISE",
+    "Change_Classification_CTX",
 ]

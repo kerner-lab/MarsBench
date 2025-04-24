@@ -14,12 +14,14 @@ from torch.utils.data import Subset
 
 from marsbench.data.segmentation.Mask2FormerWrapper import Mask2FormerWrapper
 
-from .classification import DeepMars_Landmark
-from .classification import DeepMars_Surface
+from .classification import Atmospheric_Dust_Classification_EDR
+from .classification import Atmospheric_Dust_Classification_RDR
+from .classification import Change_Classification_CTX
+from .classification import Change_Classification_HiRISE
 from .classification import DoMars16k
-from .classification import HiRISENet
-from .classification import MartianFrost
-from .classification import MSLNet
+from .classification import Frost_Classification
+from .classification import Landmark_Classification
+from .classification import Surface_Classification
 from .detection import ConeQuest as ConeQuestDetection
 from .detection import Mars_Dust_Devil
 from .segmentation import MMLS
@@ -35,11 +37,13 @@ logger = logging.getLogger(__name__)
 DATASET_REGISTRY = {
     "classification": {
         "DoMars16k": DoMars16k,
-        "DeepMars_Landmark": DeepMars_Landmark,
-        "DeepMars_Surface": DeepMars_Surface,
-        "HiRISENet": HiRISENet,
-        "MartianFrost": MartianFrost,
-        "MSLNet": MSLNet,
+        "Landmark_Classification": Landmark_Classification,
+        "Surface_Classification": Surface_Classification,
+        "Frost_Classification": Frost_Classification,
+        "Atmospheric_Dust_Classification_RDR": Atmospheric_Dust_Classification_RDR,
+        "Atmospheric_Dust_Classification_EDR": Atmospheric_Dust_Classification_EDR,
+        "Change_Classification_HiRISE": Change_Classification_HiRISE,
+        "Change_Classification_CTX": Change_Classification_CTX,
     },
     "segmentation": {
         "ConeQuest": ConeQuestSegmentation,

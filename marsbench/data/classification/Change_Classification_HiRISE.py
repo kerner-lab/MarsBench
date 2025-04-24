@@ -1,0 +1,57 @@
+"""
+Planetary Surface Features Change Detection Dataset
+"""
+
+import os
+from typing import List
+from typing import Literal
+from typing import Tuple
+from typing import Union
+
+import pandas as pd
+import numpy as np
+from PIL import Image
+import torch
+
+from .BaseClassificationDataset import BaseClassificationDataset
+
+class Change_Classification_HiRISE(BaseClassificationDataset):
+
+    def __init__(
+        self,
+        cfg,
+        data_dir,
+        transform,
+        annot_csv: Union[str, os.PathLike],
+        split: Literal["train", "val", "test"] = "train",
+    ):
+        self.split = split
+        self.annot = pd.read_csv(annot_csv)
+        self.annot = self.annot[self.annot["split"] == split]
+        data_dir = data_dir + f"/{split}"
+        super(Change_Classification_HiRISE, self).__init__(cfg, data_dir, transform)
+
+    def _load_data(self) -> Tuple[List[str], List[str], List[int]]:
+        image_ids = self.annot["file_id"].astype(str).tolist()
+        feature_names = self.annot["feature_name"].astype(str).tolist()
+        labels = self.annot["label"].astype(int).tolist()
+        return image_ids, feature_names, labels
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+        image_id_before = self.image_ids[idx]
+        image_id_after = self.image_ids[idx].replace("before", "after")
+
+        layer_before = np.array(Image.open(os.path.join(self.data_dir, self.feature_names[idx], image_id_before)))
+        layer_zero = np.zeros((layer_before.shape[0], layer_before.shape[1]), dtype=layer_before.dtype)
+        layer_after = np.array(Image.open(os.path.join(self.data_dir, self.feature_names[idx], image_id_after)))
+
+        image = np.stack([layer_zero, layer_after, layer_before], axis=-1)
+        label = self.labels[idx]
+
+        if self.transform:
+            transformed = self.transform(image=image)
+            image = transformed["image"]
+        else:
+            image = torch.from_numpy(image)
+
+        return image, label
