@@ -5,6 +5,8 @@ early_stopping:
   patience: ${oc.select:training.early_stopping_patience, 1}
   mode: 'min'
   enabled: true
+  verbose: true
+  min_delta: 0.01
 
 # Best Model Checkpoint
 best_checkpoint:
