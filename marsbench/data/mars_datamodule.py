@@ -2,7 +2,7 @@
 PyTorch Lightning data module for Mars datasets.
 """
 
-import multiprocessing
+import os
 from typing import Optional
 
 import pytorch_lightning as pl
@@ -24,12 +24,9 @@ class MarsDataModule(pl.LightningDataModule):
         self.test_dataset: Optional[Dataset] = None
         self.image_processor = None
 
-        # Calculate optimal workers if not explicitly set
-        if not hasattr(self.cfg.training, "num_workers") or int(self.cfg.training.num_workers) <= 0:
-            # Use half the CPU count by default (minimum 1)
-            self.num_workers = max(1, multiprocessing.cpu_count() // 2)
-        else:
-            self.num_workers = int(self.cfg.training.num_workers)
+        sys_worker = os.environ.get("SLURM_CPUS_PER_TASK", 1) if "SLURM_JOB_ID" in os.environ else os.cpu_count() // 2
+        req_workers = self.cfg.training.get("num_workers", -1)
+        self.num_workers = min(sys_worker, req_workers) if req_workers > 0 else sys_worker
 
     def prepare_data(self):
         # Download or process data if needed
