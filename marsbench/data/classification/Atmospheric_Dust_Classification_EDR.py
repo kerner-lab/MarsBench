@@ -14,8 +14,7 @@ from .BaseClassificationDataset import BaseClassificationDataset
 
 
 class Atmospheric_Dust_Classification_EDR(BaseClassificationDataset):
-    """
-    """
+    """ """
 
     def __init__(
         self,

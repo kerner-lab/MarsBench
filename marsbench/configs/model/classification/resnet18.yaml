@@ -1,4 +1,0 @@
-name: ResNet18
-class_path: marsbench.models.classification.ResNet18
-status: ready
-input_size: [3, 224, 224]

@@ -7,8 +7,7 @@ import logging
 from omegaconf import DictConfig
 
 from .classification import InceptionV3
-from .classification import ResNet18
-from .classification import ResNet50
+from .classification import ResNet101
 from .classification import SqueezeNet
 from .classification import SwinTransformer
 from .classification import ViT
@@ -28,8 +27,7 @@ log = logging.getLogger(__name__)
 MODEL_REGISTRY = {
     "classification": {
         "InceptionV3": InceptionV3,
-        "ResNet18": ResNet18,
-        "ResNet50": ResNet50,
+        "ResNet101": ResNet101,
         "SqueezeNet": SqueezeNet,
         "SwinTransformer": SwinTransformer,
         "VisionTransformer": ViT,

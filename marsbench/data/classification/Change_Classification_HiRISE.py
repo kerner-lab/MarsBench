@@ -8,15 +8,15 @@ from typing import Literal
 from typing import Tuple
 from typing import Union
 
-import pandas as pd
 import numpy as np
-from PIL import Image
+import pandas as pd
 import torch
+from PIL import Image
 
 from .BaseClassificationDataset import BaseClassificationDataset
 
-class Change_Classification_HiRISE(BaseClassificationDataset):
 
+class Change_Classification_HiRISE(BaseClassificationDataset):
     def __init__(
         self,
         cfg,

@@ -2,7 +2,7 @@
 task: classification
 mode: train  # train, test, or predict
 data_name: domars16k
-model_name: resnet18
+model_name: resnet101
 dataset_path: /data/hkerner/MarsBench/Datasets
 new_dataset_path: /data/hkerner/MarsBench/NewDatasets
 training_type: feature_extraction  # Supported: scratch_training, feature_extraction, transfer_learning
@@ -18,7 +18,7 @@ defaults:
   - _self_
   - transforms: default
   - data: classification/domars16k  # task/data_name updated using load_dynamic_configs
-  - model: classification/resnet18  # task/model_name updated using load_dynamic_configs
+  - model: classification/resnet101  # task/model_name updated using load_dynamic_configs
   - training: ${oc.env:HYDRA_TRAINING,dev}  # Use test config in test environment
   - test: default
   - logger: default
