@@ -1,10 +1,7 @@
 # Logger Configuration
-log_step: false
-log_epoch: true
-prog_bar: true
-log_samples_every: 50  # None or int. Log sample predictions every N batches
-visualization_style: overlay
-log_images_every_n_epochs: 3
+vis_every: 3
+overlay_alpha: 0.5
+max_vis_samples: 5
 
 # WandB Logger Configuration
 wandb:
