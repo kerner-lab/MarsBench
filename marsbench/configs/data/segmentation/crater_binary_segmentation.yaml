@@ -1,0 +1,6 @@
+name: Crater_Binary_Segmentation
+status: test
+data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/crater_binary_segmentation/
+num_classes: 2
+image_type: "rgb"
+task: segmentation

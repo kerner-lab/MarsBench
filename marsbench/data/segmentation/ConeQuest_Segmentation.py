@@ -1,10 +1,9 @@
 """
-MarsData dataset for rock binary segmentation.
+ConeQuest dataset for Mars volcanic cone binary segmentation.
 """
 
 import logging
 import os
-from pathlib import Path
 from typing import Callable
 from typing import Literal
 from typing import Optional
@@ -15,8 +14,9 @@ from PIL import Image
 
 from .BaseSegmentationDataset import BaseSegmentationDataset
 
+logger = logging.getLogger(__name__)
 
-class MarsData(BaseSegmentationDataset):
+class ConeQuest_Segmentation(BaseSegmentationDataset):
     def __init__(
         self,
         cfg: DictConfig,
@@ -24,7 +24,6 @@ class MarsData(BaseSegmentationDataset):
         transform: Optional[Callable[[Image.Image], torch.Tensor]] = None,
         split: Literal["train", "val", "test"] = "train",
     ):
-        data_dir = Path(data_dir) / split
         super().__init__(cfg, data_dir, transform, split)
 
     def _load_data(self):
@@ -33,8 +32,8 @@ class MarsData(BaseSegmentationDataset):
         Returns:
             tuple: Lists of image paths and corresponding mask paths that have matches
         """
-        image_set = set(os.listdir(Path(self.data_dir) / "images"))
-        mask_set = set(os.listdir(Path(self.data_dir) / "masks"))
+        image_set = set(os.listdir(os.path.join(self.data_dir, "data", self.split, "images")))
+        mask_set = set(os.listdir(os.path.join(self.data_dir, "data", self.split, "masks")))
         missing_masks = image_set - mask_set
         missing_images = mask_set - image_set
 
@@ -46,7 +45,7 @@ class MarsData(BaseSegmentationDataset):
         valid_names = image_set.intersection(mask_set)
         valid_paths = sorted(list(valid_names))
 
-        image_paths = [os.path.join(self.data_dir, "images", p) for p in valid_paths]
-        mask_paths = [os.path.join(self.data_dir, "masks", p) for p in valid_paths]
+        image_paths = [os.path.join(self.data_dir, "data", self.split, "images", p) for p in valid_paths]
+        mask_paths = [os.path.join(self.data_dir, "data", self.split, "masks", p) for p in valid_paths]
 
         return image_paths, mask_paths

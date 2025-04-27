@@ -1,5 +1,5 @@
 from .BaseDetectionDataset import BaseDetectionDataset
-from .ConeQuest import ConeQuest
-from .Mars_Dust_Devil import Mars_Dust_Devil
+from .ConeQuest_Detection import ConeQuest_Detection
+from .Dust_Devil_Detection import Dust_Devil_Detection
 
-__all__ = ["BaseDetectionDataset", "ConeQuest", "Mars_Dust_Devil"]
+__all__ = ["BaseDetectionDataset", "ConeQuest_Detection", "Dust_Devil_Detection"]

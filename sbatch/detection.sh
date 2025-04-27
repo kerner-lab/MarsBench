@@ -1,7 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=marsbench_detection_test
-#SBATCH --output=../outputs/sbatch/detection_test_%j.log
-#SBATCH --error=../outputs/sbatch/detection_test_%j.err
+#SBATCH --output=../outputs/sbatch/test.log
+#SBATCH --error=../outputs/sbatch/test.err
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=2
 #SBATCH -p general
@@ -9,39 +8,35 @@
 #SBATCH --time=1-0
 
 # Load environment
-module load mamba
+module load mamba/latest
 source activate env_mb
-
-# Resolving Out of Memory Issue
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Change to project root directory
 cd ..
 
-# Function to run test and handle errors
-run_test() {
-    echo "Running: $1"
-    eval "$1"
-    if [ $? -eq 0 ]; then
-        echo " Test passed: $1"
-    else
-        echo " Test failed: $1"
-    fi
-    echo "----------------------------------------"
-}
+# -------------- DETECTION --------------
+echo "Running: conequest_detection"
+python -m marsbench.main task=detection data_name=conequest_detection model_name=fasterrcnn training.trainer.max_epochs=2
 
-echo "Starting MarsBench Detection Testing Suite..."
+echo "Running: dust_devil_detection"
+python -m marsbench.main task=detection data_name=dust_devil_detection model_name=fasterrcnn training.trainer.max_epochs=2
 
-# === Detection model tests ===
-datasets=("cone_quest" "mars_dust_devil")
-models=("fasterrcnn" "retinanet" "ssd" "efficientdet" "detr")
 
-for dataset in "${datasets[@]}"; do
-    for model in "${models[@]}"; do
-        run_test "python -m marsbench.main task=detection data_name=$dataset model_name=$model training.trainer.max_epochs=2 logger.wandb.enabled=False logger.tensorboard.enabled=false logger.mlflow.enabled=False logger.csv.enabled=False"
-    done
-done
+# -------------- SEGMENTATION --------------
+echo "Running: conequest_segmentation"
+python -m marsbench.main task=segmentation data_name=conequest_segmentation model_name=unet training.trainer.max_epochs=2
 
-# Print summary
-echo "MarsBench Detection Testing Suite Completed!"
-echo "Check the logs above for individual test results."
+echo "Running: boulder_segmentation"
+python -m marsbench.main task=segmentation data_name=boulder_segmentation model_name=deeplab training.trainer.max_epochs=2
+
+echo "Running: mars_seg_mer"
+python -m marsbench.main task=segmentation data_name=mars_seg_mer model_name=unet training.trainer.max_epochs=2
+
+echo "Running: mars_seg_msl"
+# python -m marsbench.main task=segmentation data_name=mars_seg_msl model_name=unet training.trainer.max_epochs=2
+
+echo "Running: mmls_segmentation"
+python -m marsbench.main task=segmentation data_name=mmls model_name=deeplab training.trainer.max_epochs=2
+
+echo "Running: s5mars_segmentation"
+python -m marsbench.main task=segmentation data_name=s5mars model_name=unet training.trainer.max_epochs=2

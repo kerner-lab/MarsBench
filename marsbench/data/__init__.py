@@ -22,12 +22,13 @@ from .classification import DoMars16k
 from .classification import Frost_Classification
 from .classification import Landmark_Classification
 from .classification import Surface_Classification
-from .detection import ConeQuest as ConeQuestDetection
-from .detection import Mars_Dust_Devil
+from .detection import ConeQuest_Detection
+from .detection import Dust_Devil_Detection
 from .segmentation import MMLS
-from .segmentation import ConeQuest as ConeQuestSegmentation
-from .segmentation import MarsBoulder
-from .segmentation import MarsData
+from .segmentation import Boulder_Segmentation
+from .segmentation import ConeQuest_Segmentation
+from .segmentation import Crater_Binary_Segmentation
+from .segmentation import Crater_Multi_Segmentation
 from .segmentation import MarsSegMER
 from .segmentation import MarsSegMSL
 from .segmentation import S5Mars
@@ -46,17 +47,18 @@ DATASET_REGISTRY = {
         "Change_Classification_CTX": Change_Classification_CTX,
     },
     "segmentation": {
-        "ConeQuest": ConeQuestSegmentation,
-        "MarsBoulder": MarsBoulder,
-        "MarsData": MarsData,
+        "ConeQuest_Segmentation": ConeQuest_Segmentation,
+        "Boulder_Segmentation": Boulder_Segmentation,
         "MarsSegMER": MarsSegMER,
         "MarsSegMSL": MarsSegMSL,
         "MMLS": MMLS,
         "S5Mars": S5Mars,
+        "Crater_Binary_Segmentation": Crater_Binary_Segmentation,
+        "Crater_Multi_Segmentation": Crater_Multi_Segmentation,
     },
     "detection": {
-        "ConeQuest": ConeQuestDetection,
-        "Mars_Dust_Devil": Mars_Dust_Devil,
+        "ConeQuest_Detection": ConeQuest_Detection,
+        "Dust_Devil_Detection": Dust_Devil_Detection,
     },
 }
 
