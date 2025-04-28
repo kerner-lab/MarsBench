@@ -72,7 +72,7 @@ class BaseSegmentationModel(LightningModule, ABC):
         self.vis_every = cfg.logger.get("vis_every", 3)
         self.overlay_alpha = cfg.logger.get("overlay_alpha", 0.5)
         self.max_vis = cfg.logger.get("max_vis_samples", 4)
-        # samples stored as {phase: (imgs, masks, preds)}
+        # samples stored as {phase: (imgs, ground, preds)}
         self.vis_samples: Dict[str, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = {}
 
         cmap = plt.get_cmap("tab20", C)
