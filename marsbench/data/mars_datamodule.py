@@ -117,8 +117,6 @@ class MarsDataModule(pl.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             pin_memory=True,
-            persistent_workers=True,
-            prefetch_factor=2,
             collate_fn=self.get_collate_fn(),
         )
 
