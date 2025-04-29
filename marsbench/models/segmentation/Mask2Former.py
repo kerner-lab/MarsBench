@@ -6,10 +6,11 @@ import logging
 
 import matplotlib.pyplot as plt
 import torch
-import torch.nn.functional as F
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers import WandbLogger
 from torchvision.utils import make_grid
-from transformers import Mask2FormerForUniversalSegmentation, Mask2FormerImageProcessor
+from transformers import Mask2FormerForUniversalSegmentation
+from transformers import Mask2FormerImageProcessor
 
 from .BaseSegmentationModel import BaseSegmentationModel
 
@@ -32,12 +33,12 @@ class Mask2Former(BaseSegmentationModel):
         freeze_layers = self.cfg.model.freeze_layers
 
         # Set encoder weights based on pretrained flag
-        encoder_weights = "imagenet" if pretrained else None
+        # encoder_weights = "imagenet" if pretrained else None
 
-        model =  Mask2FormerForUniversalSegmentation.from_pretrained(
-            'facebook/mask2former-swin-tiny-ade-semantic',
+        model = Mask2FormerForUniversalSegmentation.from_pretrained(
+            "facebook/mask2former-swin-tiny-ade-semantic",
             num_labels=self.cfg.data.num_classes - 1,
-            ignore_mismatched_sizes=True
+            ignore_mismatched_sizes=True,
         )
 
         # Handle layer freezing
@@ -68,69 +69,63 @@ class Mask2Former(BaseSegmentationModel):
 
     def forward(self, pixel_values, mask_labels, class_labels, pixel_mask):
         outputs = self.model(
-            pixel_values=pixel_values, 
-            mask_labels=mask_labels,
-            class_labels=class_labels,
-            pixel_mask=pixel_mask
+            pixel_values=pixel_values, mask_labels=mask_labels, class_labels=class_labels, pixel_mask=pixel_mask
         )
         return outputs
 
     def _shared_step(self, batch, batch_idx, prefix):
-        pixel_values = batch['pixel_values'].to(self.device)
-        mask_labels = [mask_label.to(self.device) for mask_label in batch['mask_labels']]
-        class_labels = [class_label.to(self.device) for class_label in batch['class_labels']]
-        pixel_mask = batch['pixel_mask'].to(self.device)
+        pixel_values = batch["pixel_values"].to(self.device)
+        mask_labels = [mask_label.to(self.device) for mask_label in batch["mask_labels"]]
+        class_labels = [class_label.to(self.device) for class_label in batch["class_labels"]]
+        pixel_mask = batch["pixel_mask"].to(self.device)
 
         outputs = self(
-            pixel_values=pixel_values, 
-            mask_labels=mask_labels,
-            class_labels=class_labels,
-            pixel_mask=pixel_mask
+            pixel_values=pixel_values, mask_labels=mask_labels, class_labels=class_labels, pixel_mask=pixel_mask
         )
 
         loss = outputs.loss
-        
+
         # Get class id based output
-        target_sizes = [(512, 512)] * len(batch['orig_mask'])
+        target_sizes = [(512, 512)] * len(batch["orig_mask"])
         pred_indices = self.image_processor.post_process_semantic_segmentation(outputs, target_sizes=target_sizes)
         pred_indices = torch.stack(pred_indices).to(self.device)
-        target_masks = torch.stack(batch['orig_mask'], dim=0).to(self.device).long()
+        target_masks = torch.stack(batch["orig_mask"], dim=0).to(self.device).long()
 
         metrics = {f"{prefix}/loss": loss}
         metrics.update(self._calculate_metrics_for_step(prefix, pred_indices, target_masks))
         # Log metrics at step level
         self.log_dict(metrics, on_step=False, on_epoch=True, sync_dist=True, prog_bar=True)
-        
+
         if (
             self.log_images_every_n_epochs is not None
             and batch_idx == 0
             and self.trainer.is_global_zero
             and self.current_epoch % self.log_images_every_n_epochs == 0
         ):
-            self._log_visualizations(batch['pixel_values'], batch['orig_mask'], pred_indices, prefix)
-        
+            self._log_visualizations(batch["pixel_values"], batch["orig_mask"], pred_indices, prefix)
+
         return {"loss": loss}
 
     def training_step(self, batch, batch_idx):
         return self._shared_step(batch, batch_idx, "train")
-    
+
     def validation_step(self, batch, batch_idx):
         return self._shared_step(batch, batch_idx, "val")
-    
+
     def test_step(self, batch, batch_idx):
         return self._shared_step(batch, batch_idx, "test")
-    
+
     def predict_step(self, batch, batch_idx):
-        images = batch['pixel_values'].to(self.device)
+        images = batch["pixel_values"].to(self.device)
         outputs = self(images)
-        
+
         # Get class id based output
         target_sizes = [(512, 512)] * images.shape[0]
         pred_indices = self.image_processor.post_process_semantic_segmentation(outputs, target_sizes=target_sizes)
         pred_indices = torch.stack(pred_indices).to(self.device)
 
         return pred_indices
-    
+
     def _log_visualizations(self, images, masks, preds, prefix):
         """
         Create and log visualization images.
@@ -206,7 +201,3 @@ class Mask2Former(BaseSegmentationModel):
             )
         else:
             logger.warning(f"Logger {self.logger} does not support image logging.")
-
-
-
-        

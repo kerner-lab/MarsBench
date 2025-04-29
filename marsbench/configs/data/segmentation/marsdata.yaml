@@ -1,6 +1,0 @@
-name: MarsData
-status: test
-data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/marsdata/
-num_classes: 2  # Background + 1 class
-image_type: "rgb"
-task: segmentation

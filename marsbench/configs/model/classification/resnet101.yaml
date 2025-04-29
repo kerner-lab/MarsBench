@@ -1,0 +1,4 @@
+name: ResNet101
+class_path: marsbench.models.classification.ResNet101
+status: ready
+input_size: [3, 224, 224]

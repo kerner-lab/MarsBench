@@ -1,5 +1,5 @@
 """
-DoMars16k dataset for Mars surface feature classification.
+MartianFrost dataset for Mars frost feature classification.
 """
 
 import os
@@ -13,9 +13,10 @@ import pandas as pd
 from .BaseClassificationDataset import BaseClassificationDataset
 
 
-class DoMars16k(BaseClassificationDataset):
+class Frost_Classification(BaseClassificationDataset):
     """
-    DoMars16k dataset https://zenodo.org/records/4291940
+    Martian Frost dataset
+    https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=doi:10.48577/jpl.QJ9PYA
     """
 
     def __init__(
@@ -30,7 +31,7 @@ class DoMars16k(BaseClassificationDataset):
         self.annot = pd.read_csv(annot_csv)
         self.annot = self.annot[self.annot["split"] == split]
         # data_dir = data_dir + f"/{split}"
-        super(DoMars16k, self).__init__(cfg, data_dir, transform)
+        super(Frost_Classification, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
         image_ids = self.annot["file_id"].astype(str).tolist()

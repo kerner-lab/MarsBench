@@ -1,7 +1,0 @@
-name: DeepMars_Landmark
-status: test
-data_dir: ${oc.decode:${oc.select:dataset_path, .}}/DeepMars_Landmark/map-proj/
-annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/DeepMars_Landmark/annotation.csv
-txt_file: ${oc.decode:${oc.select:dataset_path, .}}/DeepMars_Landmark/labels-map-proj.txt
-num_classes: 6
-image_type: "rgb"

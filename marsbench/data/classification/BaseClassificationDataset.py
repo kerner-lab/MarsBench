@@ -3,7 +3,6 @@ Base class for all Mars surface image classification datasets.
 """
 
 import logging
-import os
 from abc import ABC
 from abc import abstractmethod
 from typing import Callable
@@ -97,7 +96,7 @@ class BaseClassificationDataset(Dataset, ABC):
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        image = np.array(Image.open(os.path.join(self.data_dir, self.image_paths[idx])).convert(self.image_type))
+        image = np.array(Image.open(self.image_paths[idx]).convert(self.image_type))
         label = self.labels[idx]
 
         if self.transform:

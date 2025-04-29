@@ -1,4 +1,0 @@
-name: ResNet50
-class_path: marsbench.models.classification.ResNet50
-status: ready
-input_size: [3, 224, 224]

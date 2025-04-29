@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 from .BaseSegmentationDataset import BaseSegmentationDataset
 
 
-class MarsBoulder(BaseSegmentationDataset):
+class Boulder_Segmentation(BaseSegmentationDataset):
     def __init__(
         self,
         cfg: DictConfig,
