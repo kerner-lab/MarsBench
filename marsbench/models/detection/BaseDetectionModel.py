@@ -25,10 +25,11 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             self.cfg.model.freeze_layers = True if self.cfg.training_type == "feature_extraction" else False
         else:
             raise ValueError(f"Training type '{self.cfg.training_type}' not recognized.")
-        self.DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        self.model = self._initialize_model().to(self.DEVICE)
+        self.model = self._initialize_model().to(self.device)
         self.test_outputs = []
         self.test_results = {}
+
+        self.save_hyperparameters(cfg)
 
     @abstractmethod
     def _initialize_model(self):
@@ -44,7 +45,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
     def training_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.DEVICE)
+        images = images.to(self.device)
 
         loss_dict = self(images, targets)
         total_loss = sum(loss for loss in loss_dict.values())
@@ -55,7 +56,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
     def validation_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.DEVICE)
+        images = images.to(self.device)
         outputs = self(images)
 
         if self.metrics:
@@ -72,7 +73,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
     def test_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.DEVICE)
+        images = images.to(self.device)
         outputs = self(images)
 
         if self.metrics:
@@ -131,7 +132,36 @@ class BaseDetectionModel(pl.LightningModule, ABC):
         else:
             raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
 
-        return optimizer
+        if not self.cfg.training.get("scheduler", {}).get("enabled", False):
+            return optimizer
+
+        scheduler_name = self.cfg.training.scheduler.name
+        scheduler_params = self.cfg.training.scheduler
+
+        if scheduler_name.lower() == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=scheduler_params.get("t_max", self.cfg.training.trainer.max_epochs),
+                eta_min=scheduler_params.get("eta_min", 0),
+            )
+        elif scheduler_name.lower() == "step":
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer,
+                step_size=scheduler_params.get("step_size", 10),
+                gamma=scheduler_params.get("gamma", 0.1),
+            )
+        elif scheduler_name.lower() == "plateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                patience=scheduler_params.get("patience", 5),
+                factor=scheduler_params.get("factor", 0.1),
+                mode=scheduler_params.get("mode", "min"),
+            )
+            return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "val/loss"}
+        else:
+            raise ValueError(f"Scheduler '{scheduler_name}' not recognized.")
+
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _calculate_metrics(self, outputs, targets):
         targets_list = []

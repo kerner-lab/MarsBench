@@ -1,6 +1,6 @@
 """
-MartianFrost dataset for Mars frost feature classification.
 """
+
 
 import os
 from typing import List
@@ -13,11 +13,8 @@ import pandas as pd
 from .BaseClassificationDataset import BaseClassificationDataset
 
 
-class MartianFrost(BaseClassificationDataset):
-    """
-    Martian Frost dataset
-    https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=doi:10.48577/jpl.QJ9PYA
-    """
+class Atmospheric_Dust_Classification_EDR(BaseClassificationDataset):
+    """ """
 
     def __init__(
         self,
@@ -27,11 +24,18 @@ class MartianFrost(BaseClassificationDataset):
         annot_csv: Union[str, os.PathLike],
         split: Literal["train", "val", "test"] = "train",
     ):
+        self.split = split
         self.annot = pd.read_csv(annot_csv)
         self.annot = self.annot[self.annot["split"] == split]
-        super(MartianFrost, self).__init__(cfg, data_dir, transform)
+        # data_dir = data_dir + f"/{split}"
+        super(Atmospheric_Dust_Classification_EDR, self).__init__(cfg, data_dir, transform)
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
-        image_paths = self.annot["image_path"].astype(str).tolist()
+        image_ids = self.annot["file_id"].astype(str).tolist()
+        feature_names = self.annot["feature_name"].astype(str).tolist()
         labels = self.annot["label"].astype(int).tolist()
+        image_paths = [
+            os.path.join(self.data_dir, "data", self.split, feature_name, f"{image_id}")
+            for image_id, feature_name in zip(image_ids, feature_names)
+        ]
         return image_paths, labels

@@ -1,0 +1,7 @@
+name: Landmark_Classification
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/landmark_classification/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/landmark_classification/annotation.csv
+num_classes: 8
+image_type: "rgb"
+subtask: multiclass  # Supported: binary, multiclass, multilabel

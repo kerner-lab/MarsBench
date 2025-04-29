@@ -7,8 +7,7 @@ import logging
 from omegaconf import DictConfig
 
 from .classification import InceptionV3
-from .classification import ResNet18
-from .classification import ResNet50
+from .classification import ResNet101
 from .classification import SqueezeNet
 from .classification import SwinTransformer
 from .classification import ViT
@@ -17,6 +16,7 @@ from .detection import SSD
 from .detection import EfficientDET
 from .detection import FasterRCNN
 from .detection import RetinaNet
+from .segmentation import DPT
 from .segmentation import DeepLab
 from .segmentation import Mask2Former
 from .segmentation import Segformer
@@ -28,8 +28,7 @@ log = logging.getLogger(__name__)
 MODEL_REGISTRY = {
     "classification": {
         "InceptionV3": InceptionV3,
-        "ResNet18": ResNet18,
-        "ResNet50": ResNet50,
+        "ResNet101": ResNet101,
         "SqueezeNet": SqueezeNet,
         "SwinTransformer": SwinTransformer,
         "VisionTransformer": ViT,
@@ -39,6 +38,7 @@ MODEL_REGISTRY = {
         "DeepLab": DeepLab,
         "Segformer": Segformer,
         "Mask2Former": Mask2Former,
+        "DPT": DPT,
     },
     "detection": {
         "DETR": DETR,

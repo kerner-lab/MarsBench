@@ -1,0 +1,6 @@
+name: Boulder_Segmentation
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/boulder_segmentation/
+num_classes: 2  # Background + 1 class
+image_type: "rgb"
+task: segmentation

@@ -1,0 +1,7 @@
+name: Atmospheric_Dust_Classification_RDR
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/atmospheric_dust_classification_rdr/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/atmospheric_dust_classification_rdr/annotation.csv
+num_classes: 2
+image_type: "rgb"
+subtask: multiclass  # Supported: binary, multiclass, multilabel

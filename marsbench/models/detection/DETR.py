@@ -85,7 +85,7 @@ class DETR(BaseDetectionModel):
 
     def training_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.DEVICE)
+        images = images.to(self.device)
 
         outputs = self(images)
         loss_dict = self.criterion(outputs, targets)
@@ -98,7 +98,7 @@ class DETR(BaseDetectionModel):
 
     def validation_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.DEVICE)
+        images = images.to(self.device)
         outputs = self(images)
 
         loss_dict = self.criterion(outputs, targets)
@@ -109,7 +109,7 @@ class DETR(BaseDetectionModel):
 
     def test_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.DEVICE)
+        images = images.to(self.device)
         outputs = self(images)
 
         loss_dict = self.criterion(outputs, targets)
