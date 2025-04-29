@@ -174,15 +174,15 @@ class BaseSegmentationModel(LightningModule, ABC):
 
     # ---------------- step hooks ------------------
     def _common_step(self, batch, metrics, phase):
-        imgs, masks = batch
+        imgs, ground = batch
         logits = self(imgs)
-        loss = self.criterion(logits, masks)
+        loss = self.criterion(logits, ground)
 
         preds = logits.argmax(1).detach()
-        metrics.update(preds, masks.detach())
+        metrics.update(preds, ground.detach())
         self.log(f"{phase}/loss", loss, on_step=True, prog_bar=(phase == "train"))
         if self.current_epoch % self.vis_every == 0 or self.current_epoch == self.trainer.max_epochs - 1:
-            self._store_vis(phase, imgs, masks, preds)
+            self._store_vis(phase, imgs, ground, preds)
         return loss
 
     def training_step(self, batch, _):
@@ -332,8 +332,12 @@ class BaseSegmentationModel(LightningModule, ABC):
         fig.tight_layout(pad=0)
         return fig
 
-    def _store_vis(self, phase, imgs, masks, preds):
-        self.vis_samples[phase] = (imgs[: self.max_vis].cpu(), masks[: self.max_vis].cpu(), preds[: self.max_vis].cpu())
+    def _store_vis(self, phase, imgs, ground, preds):
+        self.vis_samples[phase] = (
+            imgs[: self.max_vis].cpu(),
+            ground[: self.max_vis].cpu(),
+            preds[: self.max_vis].cpu(),
+        )
 
     def _colorize(self, mask: torch.Tensor):
         h, w = mask.shape
@@ -345,9 +349,9 @@ class BaseSegmentationModel(LightningModule, ABC):
         """Create a 4-panel grid per sample and log via W&B / TensorBoard."""
         if phase not in self.vis_samples:
             return
-        imgs, masks, preds = self.vis_samples.pop(phase)
+        imgs, ground, preds = self.vis_samples.pop(phase)
         panels = []
-        for img, gt, pr in zip(imgs, masks, preds):
+        for img, gt, pr in zip(imgs, ground, preds):
             if img.shape[0] == 1:
                 img = img.repeat(3, 1, 1)
             diff = torch.zeros_like(img)
