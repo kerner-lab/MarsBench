@@ -2,17 +2,16 @@
 ConeQuest dataset for Mars volcanic cone detection.
 """
 
-import os
 import json
 import logging
-from typing import Literal
-from typing import Tuple
-from typing import List
-
-from lxml import etree
+import os
 from collections import defaultdict
 from pathlib import Path
+from typing import List
+from typing import Literal
+from typing import Tuple
 
+from lxml import etree
 from omegaconf import DictConfig
 
 from .BaseDetectionDataset import BaseDetectionDataset
@@ -30,13 +29,13 @@ class ConeQuest_Detection(BaseDetectionDataset):
         super().__init__(cfg, data_dir, transform, bbox_format, split)
 
     def _load_data(self) -> Tuple[List[str], List[List[float]], List[List[int]], List[str]]:
-        image_paths = sorted(os.listdir(Path(self.data_dir) / self.split / "images"))
+        image_paths = sorted(os.listdir(Path(self.data_dir) / "data" / self.split / "images"))
         image_suffix = Path(image_paths[0]).suffix
         names = [Path(p).stem for p in image_paths]
 
         if self.bbox_format == "yolo":
-            bbox_paths = sorted(os.listdir(Path(self.data_dir) / self.split / "labels"))
-            bbox_paths = [os.path.join(self.data_dir, self.split, "labels", p) for p in bbox_paths]
+            bbox_paths = sorted(os.listdir(Path(self.data_dir) / "data" / self.split / "labels"))
+            bbox_paths = [os.path.join(self.data_dir, "data", self.split, "labels", p) for p in bbox_paths]
 
             annotations = defaultdict(list)
             labels = defaultdict(list)
@@ -53,7 +52,7 @@ class ConeQuest_Detection(BaseDetectionDataset):
             labels = dict(labels)
 
         elif self.bbox_format == "coco":
-            coco_json_path = os.path.join(self.data_dir, self.split, "coco_annotations.json")
+            coco_json_path = os.path.join(self.data_dir, "data", self.split, "coco_annotations.json")
 
             with open(coco_json_path, "r") as file:
                 coco_annotations = json.load(file)
@@ -71,8 +70,8 @@ class ConeQuest_Detection(BaseDetectionDataset):
             labels = dict(sorted(labels.items()))
 
         elif self.bbox_format == "pascal_voc":
-            bbox_paths = sorted(os.listdir(Path(self.data_dir) / self.split / "pascal_voc"))
-            bbox_paths = [os.path.join(self.data_dir, self.split, "pascal_voc", p) for p in bbox_paths]
+            bbox_paths = sorted(os.listdir(Path(self.data_dir) / "data" / self.split / "pascal_voc"))
+            bbox_paths = [os.path.join(self.data_dir, "data", self.split, "pascal_voc", p) for p in bbox_paths]
 
             annotations = defaultdict(list)
             labels = defaultdict(list)
@@ -108,7 +107,7 @@ class ConeQuest_Detection(BaseDetectionDataset):
         else:
             logging.warning("names and annotations are not in sync.")
 
-        image_paths = [os.path.join(self.data_dir, self.split, "images", p + image_suffix) for p in valid_names]
+        image_paths = [os.path.join(self.data_dir, "data", self.split, "images", p + image_suffix) for p in valid_names]
 
         return (
             image_paths,

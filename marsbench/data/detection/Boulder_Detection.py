@@ -1,22 +1,24 @@
 """
-Mars Dust Devil dataset for Mars dust devil detection.
+Boulder dataset for Mars boulder detection.
 """
+
+import os
 import json
 import logging
-import os
-from collections import defaultdict
-from pathlib import Path
-from typing import List
 from typing import Literal
 from typing import Tuple
+from typing import List
 
 from lxml import etree
+from collections import defaultdict
+from pathlib import Path
+
 from omegaconf import DictConfig
 
 from .BaseDetectionDataset import BaseDetectionDataset
 
 
-class Dust_Devil_Detection(BaseDetectionDataset):
+class Boulder_Detection(BaseDetectionDataset):
     def __init__(
         self,
         cfg: DictConfig,

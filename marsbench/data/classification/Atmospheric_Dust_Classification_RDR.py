@@ -27,11 +27,15 @@ class Atmospheric_Dust_Classification_RDR(BaseClassificationDataset):
         self.split = split
         self.annot = pd.read_csv(annot_csv)
         self.annot = self.annot[self.annot["split"] == split]
-        data_dir = data_dir + f"/{split}"
+        # data_dir = data_dir + f"/{split}"
         super(Atmospheric_Dust_Classification_RDR, self).__init__(cfg, data_dir, transform)
 
-    def _load_data(self) -> Tuple[List[str], List[str], List[int]]:
+    def _load_data(self) -> Tuple[List[str], List[int]]:
         image_ids = self.annot["file_id"].astype(str).tolist()
         feature_names = self.annot["feature_name"].astype(str).tolist()
         labels = self.annot["label"].astype(int).tolist()
-        return image_ids, feature_names, labels
+        image_paths = [
+            os.path.join(self.data_dir, "data", self.split, feature_name, f"{image_id}")
+            for image_id, feature_name in zip(image_ids, feature_names)
+        ]
+        return image_paths, labels

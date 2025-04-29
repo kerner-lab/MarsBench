@@ -22,6 +22,7 @@ from .classification import DoMars16k
 from .classification import Frost_Classification
 from .classification import Landmark_Classification
 from .classification import Surface_Classification
+from .detection import Boulder_Detection
 from .detection import ConeQuest_Detection
 from .detection import Dust_Devil_Detection
 from .segmentation import MMLS
@@ -59,6 +60,7 @@ DATASET_REGISTRY = {
     "detection": {
         "ConeQuest_Detection": ConeQuest_Detection,
         "Dust_Devil_Detection": Dust_Devil_Detection,
+        "Boulder_Detection": Boulder_Detection,
     },
 }
 

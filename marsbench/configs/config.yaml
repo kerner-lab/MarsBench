@@ -3,8 +3,7 @@ task: classification
 mode: train  # train, test, or predict
 data_name: domars16k
 model_name: resnet101
-dataset_path: /data/hkerner/MarsBench/Datasets
-new_dataset_path: /data/hkerner/MarsBench/NewDatasets
+dataset_path: /data/hkerner/MarsBench/NewDatasets
 training_type: feature_extraction  # Supported: scratch_training, feature_extraction, transfer_learning
 output_path: outputs
 seed: 42

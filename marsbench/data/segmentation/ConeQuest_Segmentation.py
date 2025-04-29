@@ -16,6 +16,7 @@ from .BaseSegmentationDataset import BaseSegmentationDataset
 
 logger = logging.getLogger(__name__)
 
+
 class ConeQuest_Segmentation(BaseSegmentationDataset):
     def __init__(
         self,

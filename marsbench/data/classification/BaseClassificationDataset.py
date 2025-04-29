@@ -3,7 +3,6 @@ Base class for all Mars surface image classification datasets.
 """
 
 import logging
-import os
 from abc import ABC
 from abc import abstractmethod
 from typing import Callable
@@ -60,21 +59,21 @@ class BaseClassificationDataset(Dataset, ABC):
         self.data_dir = data_dir
         self.transform = transform
         logger.info(f"Loading {self.__class__.__name__} from {data_dir}")
-        self.image_ids, self.feature_names, self.labels = self._load_data()
-        logger.info(f"Loaded {len(self.image_ids)} images with {len(set(self.labels))} unique classes")
+        self.image_paths, self.labels = self._load_data()
+        logger.info(f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes")
 
         # Validate image extensions
-        for image_id in self.image_ids:
-            if not image_id.endswith(tuple(cfg.data.valid_image_extensions)):
-                logger.error(f"Invalid image format: {image_id}")
-                raise ValueError(f"Invalid image format: {image_id}")
+        for image_path in self.image_paths:
+            if not image_path.endswith(tuple(cfg.data.valid_image_extensions)):
+                logger.error(f"Invalid image format: {image_path}")
+                raise ValueError(f"Invalid image format: {image_path}")
 
         logger.info(
             f"Dataset initialized with mode: {self.image_type}, " f"transforms: {'applied' if transform else 'none'}"
         )
 
     @abstractmethod
-    def _load_data(self) -> Tuple[List[str], List[str], List[int]]:
+    def _load_data(self) -> Tuple[List[str], List[int]]:
         pass
 
     def determine_data_splits(
@@ -97,11 +96,7 @@ class BaseClassificationDataset(Dataset, ABC):
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        image = np.array(
-            Image.open(os.path.join(self.data_dir, self.feature_names[idx], self.image_ids[idx])).convert(
-                self.image_type
-            )
-        )
+        image = np.array(Image.open(self.image_paths[idx]).convert(self.image_type))
         label = self.labels[idx]
 
         if self.transform:

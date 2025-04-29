@@ -60,8 +60,6 @@ class EfficientDET(BaseDetectionModel):
 
     def training_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
-
         loss_output_dict = self(images, targets)
 
         loss = loss_output_dict["loss"]
@@ -72,7 +70,6 @@ class EfficientDET(BaseDetectionModel):
 
     def validation_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
         outputs = self(images, targets)
 
         # output keys: loss, class_loss, box_loss, detections
@@ -81,7 +78,6 @@ class EfficientDET(BaseDetectionModel):
 
     def test_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
         outputs = self(images, targets)
 
         loss = outputs["loss"]

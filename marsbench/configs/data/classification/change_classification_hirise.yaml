@@ -1,6 +1,7 @@
 name: Change_Classification_HiRISE
 status: test
-data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/change_classification_hirise/data/
-annot_csv: ${oc.decode:${oc.select:new_dataset_path, .}}/change_classification_hirise/annotation.csv
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_hirise/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_hirise/annotation.csv
 num_classes: 2
 image_type: "rgb"
+subtask: multiclass  # Supported: binary, multiclass, multilabel

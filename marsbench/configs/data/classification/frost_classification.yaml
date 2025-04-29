@@ -1,6 +1,7 @@
 name: Frost_Classification
 status: test
-data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/frost_classification/data
-annot_csv: ${oc.decode:${oc.select:new_dataset_path, .}}/frost_classification/annotation.csv
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/frost_classification/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/frost_classification/annotation.csv
 num_classes: 2
 image_type: "rgb"
+subtask: multiclass  # Supported: binary, multiclass, multilabel

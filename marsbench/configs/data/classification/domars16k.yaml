@@ -1,6 +1,7 @@
 name: DoMars16k
 status: test
-data_dir: ${oc.decode:${oc.select:new_dataset_path, .}}/domars16k/data/
-annot_csv: ${oc.decode:${oc.select:new_dataset_path, .}}/domars16k/annotation.csv
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/domars16k/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/domars16k/annotation.csv
 num_classes: 15
 image_type: "rgb"
+subtask: multiclass  # Supported: binary, multiclass, multilabel
