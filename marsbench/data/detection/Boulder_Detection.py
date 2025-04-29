@@ -2,17 +2,16 @@
 Boulder dataset for Mars boulder detection.
 """
 
-import os
 import json
 import logging
-from typing import Literal
-from typing import Tuple
-from typing import List
-
-from lxml import etree
+import os
 from collections import defaultdict
 from pathlib import Path
+from typing import List
+from typing import Literal
+from typing import Tuple
 
+from lxml import etree
 from omegaconf import DictConfig
 
 from .BaseDetectionDataset import BaseDetectionDataset
