@@ -2,5 +2,5 @@ name: Dust_Devil_Detection
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/dust_devil_detection/
 num_classes: 2 # Background + 1 class
-image_type: "rgb"
+image_type: rgb
 task: detection
