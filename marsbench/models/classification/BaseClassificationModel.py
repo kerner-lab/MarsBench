@@ -83,7 +83,7 @@ class BaseClassificationModel(LightningModule, ABC):
         # visual logging
         self.vis_every = cfg.logger.get("vis_every", 3)
         self.max_vis = cfg.logger.get("max_vis_samples", 4)
-        # samples stored as {phase: (imgs, ground, preds)}
+        # samples stored as {phase: (imgs, ground_truth, preds)}
         self.vis_samples: Dict[str, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]] = {}
 
         cmap = plt.get_cmap("tab20", num_classes)
@@ -145,11 +145,11 @@ class BaseClassificationModel(LightningModule, ABC):
 
     # ---------------- step hooks ------------------
     def _common_step(self, batch, batch_idx, metrics, phase):
-        imgs, ground = batch
+        imgs, ground_truth = batch
         logits = self(imgs)
-        loss = self.criterion(logits, ground)
+        loss = self.criterion(logits, ground_truth)
 
-        metrics.update(logits.detach(), ground.detach())
+        metrics.update(logits.detach(), ground_truth.detach())
         self.log(f"{phase}/loss", loss, on_step=True, prog_bar=True)
         if (
             self.current_epoch % self.vis_every == 0 or self.current_epoch == self.trainer.max_epochs - 1
@@ -160,7 +160,7 @@ class BaseClassificationModel(LightningModule, ABC):
             else:
                 probs = F.sigmoid(logits)
                 preds = (probs > 0.5).long()
-            self._store_vis(phase, imgs, ground, probs, preds)
+            self._store_vis(phase, imgs, ground_truth, probs, preds)
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -227,10 +227,10 @@ class BaseClassificationModel(LightningModule, ABC):
         coll.reset()
 
     # ---------------- visualisation ----------------
-    def _store_vis(self, phase, imgs, ground, probs, preds):
+    def _store_vis(self, phase, imgs, ground_truth, probs, preds):
         self.vis_samples[phase] = (
             imgs[: self.max_vis].cpu(),
-            ground[: self.max_vis].cpu(),
+            ground_truth[: self.max_vis].cpu(),
             probs[: self.max_vis].cpu(),
             preds[: self.max_vis].cpu(),
         )
@@ -305,13 +305,13 @@ class BaseClassificationModel(LightningModule, ABC):
         if phase not in self.vis_samples:
             return
 
-        imgs, ground, probs, preds = self.vis_samples.pop(phase)
+        imgs, ground_truth, probs, preds = self.vis_samples.pop(phase)
         task = self.cfg.data.subtask
 
         panels = []
         base_w, base_h = self.cfg.model.input_size[-2:]
 
-        for img, gt, pr, prob_vec in zip(imgs, ground, preds, probs):
+        for img, gt, pr, prob_vec in zip(imgs, ground_truth, preds, probs):
             if img.shape[0] == 1:  # grayscale → RGB
                 img = img.repeat(3, 1, 1)
 

@@ -58,16 +58,16 @@ class BaseSegmentationDataset(Dataset, ABC):
         self.split = split
 
         logger.info(f"Loading {self.__class__.__name__} from {data_dir} (split: {split})")
-        self.image_paths, self.ground = self._load_data()
+        self.image_paths, self.ground_truths = self._load_data()
         logger.info(f"Loaded {len(self.image_paths)} image-mask pairs")
 
-        if len(self.image_paths) == 0 or len(self.ground) == 0:
+        if len(self.image_paths) == 0 or len(self.ground_truths) == 0:
             logging.error("No matching image and mask pairs found")
             raise ValueError("No matching image and mask pairs found")
 
-        if np.array(self.ground[0]).ndim == 4:
+        if np.array(self.ground_truths[0]).ndim == 4:
             logger.info("One-hot encoded masks detected. Converting to class indices.")
-            logger.warning("Expected shape of ground truth: [N, C, H, W]")
+            logger.warning("Expected shape of ground_truths: [N, C, H, W]")
 
         for image_path in self.image_paths:
             if not image_path.endswith(tuple(cfg.data.valid_image_extensions)):
@@ -119,7 +119,7 @@ class BaseSegmentationDataset(Dataset, ABC):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         image = np.array(Image.open(self.image_paths[idx]).convert(self.image_type))
-        mask = np.array(Image.open(self.ground[idx]).convert("L"))
+        mask = np.array(Image.open(self.ground_truths[idx]).convert("L"))
 
         if len(mask.shape) == 4:  # One hot encoded mask [N, C, H, W] to class mask [N, H, W]
             mask = np.argmax(mask, axis=2)

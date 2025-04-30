@@ -28,15 +28,15 @@ class BaseClassificationDataset(Dataset, ABC):
         transform (callable, optional): A function/transform to apply to the images.
 
     Methods:
-        _load_data(): Abstract method to load image paths and labels. Must be overridden.
+        _load_data(): Abstract method to load image paths and ground_truths. Must be overridden.
         __len__(): Returns the size of the dataset.
-        __getitem__(index): Retrieves an image and its label at the specified index.
+        __getitem__(index): Retrieves an image and its ground_truth at the specified index.
 
     Usage:
         class MyDataset(CustomDataset):
             def _load_data(self):
                 # Implement data loading logic
-                return image_paths, labels
+                return image_paths, ground_truths
     """
 
     def __init__(
@@ -59,8 +59,8 @@ class BaseClassificationDataset(Dataset, ABC):
         self.data_dir = data_dir
         self.transform = transform
         logger.info(f"Loading {self.__class__.__name__} from {data_dir}")
-        self.image_paths, self.labels = self._load_data()
-        logger.info(f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes")
+        self.image_paths, self.ground_truths = self._load_data()
+        logger.info(f"Loaded {len(self.image_paths)} images with {len(set(self.ground_truths))} unique classes")
 
         # Validate image extensions
         for image_path in self.image_paths:
@@ -73,7 +73,7 @@ class BaseClassificationDataset(Dataset, ABC):
         )
 
     @abstractmethod
-    def _load_data(self) -> Tuple[List[str], List[int]]:
+    def _load_data(self) -> Tuple[List[str], List[int] | List[List[int]]]:
         pass
 
     def determine_data_splits(
@@ -93,11 +93,11 @@ class BaseClassificationDataset(Dataset, ABC):
             return indices[train_size + val_size :]
 
     def __len__(self) -> int:
-        return len(self.labels)
+        return len(self.ground_truths)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         image = np.array(Image.open(self.image_paths[idx]).convert(self.image_type))
-        label = self.labels[idx]
+        label = self.ground_truths[idx]
 
         if self.transform:
             transformed = self.transform(image=image)
