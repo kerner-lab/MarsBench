@@ -4,7 +4,6 @@ Abstract base class for all Mars surface image classification models.
 
 import io
 import logging
-import textwrap
 from abc import ABC
 from abc import abstractmethod
 from typing import Dict
@@ -15,8 +14,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
 from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers import WandbLogger
@@ -58,6 +55,10 @@ class BaseClassificationModel(LightningModule, ABC):
         # MetricCollection (single base cloned per phase)
         subtask = cfg.data.subtask
         num_classes = cfg.data.num_classes
+        average_list = ["macro", "weighted"]
+        if subtask != "binary":  # per_class metrics
+            average_list.append("none")
+
         metric_args = {"task": subtask}
         if subtask == "multilabel":
             metric_args["num_labels"] = num_classes
@@ -66,7 +67,7 @@ class BaseClassificationModel(LightningModule, ABC):
 
         # Create metrics with appropriate arguments
         metrics_dict = {}
-        for average in ["macro", "weighted", "none"]:
+        for average in average_list:
             suffix = "_" + average if average != "none" else "_per_class"
             metrics_dict["Accuracy" + suffix] = Accuracy(**metric_args, average=average)
             metrics_dict["Precision" + suffix] = Precision(**metric_args, average=average)
@@ -83,7 +84,7 @@ class BaseClassificationModel(LightningModule, ABC):
         # visual logging
         self.vis_every = cfg.logger.get("vis_every", 3)
         self.max_vis = cfg.logger.get("max_vis_samples", 4)
-        # samples stored as {phase: (imgs, ground_truth, preds)}
+        # samples stored as {phase: (imgs, gt, preds)}
         self.vis_samples: Dict[str, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]] = {}
 
         cmap = plt.get_cmap("tab20", num_classes)
@@ -145,29 +146,42 @@ class BaseClassificationModel(LightningModule, ABC):
 
     # ---------------- step hooks ------------------
     def _common_step(self, batch, batch_idx, metrics, phase):
-        imgs, ground_truth = batch
+        imgs, gt = batch
         logits = self(imgs)
-        loss = self.criterion(logits, ground_truth)
 
-        metrics.update(logits.detach(), ground_truth.detach())
-        self.log(f"{phase}/loss", loss, on_step=True, prog_bar=True)
+        if self.cfg.data.subtask == "binary":
+            logits = logits.squeeze(-1)
+
+        loss = self.criterion(logits, gt)
+
+        metrics.update(logits.detach(), gt.detach().long())
+        self.log(
+            f"{phase}/loss",  # required for early stopping
+            loss,
+            on_step=(phase == "train"),
+            on_epoch=True,
+            prog_bar=True,
+        )
+
         if (
-            self.current_epoch % self.vis_every == 0 or self.current_epoch == self.trainer.max_epochs - 1
-        ) and batch_idx == 0:
+            (self.current_epoch % self.vis_every == 0 or self.current_epoch == self.trainer.max_epochs - 1)
+            and batch_idx == 0
+            and self.current_epoch != 0
+        ):
             if self.cfg.data.subtask == "multiclass":
                 probs = F.softmax(logits, dim=1)
                 preds = probs.argmax(1)
             else:
                 probs = F.sigmoid(logits)
                 preds = (probs > 0.5).long()
-            self._store_vis(phase, imgs, ground_truth, probs, preds)
+            self._store_vis(phase, imgs, gt.long(), probs, preds)
         return loss
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, self.train_metrics, "train")
 
     def validation_step(self, batch, batch_idx):
-        self._common_step(batch, batch_idx, self.val_metrics, "val")
+        return self._common_step(batch, batch_idx, self.val_metrics, "val")
 
     def test_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, self.test_metrics, "test")
@@ -227,10 +241,10 @@ class BaseClassificationModel(LightningModule, ABC):
         coll.reset()
 
     # ---------------- visualisation ----------------
-    def _store_vis(self, phase, imgs, ground_truth, probs, preds):
+    def _store_vis(self, phase, imgs, gt, probs, preds):
         self.vis_samples[phase] = (
             imgs[: self.max_vis].cpu(),
-            ground_truth[: self.max_vis].cpu(),
+            gt[: self.max_vis].cpu(),
             probs[: self.max_vis].cpu(),
             preds[: self.max_vis].cpu(),
         )
@@ -247,18 +261,37 @@ class BaseClassificationModel(LightningModule, ABC):
         return out
 
     @staticmethod
-    def text_panel(lines: str, width: int, height: int, wrap: int, font_size: int) -> torch.Tensor:
-        """Render wrapped text on white background."""
-        wrapped = textwrap.fill(lines, wrap)
-        txt_img = Image.new("RGB", (width, height), color=(255, 255, 255))
-        draw = ImageDraw.Draw(txt_img)
-        draw.text((3, 3), wrapped, fill=(0, 0, 0), font=ImageFont.truetype("DejaVuSans.ttf", font_size))
-        out = to_tensor(txt_img)
-        return out
+    def text_panel(lines: str, width: int, height: int, font_size: int) -> torch.Tensor:
+        """Render wrapped text using Matplotlib to fit exactly in width/height."""
+        fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)
+        ax.axis("off")
+        fig.patch.set_facecolor("white")
+
+        ax.text(
+            0.01,
+            0.99,
+            lines,
+            ha="left",
+            va="top",
+            wrap=True,
+            horizontalalignment="left",
+            fontsize=font_size,
+            family="DejaVu Sans",
+            transform=ax.transAxes,
+        )
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=100, facecolor=fig.get_facecolor())
+        plt.close(fig)
+        buf.seek(0)
+
+        img = Image.open(buf).convert("RGB")
+        if img.size != (width, height):
+            img = img.resize((width, height), Image.Resampling.LANCZOS)
+        return to_tensor(img)
 
     def prob_panel(self, probs: torch.Tensor, topk: int, width: int, height: int) -> torch.Tensor:
         """Return a torch tensor with a tiny matplotlib plot."""
-        # Pick plotting style per task
         if self.cfg.data.subtask == "binary":
             classes = (
                 ["neg", "pos"]
@@ -271,19 +304,22 @@ class BaseClassificationModel(LightningModule, ABC):
             classes = [self._get_class_name(i.item()) for i in idxs]
             values = values.cpu().numpy().tolist()
         else:  # multilabel
-            classes = [self._get_class_name(i) for i in range(probs.numel())]
+            classes = list(range(len(probs)))
             values = probs.cpu().numpy().tolist()
         # ---- plot ----
-        fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)
+        fig, ax = plt.subplots(
+            figsize=(width / 100, height / 100),
+            constrained_layout=True,
+            dpi=100,
+        )
         if self.cfg.data.subtask == "multilabel":
-            ax.barh(classes, values)
+            ax.barh(classes, values, color="C0")
+            ax.set_xlabel("Probability")
+            ax.invert_yaxis()
         else:
-            ax.bar(classes, values)
-        ax.set(ylim=(-0.1 if self.cfg.data.subtask == "multilabel" else None, 1.05), yticks=[], xlabel="")
-        ax.tick_params(axis="x", labelsize=18)
-        ax.margins(x=0)
-        fig.tight_layout(pad=0.1)
-
+            ax.bar(classes, values, color="C0")
+            ax.set_ylabel("Probability")
+            plt.xticks(rotation=45, ha="right")
         buf = io.BytesIO()
         fig.savefig(buf, format="png", transparent=False)
         plt.close(fig)
@@ -292,7 +328,7 @@ class BaseClassificationModel(LightningModule, ABC):
         return out
 
     @torch.no_grad()
-    def _log_vis_grid(self, phase, topk: int = 5, h_border: int = 2, font_size: int = 24, wrap: int = 32):
+    def _log_vis_grid(self, phase, topk: int = 5, h_border: int = 2, font_size: int = 12):
         """
         Build a 4x3 grid per epoch:
             ┌─────────┬────────────┬───────────────┐
@@ -305,20 +341,21 @@ class BaseClassificationModel(LightningModule, ABC):
         if phase not in self.vis_samples:
             return
 
-        imgs, ground_truth, probs, preds = self.vis_samples.pop(phase)
+        imgs, gt, probs, preds = self.vis_samples.pop(phase)
         task = self.cfg.data.subtask
 
         panels = []
-        base_w, base_h = self.cfg.model.input_size[-2:]
+        width, height = self.cfg.model.input_size[-2:]
 
-        for img, gt, pr, prob_vec in zip(imgs, ground_truth, preds, probs):
+        for img, gt, pr, prob_vec in zip(imgs, gt, preds, probs):
+            # --- column 1 image ---------------------------------------------
             if img.shape[0] == 1:  # grayscale → RGB
                 img = img.repeat(3, 1, 1)
-
+            img = img.clamp(0, 1)
             correct = (gt == pr).all() if task == "multilabel" else gt == pr
             img_cell = self.bordered(img, correct, h_border)
 
-            # --- column 2 text ------------------------------------------------
+            # --- column 2 ground truth / prediction --------------------------
             if task == "binary":
                 txt = f"GT {gt.item()}  |  Pred {pr.item()}  p={prob_vec:.2f}"
             elif task == "multiclass":
@@ -327,10 +364,10 @@ class BaseClassificationModel(LightningModule, ABC):
                 act_gt = torch.where(gt == 1)[0].tolist()
                 act_pr = torch.where(pr == 1)[0].tolist()
                 txt = f"GT {act_gt} | Pred {act_pr}"
-            txt_cell = self.text_panel(txt, base_w, base_h, wrap, font_size)
+            txt_cell = self.text_panel(txt, width, height, font_size)
 
             # --- column 3 prob vis -------------------------------------------
-            prob_cell = self.prob_panel(prob_vec, topk, base_w, base_h)
+            prob_cell = self.prob_panel(prob_vec, topk, width, height)
             panels.extend([img_cell, txt_cell, prob_cell])
 
         grid = make_grid(panels, nrow=3)  # 3 columns
