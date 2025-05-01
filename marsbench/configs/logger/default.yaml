@@ -1,7 +1,7 @@
 # Logger Configuration
 vis_every: 3
 overlay_alpha: 0.5
-max_vis_samples: 4
+max_vis_samples: 3
 
 # WandB Logger Configuration
 wandb:
