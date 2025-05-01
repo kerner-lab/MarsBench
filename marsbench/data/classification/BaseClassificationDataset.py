@@ -2,6 +2,7 @@
 Base class for all Mars surface image classification datasets.
 """
 
+import ast
 import logging
 from abc import ABC
 from abc import abstractmethod
@@ -17,6 +18,8 @@ from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
 
+from marsbench.utils.load_mapping import load_mapping
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,15 +31,15 @@ class BaseClassificationDataset(Dataset, ABC):
         transform (callable, optional): A function/transform to apply to the images.
 
     Methods:
-        _load_data(): Abstract method to load image paths and labels. Must be overridden.
+        _load_data(): Abstract method to load image paths and gts. Must be overridden.
         __len__(): Returns the size of the dataset.
-        __getitem__(index): Retrieves an image and its label at the specified index.
+        __getitem__(index): Retrieves an image and its gt at the specified index.
 
     Usage:
         class MyDataset(CustomDataset):
             def _load_data(self):
                 # Implement data loading logic
-                return image_paths, labels
+                return image_paths, gts
     """
 
     def __init__(
@@ -59,8 +62,10 @@ class BaseClassificationDataset(Dataset, ABC):
         self.data_dir = data_dir
         self.transform = transform
         logger.info(f"Loading {self.__class__.__name__} from {data_dir}")
-        self.image_paths, self.labels = self._load_data()
-        logger.info(f"Loaded {len(self.image_paths)} images with {len(set(self.labels))} unique classes")
+        self.image_paths, self.gts = self._load_data()
+        logger.info(f"Loaded {len(self.image_paths)} images")
+
+        self.cfg.mapping = load_mapping(self.data_dir, cfg.data.num_classes)
 
         # Validate image extensions
         for image_path in self.image_paths:
@@ -73,7 +78,7 @@ class BaseClassificationDataset(Dataset, ABC):
         )
 
     @abstractmethod
-    def _load_data(self) -> Tuple[List[str], List[int]]:
+    def _load_data(self) -> Tuple[List[str], List[int] | List[str]]:
         pass
 
     def determine_data_splits(
@@ -93,11 +98,17 @@ class BaseClassificationDataset(Dataset, ABC):
             return indices[train_size + val_size :]
 
     def __len__(self) -> int:
-        return len(self.labels)
+        return len(self.gts)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int | torch.Tensor]:
         image = np.array(Image.open(self.image_paths[idx]).convert(self.image_type))
-        label = self.labels[idx]
+        if self.cfg.data.subtask == "multilabel":
+            label = torch.zeros(self.cfg.data.num_classes, dtype=torch.float32)
+            label[ast.literal_eval(str(self.gts[idx]))] = 1
+        elif self.cfg.data.subtask == "binary":
+            label = torch.tensor(self.gts[idx], dtype=torch.float32)
+        else:
+            label = torch.tensor(self.gts[idx], dtype=torch.long)
 
         if self.transform:
             transformed = self.transform(image=image)

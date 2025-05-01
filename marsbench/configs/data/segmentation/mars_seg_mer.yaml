@@ -2,5 +2,5 @@ name: MarsSegMER
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/mars-seg_mer/
 num_classes: 7 # Background + 6 classes
-image_type: "rgb"
+image_type: rgb
 task: segmentation

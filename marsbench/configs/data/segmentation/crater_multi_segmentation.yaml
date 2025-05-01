@@ -2,5 +2,5 @@ name: Crater_Multi_Segmentation
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/crater_multi_segmentation/
 num_classes: 5 # Background + 4 crater classes
-image_type: "rgb"
+image_type: rgb
 task: segmentation

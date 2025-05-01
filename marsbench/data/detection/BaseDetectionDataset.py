@@ -17,6 +17,8 @@ from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
 
+from marsbench.utils.load_mapping import load_mapping
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +54,8 @@ class BaseDetectionDataset(Dataset, ABC):
             _,  # image_ids
         ) = self._load_data()
         logger.info(f"Loaded {len(self.image_paths)} images with annotations")
+
+        self.cfg.mapping = load_mapping(self.data_dir, cfg.data.num_classes)
 
         # Validate image extensions
         for image_path in self.image_paths:

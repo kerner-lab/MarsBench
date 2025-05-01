@@ -9,6 +9,7 @@ from .Change_Classification_HiRISE import Change_Classification_HiRISE
 from .DoMars16k import DoMars16k
 from .Frost_Classification import Frost_Classification
 from .Landmark_Classification import Landmark_Classification
+from .Multi_Label_MER import Multi_Label_MER
 from .Surface_Classification import Surface_Classification
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "Atmospheric_Dust_Classification_EDR",
     "Change_Classification_HiRISE",
     "Change_Classification_CTX",
+    "Multi_Label_MER",
 ]

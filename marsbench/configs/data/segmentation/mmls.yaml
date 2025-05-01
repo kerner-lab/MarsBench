@@ -2,5 +2,5 @@ name: MMLS
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/mmls/
 num_classes: 2 # Background + 1 class
-image_type: "rgb"
+image_type: rgb
 task: segmentation

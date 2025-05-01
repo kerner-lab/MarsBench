@@ -21,6 +21,7 @@ from .classification import Change_Classification_HiRISE
 from .classification import DoMars16k
 from .classification import Frost_Classification
 from .classification import Landmark_Classification
+from .classification import Multi_Label_MER
 from .classification import Surface_Classification
 from .detection import Boulder_Detection
 from .detection import ConeQuest_Detection
@@ -46,6 +47,7 @@ DATASET_REGISTRY = {
         "Atmospheric_Dust_Classification_EDR": Atmospheric_Dust_Classification_EDR,
         "Change_Classification_HiRISE": Change_Classification_HiRISE,
         "Change_Classification_CTX": Change_Classification_CTX,
+        "Multi_Label_MER": Multi_Label_MER,
     },
     "segmentation": {
         "ConeQuest_Segmentation": ConeQuest_Segmentation,

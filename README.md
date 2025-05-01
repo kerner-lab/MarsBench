@@ -27,10 +27,10 @@ pip install -e ".[dev]"
 To train a model:
 
 ```bash
-python -m marsbench.main task=classification model_name=resnet18 data_name=domars16k data_path=/path/to/dataset
+python -m marsbench.main mode=train task=classification model_name=resnet18 data_name=domars16k dataset_path=/path/to/dataset
 ```
 
-To test a model (after training):
+To test a model:
 
 ```bash
 python -m marsbench.main mode=test task=classification model_name=resnet18 data_name=domars16k checkpoint_path=outputs/classification/domars16k/resnet18/YYYY-MM-DD_HH-MM-SS/checkpoints/best.ckpt
@@ -44,7 +44,7 @@ python -m marsbench.main mode=predict task=classification model_name=resnet18 da
 
 ## Configuration
 
-MarsBench uses Hydra for configuration management. The main configuration is located in `configs/config.yaml` with task-specific configurations in the respective subdirectories:
+MarsBench uses Hydra for configuration management. The main configuration is located in `marsbench/configs/config.yaml` with task-specific configurations in the respective subdirectories:
 
 - `configs/model/classification/`: Classification model configurations
 - `configs/model/segmentation/`: Segmentation model configurations
@@ -66,53 +66,74 @@ python -m marsbench.main task=classification model_name=resnet18 data_name=domar
 ## Supported Datasets
 
 ### Classification
-- **DoMars16k**: Mars terrain classification (15 classes)
-- **MSLNet**: Mars Science Laboratory image classification (19 classes)
-- **HiRISENet**: High-Resolution Imaging Science Experiment images
-- **DeepMars_Surface**: Mars surface type classification
-- **DeepMars_Landmark**: Mars landmark classification
-- **MartianFrost**: Mars frost detection
+- Atmospheric Dust Classification EDR
+- Atmospheric Dust Classification RDR
+- Change Classification CTX
+- Change Classification HiRISE
+- DoMars16k
+- Frost Classification
+- Landmark Classification
+- Surface Classification
 
 ### Segmentation
-- **ConeQuest**: Segmentation of cone-like structures on Mars surface
+- Boulder Segmentation
+- ConeQuest Segmentation
+- Crater Binary Segmentation
+- Crater Multi Segmentation
+- MMLS
+- MarsSegMER
+- MarsSegMSL
+- Mask2Former
+- S5Mars
 
 ### Detection
-- To be added
+- Boulder Detection
+- ConeQuest Detection
+- Dust Devil Detection
 
 ## Supported Models
 
 ### Classification
-- ResNet18, ResNet50
+- ResNet101
 - Vision Transformer (ViT)
 - Swin Transformer
 - InceptionV3
 - SqueezeNet
 
 ### Segmentation
-- UNet
+- U-Net
 - DeepLab
+- DPT
+- Mask2Former
+- SegFormer
 
 ### Detection
-- To be added
+- DETR
+- EfficientDet
+- Faster R-CNN
+- RetinaNet
+- SSD
 
 ## Project Structure
 
 ```
 marsbench/
-├── configs/                # Hydra configuration files
 ├── marsbench/              # Main package
-│   ├── data/               # Dataset implementations
+|   ├── configs/            # Hydra configuration files
+|   ├── data/               # Dataset implementations
 │   │   ├── classification/ # Classification datasets
-│   │   └── segmentation/   # Segmentation datasets
+│   │   ├── segmentation/   # Segmentation datasets
+│   │   └── detection/      # Detection datasets
 │   ├── models/             # Model implementations
 │   │   ├── classification/ # Classification models
 │   │   └── segmentation/   # Segmentation models
+│   │   └── detection/      # Detection models
 │   ├── training/           # Training utilities
 │   ├── utils/              # Helper functions
 │   └── main.py             # Entry point
 ├── tests/                  # Unit tests
 ├── examples/               # Example scripts
-└── outputs/                # Generated outputs (predictions, checkpoints)
+└── outputs/                # Generated outputs (predictions, checkpoints, logs)
 ```
 
 ## Development
@@ -139,4 +160,3 @@ Run the test suite:
 
 ```bash
 pytest tests/
-```

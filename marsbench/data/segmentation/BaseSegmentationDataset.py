@@ -2,9 +2,7 @@
 Base class for all Mars surface image segmentation datasets.
 """
 
-import json
 import logging
-import os
 from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
@@ -19,6 +17,8 @@ import torch
 from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
+
+from marsbench.utils.load_mapping import load_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -58,37 +58,23 @@ class BaseSegmentationDataset(Dataset, ABC):
         self.split = split
 
         logger.info(f"Loading {self.__class__.__name__} from {data_dir} (split: {split})")
-        self.image_paths, self.ground = self._load_data()
+        self.image_paths, self.gts = self._load_data()
         logger.info(f"Loaded {len(self.image_paths)} image-mask pairs")
 
-        if len(self.image_paths) == 0 or len(self.ground) == 0:
+        self.cfg.mapping = load_mapping(self.data_dir, cfg.data.num_classes)
+
+        if len(self.image_paths) == 0 or len(self.gts) == 0:
             logging.error("No matching image and mask pairs found")
             raise ValueError("No matching image and mask pairs found")
 
-        if np.array(self.ground[0]).ndim == 4:
+        if np.array(self.gts[0]).ndim == 4:
             logger.info("One-hot encoded masks detected. Converting to class indices.")
-            logger.warning("Expected shape of ground truth: [N, C, H, W]")
+            logger.warning("Expected shape of ground truths: [N, C, H, W]")
 
         for image_path in self.image_paths:
             if not image_path.endswith(tuple(cfg.data.valid_image_extensions)):
                 logger.error(f"Invalid image format: {image_path}")
                 raise ValueError(f"Invalid image format: {image_path}")
-
-        if os.path.exists(self.data_dir / "mapping.json"):
-            with open(self.data_dir / "mapping.json", "r") as f:
-                self.cfg.mapping = {
-                    int(k): v.strip().lower().replace(" ", "_").replace("-", "_") for k, v in json.load(f).items()
-                }
-
-            logger.info(f"Loaded mapping from {self.data_dir / 'mapping.json'}")
-            if len(self.cfg.mapping) != self.cfg.data.num_classes:
-                logger.warning(
-                    f"Number of classes in mapping ({len(self.cfg.mapping)}) does not "
-                    f"match num_classes ({self.cfg.data.num_classes})"
-                )
-                self.cfg.mapping = None
-        else:
-            self.cfg.mapping = None
 
         logger.info(
             f"Dataset initialized with mode: {self.image_type}, " f"transforms: {'applied' if transform else 'none'}, "
@@ -119,7 +105,7 @@ class BaseSegmentationDataset(Dataset, ABC):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         image = np.array(Image.open(self.image_paths[idx]).convert(self.image_type))
-        mask = np.array(Image.open(self.ground[idx]).convert("L"))
+        mask = np.array(Image.open(self.gts[idx]).convert("L"))
 
         if len(mask.shape) == 4:  # One hot encoded mask [N, C, H, W] to class mask [N, H, W]
             mask = np.argmax(mask, axis=2)

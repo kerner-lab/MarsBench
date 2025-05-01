@@ -26,8 +26,8 @@ scheduler:
   monitor: ${oc.select:training.monitor_on}
 
 # loss
-# classification supported: cross_entropy
-# segmentation supported: cross_entropy, generalized_dice, combined (cross_entropy + generalized_dice)
+# classification: cross_entropy (auto-switches to bce for binary/multilabel subtasks)
+# segmentation: cross_entropy, generalized_dice, combined (cross_entropy + generalized_dice)
 criterion:
   name: 'cross_entropy'
   alpha: 0.5 # combined loss parameter: alpha * cross_entropy + (1 - alpha) * generalized_dice

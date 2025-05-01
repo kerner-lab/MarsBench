@@ -91,3 +91,6 @@ exclude = [
     "dist",
     "legacy_code",
 ]
+
+[tool.env]
+NO_ALBUMENTATIONS_UPDATE = "1"

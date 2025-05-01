@@ -1,0 +1,7 @@
+name: Multi_Label_MER
+status: test
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/multi_label_mer/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/multi_label_mer/annotation.csv
+num_classes: 25
+image_type: rgb
+subtask: multilabel  # Supported: binary, multiclass, multilabel
