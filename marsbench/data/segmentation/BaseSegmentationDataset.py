@@ -2,9 +2,7 @@
 Base class for all Mars surface image segmentation datasets.
 """
 
-import json
 import logging
-import os
 from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
@@ -19,6 +17,8 @@ import torch
 from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset
+
+from marsbench.utils.load_mapping import load_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,8 @@ class BaseSegmentationDataset(Dataset, ABC):
         self.image_paths, self.ground_truths = self._load_data()
         logger.info(f"Loaded {len(self.image_paths)} image-mask pairs")
 
+        self.cfg.mapping = load_mapping(self.data_dir, cfg.data.num_classes)
+
         if len(self.image_paths) == 0 or len(self.ground_truths) == 0:
             logging.error("No matching image and mask pairs found")
             raise ValueError("No matching image and mask pairs found")
@@ -73,22 +75,6 @@ class BaseSegmentationDataset(Dataset, ABC):
             if not image_path.endswith(tuple(cfg.data.valid_image_extensions)):
                 logger.error(f"Invalid image format: {image_path}")
                 raise ValueError(f"Invalid image format: {image_path}")
-
-        if os.path.exists(self.data_dir / "mapping.json"):
-            with open(self.data_dir / "mapping.json", "r") as f:
-                self.cfg.mapping = {
-                    int(k): v.strip().lower().replace(" ", "_").replace("-", "_") for k, v in json.load(f).items()
-                }
-
-            logger.info(f"Loaded mapping from {self.data_dir / 'mapping.json'}")
-            if len(self.cfg.mapping) != self.cfg.data.num_classes:
-                logger.warning(
-                    f"Number of classes in mapping ({len(self.cfg.mapping)}) does not "
-                    f"match num_classes ({self.cfg.data.num_classes})"
-                )
-                self.cfg.mapping = None
-        else:
-            self.cfg.mapping = None
 
         logger.info(
             f"Dataset initialized with mode: {self.image_type}, " f"transforms: {'applied' if transform else 'none'}, "
