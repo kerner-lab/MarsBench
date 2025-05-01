@@ -72,7 +72,7 @@ class BaseSegmentationModel(LightningModule, ABC):
         self.vis_every = cfg.logger.get("vis_every", 3)
         self.overlay_alpha = cfg.logger.get("overlay_alpha", 0.5)
         self.max_vis = cfg.logger.get("max_vis_samples", 4)
-        # samples stored as {phase: (imgs, ground_truth, preds)}
+        # samples stored as {phase: (imgs, gt, preds)}
         self.vis_samples: Dict[str, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = {}
 
         cmap = plt.get_cmap("tab20", C)
@@ -174,15 +174,15 @@ class BaseSegmentationModel(LightningModule, ABC):
 
     # ---------------- step hooks ------------------
     def _common_step(self, batch, metrics, phase):
-        imgs, ground_truth = batch
+        imgs, gt = batch
         logits = self(imgs)
-        loss = self.criterion(logits, ground_truth)
+        loss = self.criterion(logits, gt)
 
         preds = logits.argmax(1).detach()
-        metrics.update(preds, ground_truth.detach())
+        metrics.update(preds, gt.detach())
         self.log(f"{phase}/loss", loss, on_step=True, prog_bar=(phase == "train"))
         if self.current_epoch % self.vis_every == 0 or self.current_epoch == self.trainer.max_epochs - 1:
-            self._store_vis(phase, imgs, ground_truth, preds)
+            self._store_vis(phase, imgs, gt, preds)
         return loss
 
     def training_step(self, batch, _):
@@ -332,10 +332,10 @@ class BaseSegmentationModel(LightningModule, ABC):
         fig.tight_layout(pad=0)
         return fig
 
-    def _store_vis(self, phase, imgs, ground_truth, preds):
+    def _store_vis(self, phase, imgs, gt, preds):
         self.vis_samples[phase] = (
             imgs[: self.max_vis].cpu(),
-            ground_truth[: self.max_vis].cpu(),
+            gt[: self.max_vis].cpu(),
             preds[: self.max_vis].cpu(),
         )
 
@@ -349,9 +349,9 @@ class BaseSegmentationModel(LightningModule, ABC):
         """Create a 4-panel grid per sample and log via W&B / TensorBoard."""
         if phase not in self.vis_samples:
             return
-        imgs, ground_truth, preds = self.vis_samples.pop(phase)
+        imgs, gt, preds = self.vis_samples.pop(phase)
         panels = []
-        for img, gt, pr in zip(imgs, ground_truth, preds):
+        for img, gt, pr in zip(imgs, gt, preds):
             if img.shape[0] == 1:
                 img = img.repeat(3, 1, 1)
             diff = torch.zeros_like(img)
