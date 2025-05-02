@@ -29,6 +29,8 @@ from torchmetrics import Recall
 from torchvision.transforms.functional import to_tensor
 from torchvision.utils import make_grid
 
+from marsbench.utils.load_mapping import get_class_name
+
 logger = logging.getLogger(__name__)
 
 
@@ -219,10 +221,6 @@ class BaseClassificationModel(LightningModule, ABC):
             self.test_results[metric] = round(float(self.trainer.callback_metrics[metric]), 4)
 
     # ---------------- metric logging --------------
-    def _get_class_name(self, class_idx):
-        """Get human-readable class name for given class index."""
-        return class_idx if not self.cfg.get("mapping") else self.cfg.mapping.get(class_idx, class_idx)
-
     def _emit(self, coll: MetricCollection):
         out = coll.compute()
         for full_key, tensor in out.items():
@@ -231,7 +229,7 @@ class BaseClassificationModel(LightningModule, ABC):
                 metric_name = metric_name.replace("_per_class", "")
                 for i, val in enumerate(tensor):
                     self.log(
-                        f"{phase}_class/{metric_name}_{self._get_class_name(i)}",
+                        f"{phase}_class/{metric_name}_{get_class_name(i, self.cfg)}",
                         val if torch.isfinite(val) else -1.0,
                         on_step=False,
                         on_epoch=True,
@@ -301,7 +299,7 @@ class BaseClassificationModel(LightningModule, ABC):
             values = probs.cpu().numpy().tolist()
         elif self.cfg.data.subtask == "multiclass":
             values, idxs = probs.topk(min(topk, probs.numel()))
-            classes = [self._get_class_name(i.item()) for i in idxs]
+            classes = [get_class_name(i.item(), self.cfg) for i in idxs]
             values = values.cpu().numpy().tolist()
         else:  # multilabel
             classes = list(range(len(probs)))
@@ -359,7 +357,7 @@ class BaseClassificationModel(LightningModule, ABC):
             if task == "binary":
                 txt = f"GT {gt.item()}  |  Pred {pr.item()}  p={prob_vec:.2f}"
             elif task == "multiclass":
-                txt = f"GT {self._get_class_name(gt.item())} | " f"Pred {self._get_class_name(pr.item())}"
+                txt = f"GT {get_class_name(gt.item(), self.cfg)} | " f"Pred {get_class_name(pr.item(), self.cfg)}"
             else:
                 act_gt = torch.where(gt == 1)[0].tolist()
                 act_pr = torch.where(pr == 1)[0].tolist()

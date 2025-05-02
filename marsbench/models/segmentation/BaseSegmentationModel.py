@@ -27,6 +27,8 @@ from torchmetrics.segmentation import GeneralizedDiceScore
 from torchmetrics.segmentation import MeanIoU
 from torchvision.utils import make_grid
 
+from marsbench.utils.load_mapping import get_class_name
+
 logger = logging.getLogger(__name__)
 
 
@@ -230,10 +232,6 @@ class BaseSegmentationModel(LightningModule, ABC):
             self.test_results[metric] = round(float(self.trainer.callback_metrics[metric]), 4)
 
     # ---------------- metric logging --------------
-    def _get_class_name(self, class_idx):
-        """Get human-readable class name for given class index."""
-        return class_idx if not self.cfg.get("mapping") else self.cfg.mapping.get(class_idx, class_idx)
-
     @staticmethod
     def safe_macro_mean(vec: torch.Tensor) -> torch.Tensor:
         if torch.isnan(vec).any():
@@ -252,7 +250,7 @@ class BaseSegmentationModel(LightningModule, ABC):
                 self.log(f"{phase}/{metric_name}", mean_val, on_step=False, on_epoch=True)
                 for i, val in enumerate(tensor):
                     self.log(
-                        f"{phase}_class/{metric_name}_{self._get_class_name(i)}",
+                        f"{phase}_class/{metric_name}_{get_class_name(i, self.cfg)}",
                         val if torch.isfinite(val) else -1.0,
                         on_step=False,
                         on_epoch=True,
@@ -276,7 +274,7 @@ class BaseSegmentationModel(LightningModule, ABC):
         ]
         rows = []
         for c in range(C):
-            name = self._get_class_name(c)
+            name = get_class_name(c, self.cfg)
             row = [name]
             for n in cols[1:]:
                 row.append(float(self.trainer.callback_metrics.get(f"{phase}_class/{n}_{name}", -1.0)))
@@ -316,7 +314,7 @@ class BaseSegmentationModel(LightningModule, ABC):
         ax.axis("off")
 
         for i in range(C):
-            name = self._get_class_name(i)
+            name = get_class_name(i, self.cfg)
             y = pad + (i + 0.5) * block
             ax.text(
                 block + 4,
