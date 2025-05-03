@@ -157,7 +157,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
                 factor=scheduler_params.get("factor", 0.1),
                 mode=scheduler_params.get("mode", "min"),
             )
-            return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "val/loss"}
+            return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": self.cfg.training.monitor_on}
         else:
             raise ValueError(f"Scheduler '{scheduler_name}' not recognized.")
 
