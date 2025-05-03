@@ -40,7 +40,7 @@ early_stopping_patience: 5
 
 # PyTorch Lightning Trainer arguments
 trainer:
-  max_epochs: 10
+  max_epochs: 100
   accelerator: 'auto'      # auto-detects GPU/CPU
   devices: 'auto'          # auto-detects number of available devices
   strategy: 'auto'         # auto-selects DDP for multi-GPU
