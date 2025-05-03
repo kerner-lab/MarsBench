@@ -2,6 +2,6 @@ name: Change_Classification_CTX
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_ctx/
 annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_ctx/annotation.csv
-num_classes: 2
+num_classes: 1
 image_type: rgb
-subtask: multiclass  # Supported: binary, multiclass, multilabel
+subtask: binary  # Supported: binary, multiclass, multilabel

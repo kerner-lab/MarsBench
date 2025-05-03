@@ -159,7 +159,7 @@ class BaseSegmentationModel(LightningModule, ABC):
         dice = (2 * (w * inter).sum() + smooth) / ((w * union).sum() + smooth)
         return 1 - dice
 
-    # ---------------- optimizer --------------------
+    # ---------------- optimizer & scheduler ----------------
     def configure_optimizers(self):
         opt_name = self.cfg.training.optimizer.name.lower()
         kw = dict(lr=self.cfg.training.optimizer.lr, weight_decay=self.cfg.training.optimizer.get("weight_decay", 0.0))
@@ -172,7 +172,35 @@ class BaseSegmentationModel(LightningModule, ABC):
             opt = SGD(self.parameters(), **kw)
         else:
             raise ValueError(opt_name)
-        return opt
+
+        if not self.cfg.training.get("scheduler", {}).get("enabled", False):
+            return opt
+
+        scheduler_params = self.cfg.training.scheduler
+        if scheduler_params.name.lower() == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                opt,
+                T_max=scheduler_params.get("t_max", self.cfg.training.trainer.max_epochs),
+                eta_min=scheduler_params.get("eta_min", 0),
+            )
+        elif scheduler_params.name.lower() == "step":
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                opt,
+                step_size=scheduler_params.get("step_size", 10),
+                gamma=scheduler_params.get("gamma", 0.1),
+            )
+        elif scheduler_params.name.lower() == "plateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                opt,
+                patience=scheduler_params.get("patience", 5),
+                factor=scheduler_params.get("factor", 0.1),
+                mode=scheduler_params.get("mode", "min"),
+            )
+            return {"optimizer": opt, "lr_scheduler": scheduler, "monitor": self.cfg.training.monitor_on}
+        else:
+            raise ValueError(f"Scheduler '{scheduler_params.name}' not recognized.")
+
+        return {"optimizer": opt, "lr_scheduler": scheduler}
 
     # ---------------- step hooks ------------------
     def _common_step(self, batch, metrics, phase):

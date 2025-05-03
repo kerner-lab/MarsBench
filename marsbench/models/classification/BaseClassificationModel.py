@@ -130,21 +130,48 @@ class BaseClassificationModel(LightningModule, ABC):
         else:
             raise ValueError(f"Criterion '{criterion_name}' not recognized.")
 
-    # ---------------- optimizer ---------------------
+    # ---------------- optimizer & scheduler ----------------
     def configure_optimizers(self):
-        optimizer_name = self.cfg.training.optimizer.name
-        lr = self.cfg.training.optimizer.lr
-        weight_decay = self.cfg.training.optimizer.get("weight_decay", 0.0)
-        if optimizer_name.lower() == "adam":
-            optimizer = Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
-        elif optimizer_name.lower() == "adamw":
-            optimizer = AdamW(self.parameters(), lr=lr, weight_decay=weight_decay)
-        elif optimizer_name.lower() == "sgd":
-            momentum = self.cfg.training.optimizer.get("momentum", 0.9)
-            optimizer = SGD(self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+        opt_name = self.cfg.training.optimizer.name.lower()
+        kw = dict(lr=self.cfg.training.optimizer.lr, weight_decay=self.cfg.training.optimizer.get("weight_decay", 0.0))
+        if opt_name == "adam":
+            opt = Adam(self.parameters(), **kw)
+        elif opt_name == "adamw":
+            opt = AdamW(self.parameters(), **kw)
+        elif opt_name == "sgd":
+            kw["momentum"] = self.cfg.training.optimizer.get("momentum", 0.9)
+            opt = SGD(self.parameters(), **kw)
         else:
-            raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
-        return optimizer
+            raise ValueError(opt_name)
+
+        if not self.cfg.training.get("scheduler", {}).get("enabled", False):
+            return opt
+
+        scheduler_params = self.cfg.training.scheduler
+        if scheduler_params.name.lower() == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                opt,
+                T_max=scheduler_params.get("t_max", self.cfg.training.trainer.max_epochs),
+                eta_min=scheduler_params.get("eta_min", 0),
+            )
+        elif scheduler_params.name.lower() == "step":
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                opt,
+                step_size=scheduler_params.get("step_size", 10),
+                gamma=scheduler_params.get("gamma", 0.1),
+            )
+        elif scheduler_params.name.lower() == "plateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                opt,
+                patience=scheduler_params.get("patience", 5),
+                factor=scheduler_params.get("factor", 0.1),
+                mode=scheduler_params.get("mode", "min"),
+            )
+            return {"optimizer": opt, "lr_scheduler": scheduler, "monitor": self.cfg.training.monitor_on}
+        else:
+            raise ValueError(f"Scheduler '{scheduler_params.name}' not recognized.")
+
+        return {"optimizer": opt, "lr_scheduler": scheduler}
 
     # ---------------- step hooks ------------------
     def _common_step(self, batch, batch_idx, metrics, phase):
