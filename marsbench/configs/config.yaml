@@ -1,17 +1,25 @@
 # Configuration defaults
-task: classification
-mode: train  # train, test, or predict
-data_name: domars16k
-model_name: resnet101
-dataset_path: /data/hkerner/MarsBench/NewDatasets
-training_type: feature_extraction  # Supported: scratch_training, feature_extraction, transfer_learning
-output_path: outputs
-seed: 42
-test_after_training: true  # Whether to run test after training is complete
-prediction_output_path: null  # Custom path for prediction outputs, if null uses output_path/predictions
 
-# Model loading options
-checkpoint_path: null  # Path to model checkpoint file (.ckpt)
+# Experiment settings
+task: classification         # 'classification', 'segmentation', etc.
+mode: train                  # 'train', 'test', or 'predict'
+seed: 42                     # Random seed for reproducibility
+
+# Data settings
+data_name: domars16k         # Name of the dataset
+dataset_path: /data/hkerner/MarsBench/NewDatasets  # Base path to datasets
+few_shot: None               # Support [None, 1, 2, 5, 10, 15, 20]
+partition: None              # Supported: [None, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
+test_after_training: true    # Run test after training completes
+
+# Model settings
+model_name: resnet101        # Name of the model architecture
+training_type: feature_extraction  # 'scratch_training', 'feature_extraction', 'transfer_learning'
+checkpoint_path: null        # Path to a .ckpt file to resume training
+
+# Output settings
+output_path: outputs         # Directory for outputs (models, logs, metrics)
+prediction_output_path: null # Directory for prediction outputs; defaults to output_path/predictions
 
 defaults:
   - _self_

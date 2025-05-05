@@ -34,6 +34,6 @@ class Multi_Label_MER(BaseClassificationDataset):
 
     def _load_data(self) -> Tuple[List[str], List[int]]:
         image_ids = self.annot["file_id"].astype(str).tolist()
-        labels = self.annot["label"].tolist()
+        gts = self.annot["label"].tolist()
         image_paths = [os.path.join(self.data_dir, "data", self.split, f"{image_id}") for image_id in image_ids]
-        return image_paths, labels
+        return image_paths, gts
