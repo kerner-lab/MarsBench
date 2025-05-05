@@ -4,6 +4,7 @@ InceptionV3 model implementation for Mars surface image classification.
 
 import logging
 
+import torch.nn.functional as F
 from torch import nn
 from torchvision.models import Inception_V3_Weights
 from torchvision.models import inception_v3
@@ -49,38 +50,46 @@ class InceptionV3(BaseClassificationModel):
 
         return model
 
-    def training_step(self, batch, batch_idx):
-        images, labels = batch
-        outputs = self(images)
+    def _common_step(self, batch, batch_idx, metrics, phase):
+        imgs, gt = batch
+        if phase == "train":
+            outputs = self(imgs)
+            logits = outputs.logits
+            aux_logits = outputs.aux_logits
+        else:
+            logits = self(imgs)
+            aux_logits = None
 
-        loss_main = self.criterion(outputs.logits, labels)
-        loss_aux = self.criterion(outputs.aux_logits, labels)
-        loss = loss_main + 0.4 * loss_aux  # Weighted sum as per the original paper
+        if self.cfg.data.subtask == "binary":
+            logits = logits.squeeze(-1)
 
-        acc = self._calculate_accuracy(outputs.logits, labels)
+        if phase == "train":
+            # Weighted sum as per the original paper
+            loss_main = self.criterion(logits, gt)
+            loss_aux = self.criterion(aux_logits, gt)
+            loss = loss_main + 0.4 * loss_aux
+        else:
+            loss = self.criterion(logits, gt)
 
-        self.log("train_loss", loss)
-        self.log("train_acc", acc, prog_bar=True)
+        metrics.update(logits.detach(), gt.detach().long())
+        self.log(
+            f"{phase}/loss",  # required for early stopping
+            loss,
+            on_step=(phase == "train"),
+            on_epoch=True,
+            prog_bar=True,
+        )
 
+        if (
+            (self.current_epoch % self.vis_every == 0 or self.current_epoch == self.trainer.max_epochs - 1)
+            and batch_idx == 0
+            and self.current_epoch != 0
+        ):
+            if self.cfg.data.subtask == "multiclass":
+                probs = F.softmax(logits, dim=1)
+                preds = probs.argmax(1)
+            else:
+                probs = F.sigmoid(logits)
+                preds = (probs > 0.5).long()
+            self._store_vis(phase, imgs, gt.long(), probs, preds)
         return loss
-
-    def validation_step(self, batch, batch_idx):
-        images, labels = batch
-        outputs = self(images)
-
-        # eval state, we use only recieve logits
-        loss = self.criterion(outputs, labels)
-        acc = self._calculate_accuracy(outputs, labels)
-
-        self.log("val_loss", loss, prog_bar=True)
-        self.log("val_acc", acc, prog_bar=True)
-
-    def test_step(self, batch, batch_idx):
-        images, labels = batch
-        outputs = self(images)
-
-        loss = self.criterion(outputs, labels)
-        acc = self._calculate_accuracy(outputs, labels)
-
-        self.log("test_loss", loss)
-        self.log("test_acc", acc)
