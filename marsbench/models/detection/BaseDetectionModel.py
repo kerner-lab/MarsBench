@@ -130,7 +130,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             momentum = self.cfg.training.optimizer.get("momentum", 0.9)
             optimizer = SGD(self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
         else:
-            raise ValueError(f"Optimizer '{optimizer_name}' not recognized.")
+            raise ValueError(f"Optimizer '{optimizer_name}' not recognized. Please use 'adam', 'adamw', or 'sgd'.")
 
         if not self.cfg.training.get("scheduler", {}).get("enabled", False):
             return optimizer

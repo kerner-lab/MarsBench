@@ -67,7 +67,7 @@ DATASET_REGISTRY = {
 }
 
 
-def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None):
+def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, annot_csv=None):
     common_args = {
         "cfg": cfg,
         "data_dir": cfg.data.data_dir,
@@ -75,7 +75,7 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None):
         "split": split,
     }
     if cfg.task == "classification":
-        common_args["annot_csv"] = cfg.data.annot_csv
+        common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
     if cfg.task == "detection":
         common_args["bbox_format"] = bbox_format
     return dataset_class(**common_args)
@@ -86,6 +86,7 @@ def get_dataset(
     transforms: Tuple[torch.nn.Module, torch.nn.Module],
     subset: Union[int, None] = None,
     bbox_format: Optional[str] = None,
+    annot_csv: Optional[str] = None,
 ) -> Tuple[Dataset, Dataset, Dataset]:
     """
     Returns a train, val, and test dataset.
@@ -97,7 +98,8 @@ def get_dataset(
             Tuple of train and val transforms.
         subset (Union[int, None], optional):
             Number of samples to use for training. Prioritizes cfg.data.subset over this argument.
-
+        annot_csv (Optional[str], optional):
+            Path to annotation CSV file.
     Returns:
         Tuple[Dataset, Dataset, Dataset]: Tuple of train, val, and test datasets.
     """
@@ -109,9 +111,9 @@ def get_dataset(
         logger.debug(f"Available datasets for task {cfg.task}: {DATASET_REGISTRY[cfg.task]}")
         raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}") from e
 
-    train_dataset = instantiate_dataset(dataset_cls, cfg, transforms[0], "train", bbox_format)
-    val_dataset = instantiate_dataset(dataset_cls, cfg, transforms[1], "val", bbox_format)
-    test_dataset = instantiate_dataset(dataset_cls, cfg, transforms[1], "test", bbox_format)
+    train_dataset = instantiate_dataset(dataset_cls, cfg, transforms[0], "train", bbox_format, annot_csv)
+    val_dataset = instantiate_dataset(dataset_cls, cfg, transforms[1], "val", bbox_format, annot_csv)
+    test_dataset = instantiate_dataset(dataset_cls, cfg, transforms[1], "test", bbox_format, annot_csv)
 
     # Dataset wrapper for Mask2Former
     if cfg.model.name.lower() == "mask2former":

@@ -171,7 +171,7 @@ class BaseSegmentationModel(LightningModule, ABC):
             kw["momentum"] = self.cfg.training.optimizer.get("momentum", 0.9)
             opt = SGD(self.parameters(), **kw)
         else:
-            raise ValueError(opt_name)
+            raise ValueError(f"Optimizer '{opt_name}' not recognized. Please use 'adam', 'adamw', or 'sgd'.")
 
         if not self.cfg.training.get("scheduler", {}).get("enabled", False):
             return opt
