@@ -34,12 +34,12 @@ class Change_Classification_HiRISE(BaseClassificationDataset):
     def _load_data(self) -> Tuple[List[str], List[int]]:
         image_ids = self.annot["file_id"].astype(str).tolist()
         feature_names = self.annot["feature_name"].astype(str).tolist()
-        labels = self.annot["label"].astype(int).tolist()
+        gts = self.annot["label"].astype(int).tolist()
         image_paths = [
             os.path.join(self.data_dir, "data", self.split, feature_name, f"{image_id}")
             for image_id, feature_name in zip(image_ids, feature_names)
         ]
-        return image_paths, labels
+        return image_paths, gts
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         image_id_before = self.image_paths[idx]
@@ -50,7 +50,7 @@ class Change_Classification_HiRISE(BaseClassificationDataset):
         layer_after = np.array(Image.open(image_id_after))
 
         image = np.stack([layer_zero, layer_after, layer_before], axis=-1)
-        label = self.labels[idx]
+        label = self.gts[idx]
 
         if self.transform:
             transformed = self.transform(image=image)

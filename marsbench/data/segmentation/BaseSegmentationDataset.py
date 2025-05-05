@@ -31,7 +31,7 @@ class BaseSegmentationDataset(Dataset, ABC):
         transform (callable, optional): A function/transform to apply to the images.
 
     Methods:
-        _load_data(): Abstract method to load image paths and labels. Must be overridden.
+        _load_data(): Abstract method to load image paths and gts. Must be overridden.
         __len__(): Returns the size of the dataset.
         __getitem__(index): Retrieves an image and its label at the specified index.
     """
