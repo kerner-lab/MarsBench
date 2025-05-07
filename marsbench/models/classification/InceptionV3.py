@@ -62,6 +62,7 @@ class InceptionV3(BaseClassificationModel):
 
         if self.cfg.data.subtask == "binary":
             logits = logits.squeeze(-1)
+            aux_logits = aux_logits.squeeze(-1) if aux_logits is not None else None
 
         if phase == "train":
             # Weighted sum as per the original paper
