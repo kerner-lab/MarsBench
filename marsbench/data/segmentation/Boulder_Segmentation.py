@@ -30,12 +30,12 @@ class Boulder_Segmentation(BaseSegmentationDataset):
         """
         image_dir = os.path.join(self.data_dir, "data", self.split, "images")
         mask_dir = os.path.join(self.data_dir, "data", self.split, "masks")
-        image_files = sorted([f for f in os.listdir(image_dir) if f.endswith("_image.tif")])
-        mask_files = sorted([f for f in os.listdir(mask_dir) if f.endswith("_segmask.tif")])
+        image_files = sorted([f for f in os.listdir(image_dir) if f.endswith(".tif")])
+        mask_files = sorted([f for f in os.listdir(mask_dir) if f.endswith(".tif")])
 
         # Match by base name (remove _image.tif / _segmask.tif)
-        image_bases = {f.replace("_image.tif", ""): f for f in image_files}
-        mask_bases = {f.replace("_segmask.tif", ""): f for f in mask_files}
+        image_bases = {f.replace(".tif", ""): f for f in image_files}
+        mask_bases = {f.replace(".tif", ""): f for f in mask_files}
         valid_keys = sorted(set(image_bases.keys()) & set(mask_bases.keys()))
 
         if len(valid_keys) == 0:

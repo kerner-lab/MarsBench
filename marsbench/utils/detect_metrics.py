@@ -19,7 +19,7 @@ def bbox_iou(boxA, boxB):
     interH = yB - yA + 1
 
     if interW <= 0 or interH <= 0:
-        return -1.0
+        return 0.0
 
     interArea = interW * interH
     boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
