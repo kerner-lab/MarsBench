@@ -5,7 +5,6 @@ SSD model implementation for object detection in Mars surface images.
 import logging
 
 import torch.nn as nn
-from torchmetrics.detection import MeanAveragePrecision
 from torchvision.models import ResNet34_Weights
 from torchvision.models import resnet34
 from torchvision.models.detection.ssd import SSD as torch_SSD
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 class SSD(BaseDetectionModel):
     def __init__(self, cfg):
         super(SSD, self).__init__(cfg)
-        self.metrics = MeanAveragePrecision(iou_type="bbox")
 
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes

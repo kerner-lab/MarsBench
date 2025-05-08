@@ -4,6 +4,7 @@ EfficientDET model implementation for object detection in Mars surface images.
 
 import logging
 
+import torch
 from effdet import DetBenchTrain
 from effdet import EfficientDet as EfficientDet_effdet
 from effdet import get_efficientdet_config
@@ -43,11 +44,13 @@ class EfficientDET(BaseDetectionModel):
             for param in model.parameters():
                 param.requires_grad = False
 
+            for param in model.fpn.parameters():
+                param.requires_grad = True
             for param in model.class_net.parameters():
                 param.requires_grad = True
             for param in model.box_net.parameters():
                 param.requires_grad = True
-            logger.info("Froze model parameters, keeping class and box network layers trainable")
+            logger.info("Froze model parameters, keeping fpn, class and box network layers trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True
@@ -83,8 +86,26 @@ class EfficientDET(BaseDetectionModel):
         loss = outputs["loss"]
         self._log_metrics("test", loss)
 
+        predicitons_list = []
+        targets_list = []
+
         for i in range(len(images)):
             detections = outputs["detections"][i]
+            predicitons_list.append(
+                {
+                    "boxes": detections[:, :4].detach().cpu(),
+                    "scores": detections[:, 4].detach().cpu(),
+                    "labels": detections[:, 5].detach().cpu().to(torch.int64),
+                }
+            )
+
+            targets_list.append(
+                {
+                    "boxes": targets["bbox"][i].detach().cpu(),
+                    "labels": targets["cls"][i].detach().cpu().to(torch.int64),
+                }
+            )
+
             self.test_outputs.append(
                 {
                     "gt_bboxes": targets["bbox"][i].detach().cpu().numpy(),
@@ -92,3 +113,13 @@ class EfficientDET(BaseDetectionModel):
                     "pred_score": detections[:, 4].detach().cpu().numpy(),
                 }
             )
+
+        if self.metrics:
+            metric_summary = self._calculate_metrics(predicitons_list, targets_list)
+            metrics = {"test/map": metric_summary["map"]}
+            self.log_dict(metrics, prog_bar=True, logger=True)
+
+    def _calculate_metrics(self, predicitons_list, targets_list):
+        self.metrics.update(predicitons_list, targets_list)
+        metric_summary = self.metrics.compute()
+        return metric_summary

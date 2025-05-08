@@ -11,6 +11,7 @@ import torch
 from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
 from torch.optim.sgd import SGD
+from torchmetrics.detection import MeanAveragePrecision
 
 from marsbench.utils.detect_metrics import compute_object_metrics
 from marsbench.utils.detect_metrics import match_bboxes
@@ -26,6 +27,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
         else:
             raise ValueError(f"Training type '{self.cfg.training_type}' not recognized.")
         self.model = self._initialize_model().to(self.device)
+        self.metrics = MeanAveragePrecision(iou_type="bbox")
         self.test_outputs = []
         self.test_results = {}
 
@@ -45,7 +47,6 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
     def training_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
 
         loss_dict = self(images, targets)
         total_loss = sum(loss for loss in loss_dict.values())
@@ -56,7 +57,6 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
     def validation_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
         outputs = self(images)
 
         if self.metrics:
@@ -82,15 +82,26 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
 
         for target, output in zip(targets, outputs):
+            boxes = output["boxes"].detach().cpu().numpy()
+            scores = output["scores"].detach().cpu().numpy()
+
+            filter = scores >= self.cfg.detection_confidence_threshold
+            boxes = boxes[filter]
+            scores = scores[filter]
+
             self.test_outputs.append(
                 {
                     "gt_bboxes": target["boxes"].detach().cpu().numpy(),
-                    "pred_bboxes": output["boxes"].detach().cpu().numpy(),
-                    "pred_score": output["scores"].detach().cpu().numpy(),
+                    "pred_bboxes": boxes,
+                    "pred_score": scores,
                 }
             )
 
     def on_test_epoch_end(self):
+        final_map = self.metrics.compute()
+        self.log("test/map", final_map["map"])
+        self.metrics.reset()
+
         object_iou = []
         object_accuracy = []
         object_precision = []
@@ -99,7 +110,9 @@ class BaseDetectionModel(pl.LightningModule, ABC):
         for sample in self.test_outputs:
             object_iou.append(match_bboxes(sample["gt_bboxes"], sample["pred_bboxes"]))
             current_accuracy, current_precision, current_recall = compute_object_metrics(
-                sample["gt_bboxes"], sample["pred_bboxes"], 0.5
+                gt_bboxes=sample["gt_bboxes"],
+                pred_bboxes=sample["pred_bboxes"],
+                iou_threshold=0.5,
             )
             object_accuracy.append(current_accuracy)
             object_precision.append(current_precision)
@@ -111,6 +124,7 @@ class BaseDetectionModel(pl.LightningModule, ABC):
         object_recall_mean = np.mean(object_recall)
 
         self.test_results = {
+            "mean_average_precision": round(float(final_map["map"]), 6),
             "object_iou_mean": round(float(object_iou_mean), 6),
             "object_accuracy_mean": round(float(object_accuracy_mean), 6),
             "object_precision_mean": round(float(object_precision_mean), 6),
@@ -179,7 +193,6 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             targets_list.append(targets_dict)
             preds_list.append(preds_dict)
 
-        self.metrics.reset()
         self.metrics.update(preds_list, targets_list)
         metric_summary = self.metrics.compute()
         return metric_summary

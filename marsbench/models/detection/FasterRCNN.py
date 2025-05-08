@@ -4,7 +4,6 @@ FasterRCNN model implementation for object detection in Mars surface images.
 
 import logging
 
-from torchmetrics.detection import MeanAveragePrecision
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -17,7 +16,6 @@ logger = logging.getLogger(__name__)
 class FasterRCNN(BaseDetectionModel):
     def __init__(self, cfg):
         super(FasterRCNN, self).__init__(cfg)
-        self.metrics = MeanAveragePrecision(iou_type="bbox")
 
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes
@@ -41,7 +39,9 @@ class FasterRCNN(BaseDetectionModel):
                 param.requires_grad = False
             for param in model.roi_heads.parameters():
                 param.requires_grad = True
-            logger.info("Froze model parameter, keeping roi heads trainable")
+            for param in model.rpn.parameters():
+                param.requires_grad = True
+            logger.info("Froze model parameter, keeping roi heads and rpn trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True

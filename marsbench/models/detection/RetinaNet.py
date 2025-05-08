@@ -7,7 +7,6 @@ import logging
 from functools import partial
 
 import torch
-from torchmetrics.detection import MeanAveragePrecision
 from torchvision.models.detection import RetinaNet_ResNet50_FPN_V2_Weights
 from torchvision.models.detection import retinanet_resnet50_fpn_v2
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 class RetinaNet(BaseDetectionModel):
     def __init__(self, cfg):
         super(RetinaNet, self).__init__(cfg)
-        self.metrics = MeanAveragePrecision(iou_type="bbox")
 
     def _initialize_model(self):
         num_classes = self.cfg.data.num_classes
@@ -47,9 +45,11 @@ class RetinaNet(BaseDetectionModel):
         if pretrained and freeze_layers:
             for param in model.parameters():
                 param.requires_grad = False
+            for param in model.backbone.fpn.parameters():
+                param.requires_grad = True
             for param in model.head.parameters():
                 param.requires_grad = True
-            logger.info("Froze model layers, keeping head trainable")
+            logger.info("Froze model layers, keeping fpn and head trainable")
         else:
             for param in model.parameters():
                 param.requires_grad = True
