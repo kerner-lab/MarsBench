@@ -71,9 +71,14 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
         self._log_metrics("val", total_loss)
 
+    def on_validation_epoch_start(self):
+        self.metrics.reset()
+
+    def on_test_epoch_start(self):
+        self.metrics.reset()
+
     def test_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
         outputs = self(images)
 
         if self.metrics:
