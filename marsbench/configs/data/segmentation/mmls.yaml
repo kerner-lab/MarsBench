@@ -1,6 +1,7 @@
 name: MMLS
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/mmls/
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/mmls/partitions/${oc.decode:${oc.select:partition, 0.01}}x_partition.csv
 num_classes: 2 # Background + 1 class
 image_type: rgb
 task: segmentation

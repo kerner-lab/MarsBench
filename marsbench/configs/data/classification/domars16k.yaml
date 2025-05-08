@@ -2,6 +2,8 @@ name: DoMars16k
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/domars16k/
 annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/domars16k/annotation.csv
+few_shot_csv: ${oc.decode:${oc.select:dataset_path, .}}/domars16k/few_shot/${oc.decode:${oc.select:few_shot, 1}}_shot.csv
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/domars16k/partitions/${oc.decode:${oc.select:partition, 0.01}}x_partition.csv
 num_classes: 15
 image_type: rgb
 subtask: multiclass  # Supported: binary, multiclass, multilabel
