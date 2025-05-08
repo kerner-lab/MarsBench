@@ -1,7 +1,7 @@
 name: Crater_Multi_Segmentation
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/crater_multi_segmentation/
-partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/crater_multi_segmentation/partitions/${oc.decode:${oc.select:partition, 0.01}}x_partition.csv
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/crater_multi_segmentation/partitions/${oc.select:partition, 0.01}x_partition.csv
 num_classes: 5 # Background + 4 crater classes
 image_type: rgb
 task: segmentation

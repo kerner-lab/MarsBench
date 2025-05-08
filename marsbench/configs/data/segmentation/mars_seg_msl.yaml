@@ -1,7 +1,7 @@
 name: MarsSegMSL
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/mars-seg_msl/
-partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/mars-seg_msl/partitions/${oc.decode:${oc.select:partition, 0.01}}x_partition.csv
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/mars-seg_msl/partitions/${oc.select:partition, 0.01}x_partition.csv
 num_classes: 7 # Background + 6 classes
 image_type: rgb
 task: segmentation
