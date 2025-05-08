@@ -28,19 +28,20 @@ class Boulder_Segmentation(BaseSegmentationDataset):
         Loads image and mask paths for the Mars Boulder dataset.
         Assumes images are in 'images/' and masks in 'masks/' with matching base names.
         """
-        image_dir = os.path.join(self.data_dir, "data", self.split, "images")
-        mask_dir = os.path.join(self.data_dir, "data", self.split, "masks")
-        image_files = sorted([f for f in os.listdir(image_dir) if f.endswith(".tif")])
-        mask_files = sorted([f for f in os.listdir(mask_dir) if f.endswith(".tif")])
+        image_set = set(os.listdir(os.path.join(self.data_dir, "data", self.split, "images")))
+        mask_set = set(os.listdir(os.path.join(self.data_dir, "data", self.split, "masks")))
+        missing_masks = image_set - mask_set
+        missing_images = mask_set - image_set
 
-        # Match by base name (remove _image.tif / _segmask.tif)
-        image_bases = {f.replace(".tif", ""): f for f in image_files}
-        mask_bases = {f.replace(".tif", ""): f for f in mask_files}
-        valid_keys = sorted(set(image_bases.keys()) & set(mask_bases.keys()))
+        if missing_masks:
+            logging.warning(f"Missing {len(missing_masks)} masks for images")
+        if missing_images:
+            logging.warning(f"Missing {len(missing_images)} images for masks")
 
-        if len(valid_keys) == 0:
-            logging.warning("No matching image/mask pairs found in MarsBoulder dataset.")
+        valid_names = image_set.intersection(mask_set)
+        valid_paths = sorted(list(valid_names))
 
-        image_paths = [os.path.join(image_dir, image_bases[k]) for k in valid_keys]
-        mask_paths = [os.path.join(mask_dir, mask_bases[k]) for k in valid_keys]
+        image_paths = [os.path.join(self.data_dir, "data", self.split, "images", p) for p in valid_paths]
+        mask_paths = [os.path.join(self.data_dir, "data", self.split, "masks", p) for p in valid_paths]
+
         return image_paths, mask_paths
