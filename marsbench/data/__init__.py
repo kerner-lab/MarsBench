@@ -74,7 +74,25 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, 
         "transform": transform,
         "split": split,
     }
-    if cfg.task == "classification":
+    partition_support = ["classification", "segmentation"]
+    few_shot_support = ["classification"]
+    if (cfg.partition is not None and cfg.task in partition_support) or (
+        cfg.few_shot is not None and cfg.task in few_shot_support
+    ):
+        if cfg.few_shot is not None and cfg.partition is not None:
+            msg = "At most one of cfg.few_shot or cfg.partition may be set; both cannot be non-None"
+            logger.error(msg)
+            raise ValueError(msg)
+        if cfg.few_shot is not None:
+            annot_csv = cfg.data.few_shot_csv
+        elif cfg.partition is not None:
+            annot_csv = cfg.data.partition_csv
+    elif cfg.partition is not None:
+        logger.warning(f"Task: {cfg.task} does not support partition. Using whole data.")
+    elif cfg.few_shot is not None:
+        logger.warning(f"Task: {cfg.task} does not support few shot. Using whole data.")
+
+    if cfg.task in ["classification", "segmentation"]:
         common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
     if cfg.task == "detection":
         common_args["bbox_format"] = bbox_format
