@@ -86,6 +86,7 @@ def load_dynamic_configs(cfg: DictConfig, config_dir: Optional[Union[str, Path]]
     mappings = {
         "data": f"{cfg.task}/{cfg.data_name}" if hasattr(cfg, "task") and hasattr(cfg, "data_name") else None,
         "model": f"{cfg.task}/{cfg.model_name}" if hasattr(cfg, "task") and hasattr(cfg, "model_name") else None,
+        "prompts": f"{cfg.task}/{cfg.data_name}" if hasattr(cfg, "task") and hasattr(cfg, "data_name") else None,
     }
 
     # Track loaded configs for logging
@@ -105,6 +106,13 @@ def load_dynamic_configs(cfg: DictConfig, config_dir: Optional[Union[str, Path]]
             "For better consistency, consider editing the model config files directly."
         )
 
+    # Check if prompts parameters are being overridden and warn users
+    if hasattr(cfg, "prompts") and isinstance(cfg.prompts, dict) and len(cfg.prompts) > 0:
+        logger.warning(
+            "We don't support overriding prompts parameters via command line. "
+            "For better consistency, consider editing the prompts config files directly."
+        )
+
     # Process each config type
     for config_type, path_suffix in mappings.items():
         # Skip if mapping is None
@@ -117,12 +125,10 @@ def load_dynamic_configs(cfg: DictConfig, config_dir: Optional[Union[str, Path]]
 
         if not config_path.exists():
             msg = f"Cannot find {config_type} config at {config_path}"
-            # In test environment, we might want to be more lenient
-            if os.getenv("TEST_ENV") == "1":
-                logger.warning(f"{msg}, but continuing in test environment")
+            if config_type == "prompts":
+                logger.warning(msg)
                 continue
-            else:
-                raise ConfigLoadError(msg)
+            raise ConfigLoadError(msg)
 
         # Load the config from file
         logger.info(f"Loading {config_type} config from: {config_path}")

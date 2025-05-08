@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from typing import Dict
 
 from omegaconf import DictConfig
@@ -56,3 +57,18 @@ def get_class_name(class_idx: int, cfg: DictConfig) -> str:
             return str(name)
         raise ValueError(f"Invalid mapping for class index {class_idx}: {name}")
     return str(class_idx)
+
+
+def get_class_idx(class_name: str, cfg: DictConfig) -> int:
+    mapping = getattr(cfg, "mapping", None)
+    class_name = re.sub(r"[^A-Za-z]", "", class_name).lower()
+    if mapping:
+        for idx, name in mapping.items():
+            if isinstance(name, (tuple, list, ListConfig)):
+                if class_name in name:
+                    return idx
+            elif isinstance(name, (str, int)):
+                if str(name).lower() == class_name:
+                    return idx
+    logger.warning(f"Class name {class_name} not found in mapping")
+    return class_name

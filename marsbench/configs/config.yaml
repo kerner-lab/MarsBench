@@ -25,7 +25,9 @@ defaults:
   - _self_
   - transforms: default
   - data: classification/domars16k  # task/data_name updated using load_dynamic_configs
+  - prompts: classification/domars16k  # Optional for VLM zero-shot
   - model: classification/resnet101  # task/model_name updated using load_dynamic_configs
+  - vlm: gemini
   - training: ${oc.env:HYDRA_TRAINING,dev}  # Use test config in test environment
   - test: default
   - logger: default
