@@ -136,6 +136,23 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             "object_recall_mean": round(float(object_recall_mean), 6),
         }
 
+        prefix = "detect/test"
+        self.log_dict(
+            {f"{prefix}/confidence_threshold": self.cfg.detection_confidence_threshold},
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
+        self.log_dict({f"{prefix}/mAP": final_map["map"]}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict({f"{prefix}/object_iou_mean": object_iou_mean}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict(
+            {f"{prefix}/object_accuracy_mean": object_accuracy_mean}, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log_dict(
+            {f"{prefix}/object_precision_mean": object_precision_mean}, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log_dict({f"{prefix}/object_recall_mean": object_recall_mean}, on_step=False, on_epoch=True, prog_bar=True)
+
     def configure_optimizers(self):
         optimizer_name = self.cfg.training.optimizer.name
         lr = self.cfg.training.optimizer.lr
