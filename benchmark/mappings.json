@@ -1,0 +1,32 @@
+{
+  "data": {
+    "atmospheric_dust_classification_edr": "mb-atmospheric_dust_cls_edr",
+    "atmospheric_dust_classification_rdr": "mb-atmospheric_dust_cls_rdr",
+    "change_classification_ctx": "mb-change_cls_ctx",
+    "change_classification_hirise": "mb-change_cls_hirise",
+    "domars16k": "mb-domars16k",
+    "frost_classification": "mb-frost_cls",
+    "landmark_classification": "mb-landmark_cls",
+    "surface_classification": "mb-surface_cls",
+    "multi_label_mer": "mb-surface_multi_label_cls",
+    "boulder_segmentation": "mb-boulder_seg",
+    "conequest_segmentation": "mb-conequest_seg",
+    "crater_binary_segmentation": "mb-crater_binary_seg",
+    "crater_multi_segmentation": "mb-crater_multi_seg",
+    "mars_seg_mer": "mb-mars_seg_mer",
+    "mars_seg_msl": "mb-mars_seg_msl",
+    "mmls": "mb-mmls",
+    "s5mars": "mb-s5mars"
+  },
+  "models": {
+    "vit": "ViT-L/16",
+    "resnet101": "ResNet101",
+    "squeezenet": "SqueezeNet1.1",
+    "inceptionv3": "InceptionV3",
+    "swin_transformer": "SwinV2-B",
+    "deeplab": "DeepLabV3+",
+    "dpt": "DPT",
+    "unet": "UNet",
+    "segformer": "SegFormer"
+  }
+}

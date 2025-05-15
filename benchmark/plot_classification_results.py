@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""
+Process classification_filtered.csv to compute and save bootstrap IQM distributions,
+normalize metrics, and plot violin plots.
+"""
+
+import json
+import os
+import sys
+import types
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from get_data import get_data
+
+# Stub geobench for plot_tools import
+gb_dir = Path(__file__).parent
+sys.modules["geobench"] = types.SimpleNamespace(GEO_BENCH_DIR=gb_dir)
+
+# Add examples folder to import path
+sys.path.append(str(Path(__file__).parent))
+from plot_tools import bootstrap_iqm
+from plot_tools import bootstrap_iqm_aggregate
+from plot_tools import make_normalizer
+from plot_tools import plot_per_dataset
+
+
+def main():
+    base_dir = Path(__file__).parent
+    csv_path = base_dir / "data" / "classification_filtered.csv"
+    output_dir = base_dir / "data" / "classification_violin_output"
+    output_dir.mkdir(exist_ok=True)
+
+    # Load and rename columns
+    if os.path.exists(csv_path):
+        df = pd.read_csv(csv_path)
+    else:
+        df = get_data(
+            run_name="MarsBenchClassificationWithSeeds",
+            columns=["model_name", "data_name", "test/F1Score_weighted", "training_type", "seed"],
+        )
+        df = df[df["training_type"] == "feature_extraction"]
+        with open(base_dir / "mappings.json", "r") as f:
+            mappings = json.load(f)
+        df["model_name"] = df["model_name"].map(mappings["models"])
+        df["data_name"] = df["data_name"].map(mappings["data"])
+
+        df = df.rename(columns={"model_name": "model", "data_name": "dataset", "test/F1Score_weighted": "test metric"})
+
+        # Add constant partition name for grouping
+        df["partition name"] = "default"
+        df.to_csv(csv_path, index=False)
+
+    datasets = ["aggregated"] + [
+        "mb-atmospheric_dust_cls_edr",
+        "mb-domars16k",
+        "mb-change_cls_hirise",
+        "mb-frost_cls",
+        "mb-surface_cls",
+        "mb-surface_multi_label_cls",
+    ]
+
+    # Build normalizer and apply
+    normalizer = make_normalizer(df, metrics=["test metric"], benchmark_name=None)
+    norm_col = normalizer.normalize_data_frame(df, "test metric")
+
+    # Save normalizer mapping
+    norm_path = output_dir / "normalizer.json"
+    with open(norm_path, "w") as f:
+        json.dump(normalizer.range_dict, f, indent=2)
+
+    # Compute bootstrap distributions
+    aggregated = bootstrap_iqm_aggregate(df, metric=norm_col, repeat=100)
+    per_dataset = bootstrap_iqm(df, metric=norm_col, repeat=100)
+
+    # Save processed data
+    aggregated.to_csv(output_dir / "aggregated_bootstrap.csv", index=False)
+    per_dataset.to_csv(output_dir / "per_dataset_bootstrap.csv", index=False)
+
+    # Combine for plotting
+    combined = pd.concat([aggregated, per_dataset], ignore_index=True)
+
+    # Define model order and colors
+    model_order = list(df["model"].unique())
+    model_colors = dict(zip(model_order, sns.color_palette("colorblind", len(model_order))))
+
+    # Plot violin plots
+    plot_per_dataset(
+        combined,
+        model_order,
+        metric=norm_col,
+        model_colors=model_colors,
+        datasets=datasets,
+        fig_size=(len(combined["dataset"].unique()) * 2, 3),
+        n_legend_rows=1,
+    )
+    # Rotate x-axis labels and adjust layout
+    fig = plt.gcf()
+    for ax in fig.axes:
+        ax.tick_params(axis="x", labelsize=12)
+        ax.tick_params(axis="y", labelsize=12)
+        # Increase y-axis label title font size
+        ax.set_ylabel(ax.get_ylabel(), fontsize=13)
+        # Format legend: single row and larger font
+        legend = ax.get_legend()
+        if legend:
+            legend.set_ncols(len(model_order))
+            legend.set_title("", prop={"size": 14})
+            for text in legend.get_texts():
+                text.set_fontsize(14)
+    # plt.tight_layout()
+    # Save figure
+    fig_file = output_dir / "violin_plot.pdf"
+    plt.savefig(fig_file, dpi=300, bbox_inches="tight")
+    print(f"Generated violin plot: {fig_file}")
+
+
+if __name__ == "__main__":
+    main()
