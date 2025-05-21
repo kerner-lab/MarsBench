@@ -87,6 +87,13 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, 
             annot_csv = cfg.data.few_shot_csv
         elif cfg.partition is not None:
             annot_csv = cfg.data.partition_csv
+            if cfg.partition >= 0.1:
+                annot_csv_partition = annot_csv.split("/")[-1]
+                annot_csv_partition_val = annot_csv_partition.split("x_")[0]
+                new_val = f"{cfg.partition:.2f}"
+                logger.info(f"Old annotation csv path is: {annot_csv}")
+                annot_csv = annot_csv.replace(f"{annot_csv_partition_val}x_", f"{new_val}x_")
+                logger.info(f"Updated annotation csv path is: {annot_csv}")
     elif cfg.partition is not None:
         logger.warning(f"Task: {cfg.task} does not support partition. Using whole data.")
     elif cfg.few_shot is not None:

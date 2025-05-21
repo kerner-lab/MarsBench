@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 columns = ["seed", "model", "dataset", "partition name", "test metric"]
-datasets = ["mb-surface_cls", "mb-landmark_cls", "mb-atmospheric_dust_cls_edr"]
+datasets = ["mb-surface_cls", "mb-domars16k", "mb-atmospheric_dust_cls_edr", "mb-frost_cls"]
 df = pd.DataFrame(columns=columns)
 
 satmae_results = "/data/hkerner/MarsBench/results/eo_results"
@@ -16,7 +16,10 @@ for each_file in os.listdir(os.path.join(satmae_results)):
 
     for index, row in current_df.iterrows():
         current_partition = each_file.split("_")[-1][:4]
-        current_model = "SatMAE_ViT-L/16"
+        if "CROMA" in each_file:
+            current_model = "CROMA_ViT-L/16"
+        else:
+            current_model = "SatMAE_ViT-L/16"
         current_dataset = row["dataset"]
         current_f1score = float(row["F1-Score"])
         current_row = [seed, current_model, current_dataset, current_partition, current_f1score]
@@ -31,10 +34,7 @@ for each_file in os.listdir(os.path.join(satmae_results)):
 
     for index, row in current_df.iterrows():
         current_partition = each_file.split("_")[-1][:4]
-        if "prithvi" in each_file:
-            current_model = "prithvi_eo_v1_100"
-        else:
-            current_model = "CROMA_ViT-B/16"
+        current_model = "prithvi_eo_v1_100"
         current_dataset = row["dataset"]
         current_f1score = float(row["F1-Score"])
         current_row = [seed, current_model, current_dataset, current_partition, current_f1score]

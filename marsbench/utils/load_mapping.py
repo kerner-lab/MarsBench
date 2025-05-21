@@ -45,8 +45,11 @@ def load_mapping(data_dir: str, num_classes: int | None = None) -> Dict[int, str
         return None
 
 
-def get_class_name(class_idx: int, cfg: DictConfig) -> str:
-    mapping = getattr(cfg, "mapping", None)
+def get_class_name(class_idx: int, cfg: DictConfig | None = None, mapping: Dict[int, str] | None = None) -> str:
+    if cfg is None and mapping is None:
+        raise ValueError("Either cfg or mapping must be provided")
+    if mapping is None:
+        mapping = getattr(cfg, "mapping", None)
     if mapping:
         name = mapping.get(class_idx, class_idx)
         if isinstance(name, (tuple, list, ListConfig)):
@@ -59,8 +62,11 @@ def get_class_name(class_idx: int, cfg: DictConfig) -> str:
     return str(class_idx)
 
 
-def get_class_idx(class_name: str, cfg: DictConfig) -> int:
-    mapping = getattr(cfg, "mapping", None)
+def get_class_idx(class_name: str, cfg: DictConfig | None = None, mapping: Dict[int, str] | None = None) -> int:
+    if cfg is None and mapping is None:
+        raise ValueError("Either cfg or mapping must be provided")
+    if mapping is None:
+        mapping = getattr(cfg, "mapping", None)
     class_name = re.sub(r"[^A-Za-z]", "", class_name).lower()
     if mapping:
         for idx, name in mapping.items():

@@ -34,7 +34,7 @@ def main():
     df = pd.read_csv(csv_path)
 
     # Get unique datasets
-    datasets = ["aggregated"] + sorted(df["dataset"].unique().tolist())
+    datasets = sorted(df["dataset"].unique().tolist())
 
     # Normalize metrics
     normalizer = make_normalizer(df, metrics=["test metric"])
@@ -45,23 +45,24 @@ def main():
 
     # Calculate aggregated statistics across all datasets
     # First, get the mean of normalized metrics per model/partition/seed combination
-    model_partition_means = df.groupby(["model", "partition name", "seed"])[norm_col].mean().reset_index()
+    # model_partition_means = df.groupby(["model", "partition name", "seed"])[norm_col].mean().reset_index()
 
-    # Then calculate statistics on these means
-    aggregated_stats = (
-        model_partition_means.groupby(["model", "partition name"])["normalized test metric"]
-        .agg([("mean", "mean"), ("std", "std"), ("count", "count")])
-        .reset_index()
-    )
+    # # Then calculate statistics on these means
+    # aggregated_stats = (
+    #     model_partition_means.groupby(["model", "partition name"])["normalized test metric"]
+    #     .agg([("mean", "mean"), ("std", "std"), ("count", "count")])
+    #     .reset_index()
+    # )
 
-    # Add dataset column with 'aggregated' value
-    aggregated_stats["dataset"] = "aggregated"
+    # # Add dataset column with 'aggregated' value
+    # aggregated_stats["dataset"] = "aggregated"
 
-    # Reorder columns to match stats_df
-    aggregated_stats = aggregated_stats[["dataset", "model", "partition name", "mean", "std", "count"]]
+    # # Reorder columns to match stats_df
+    # aggregated_stats = aggregated_stats[["dataset", "model", "partition name", "mean", "std", "count"]]
 
-    # Combine per-dataset and aggregated stats
-    combined_stats = pd.concat([stats_df, aggregated_stats], ignore_index=True)
+    # # Combine per-dataset and aggregated stats
+    # combined_stats = pd.concat([stats_df, aggregated_stats], ignore_index=True)
+    combined_stats = stats_df
 
     # Save processed stats for reference
     combined_stats.to_csv(output_dir / "earth_data_stats.csv", index=False)
@@ -80,6 +81,7 @@ def main():
 
         # Get data for this dataset
         ds_data = combined_stats[combined_stats["dataset"] == dataset]
+        print(dataset, ds_data["model"].unique())
 
         # Plot each model's data
         for model in ds_data["model"].unique():
