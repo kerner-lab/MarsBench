@@ -27,10 +27,10 @@ from plot_tools import make_normalizer
 
 def main():
     base_dir = Path(__file__).parent
-    csv_path = base_dir / "data" / "classification_partition_filtered.csv"
-    output_dir = base_dir / "data" / "classification_partition_violin_output"
-    full_data_path = base_dir / "data" / "classification_filtered.csv"
-    plot_path = output_dir / "lineplot_partitions_row.pdf"
+    csv_path = base_dir / "data" / "classification_few_shot_filtered.csv"
+    output_dir = base_dir / "data" / "classification_few_shot_violin_output"
+    # full_data_path = base_dir / "data" / "classification_filtered.csv"
+    plot_path = output_dir / "lineplot_few_shot_row.pdf"
     training_type = "feature_extraction"
     output_dir.mkdir(exist_ok=True)
 
@@ -39,8 +39,8 @@ def main():
         df = pd.read_csv(csv_path)
     else:
         df = get_data(
-            run_name="MarsBenchClassificationWithPartitionSeeds",
-            columns=["model_name", "data_name", "seed", "test/F1Score_weighted", "training_type", "partition"],
+            run_name="MarsBenchClassificationWithFewShotSeeds",
+            columns=["model_name", "data_name", "seed", "test/F1Score_weighted", "training_type", "few_shot"],
         )
         df = df[df["training_type"] == training_type]
         with open(base_dir / "mappings.json", "r") as f:
@@ -53,14 +53,13 @@ def main():
                 "model_name": "model",
                 "data_name": "dataset",
                 "test/F1Score_weighted": "test metric",
-                "partition": "partition name",
             }
         )
-        full_data = pd.read_csv(full_data_path)
-        full_data["partition name"] = 1.0
-        df = pd.concat([df, full_data[df.columns]], ignore_index=True).sort_values(
-            by=["model", "dataset", "partition name"]
-        )
+        # full_data = pd.read_csv(full_data_path)
+        # full_data["partition name"] = 1.0
+        # df = pd.concat([df, full_data[df.columns]], ignore_index=True).sort_values(
+        #     by=["model", "dataset", "partition name"]
+        # )
         df.to_csv(csv_path, index=False)
 
     # datasets = ["aggregated"] + [
@@ -83,7 +82,7 @@ def main():
 
     # Skip bootstrapping and use normalized data directly
     # Calculate mean and std per dataset, model, partition group
-    stats_df = df.groupby(["dataset", "model", "partition name"])[norm_col].agg(["mean", "std", "count"]).reset_index()
+    stats_df = df.groupby(["dataset", "model", "few_shot"])[norm_col].agg(["mean", "std", "count"]).reset_index()
 
     # # Calculate aggregated statistics across all datasets
     # # First, get the mean of normalized metrics per model/partition/seed combination
@@ -110,7 +109,7 @@ def main():
     combined_stats.to_csv(output_dir / "partition_stats.csv", index=False)
 
     # Convert partition_name to float for proper plotting
-    combined_stats["partition_value"] = combined_stats["partition name"].astype(float)
+    combined_stats["few_shot"] = combined_stats["few_shot"].astype(int)
 
     # Create grid layout with maximum 5 columns
     max_cols = 5
@@ -138,26 +137,35 @@ def main():
         # Plot each model's data
         for model in ds_data["model"].unique():
             # Get data for this model
-            model_data = ds_data[ds_data["model"] == model].sort_values("partition_value")
+            model_data = ds_data[ds_data["model"] == model].sort_values("few_shot")
 
             # Plot the line
-            line = ax.plot(model_data["partition_value"], model_data["mean"], markersize=8, linewidth=1.5, label=model)[
-                0
-            ]
+            line = ax.plot(model_data["few_shot"], model_data["mean"], markersize=8, linewidth=1.5, label=model)[0]
             color = line.get_color()
 
             # Add confidence band (mean ± std)
             ax.fill_between(
-                model_data["partition_value"],
+                model_data["few_shot"],
                 model_data["mean"] - model_data["std"],
                 model_data["mean"] + model_data["std"],
                 alpha=0.3,
                 color=color,
             )
 
-        # Set log scale on x-axis and format as percentages
+            # We don't need per-line annotations anymore as we'll show all values on x-axis
+
+        # Set log scale on x-axis and ensure all values are shown
         ax.set_xscale("log")
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{float(x):.0%}"))
+
+        # Get all unique few-shot values for this dataset
+        few_shot_values = sorted(ds_data["few_shot"].unique())
+
+        # #! Set specific tick locations and labels
+        # ax.set_xticks(few_shot_values)
+        ax.set_xticklabels([str(int(x)) for x in few_shot_values])
+
+        # # Rotate labels slightly if needed for better readability
+        # plt.setp(ax.get_xticklabels(), rotation=0, ha='right')
 
         # Format subplot
         ax.grid(True, linestyle="--", axis="y", alpha=0.7)

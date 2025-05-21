@@ -32,6 +32,7 @@ def main():
     output_dir = base_dir / "data" / "segmentation_partition_violin_output"
     full_data_path = base_dir / "data" / "segmentation_filtered.csv"
     plot_path = output_dir / "lineplot_partitions_row.pdf"
+    training_type = "feature_extraction"
     output_dir.mkdir(exist_ok=True)
 
     # Load and rename columns
@@ -42,7 +43,7 @@ def main():
             run_name="MarsBenchSegmentationWithPartitionSeeds",
             columns=["model_name", "data_name", "seed", "test/iou", "training_type", "partition"],
         )
-        df = df[df["training_type"] == "feature_extraction"]
+        df = df[df["training_type"] == training_type]
         with open(base_dir / "mappings.json", "r") as f:
             mappings = json.load(f)
         df["model_name"] = df["model_name"].map(mappings["models"])
