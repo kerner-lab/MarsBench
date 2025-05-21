@@ -9,12 +9,16 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Tuple
 
+import pandas as pd
 from lxml import etree
 from omegaconf import DictConfig
 
 from .BaseDetectionDataset import BaseDetectionDataset
+
+logger = logging.getLogger(__name__)
 
 
 class Boulder_Detection(BaseDetectionDataset):
@@ -24,8 +28,10 @@ class Boulder_Detection(BaseDetectionDataset):
         data_dir: str,
         transform=None,
         bbox_format: Literal["coco", "yolo", "pascal_voc"] = "yolo",
+        annot_csv: Optional[str] = None,
         split: Literal["train", "val", "test"] = "train",
     ):
+        self.annot_csv = annot_csv
         super().__init__(cfg, data_dir, transform, bbox_format, split)
 
     def _load_data(self) -> Tuple[List[str], List[List[float]], List[List[int]], List[str]]:
@@ -103,11 +109,25 @@ class Boulder_Detection(BaseDetectionDataset):
         valid_names = [name for name in names if name in names_with_bbox]
 
         if valid_names == names_with_bbox and valid_names == list(labels.keys()):
-            logging.info("name and annotations in sync.")
+            logger.info("name and annotations in sync.")
         else:
-            logging.warning("names and annotations are not in sync.")
+            logger.warning("names and annotations are not in sync.")
 
         image_paths = [os.path.join(self.data_dir, "data", self.split, "images", p + image_suffix) for p in valid_names]
+
+        logger.info(f"Loaded {len(image_paths)} images with annotations")
+        logger.info(f"Using annotations from {self.annot_csv}")
+        if self.annot_csv is not None:
+            self.annot = pd.read_csv(self.annot_csv)
+            selected_names = set(self.annot[self.annot["split"] == self.split]["file_id"].tolist())
+            selected_stems = {Path(fid).stem for fid in selected_names}
+            valid_names = [name for name in valid_names if name in selected_stems]
+            image_paths = [
+                os.path.join(self.data_dir, "data", self.split, "images", name + image_suffix) for name in valid_names
+            ]
+            annotation_list = [annotations[name] for name in valid_names]
+            label_list = [labels[name] for name in valid_names]
+            return image_paths, annotation_list, label_list, valid_names
 
         return (
             image_paths,

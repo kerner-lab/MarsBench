@@ -3,6 +3,7 @@ Dataset loading and preprocessing utilities for MarsBench.
 """
 
 import logging
+import os
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -74,7 +75,7 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, 
         "transform": transform,
         "split": split,
     }
-    partition_support = ["classification", "segmentation"]
+    partition_support = ["classification", "segmentation", "detection"]
     few_shot_support = ["classification"]
     if (cfg.partition is not None and cfg.task in partition_support) or (
         cfg.few_shot is not None and cfg.task in few_shot_support
@@ -99,8 +100,11 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, 
     elif cfg.few_shot is not None:
         logger.warning(f"Task: {cfg.task} does not support few shot. Using whole data.")
 
-    if cfg.task in ["classification", "segmentation"]:
-        common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
+    if annot_csv is not None and not os.path.exists(annot_csv):
+        logger.error(f"Annotation csv path does not exist: {annot_csv}")
+        raise ValueError(f"Annotation csv path does not exist: {annot_csv}")
+
+    common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
     if cfg.task == "detection":
         common_args["bbox_format"] = bbox_format
     return dataset_class(**common_args)
