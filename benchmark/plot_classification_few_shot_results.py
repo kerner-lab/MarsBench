@@ -161,7 +161,7 @@ def main():
         few_shot_values = sorted(ds_data["few_shot"].unique())
 
         # #! Set specific tick locations and labels
-        # ax.set_xticks(few_shot_values)
+        ax.set_xticks(few_shot_values)
         ax.set_xticklabels([str(int(x)) for x in few_shot_values])
 
         # # Rotate labels slightly if needed for better readability
