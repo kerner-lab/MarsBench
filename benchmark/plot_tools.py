@@ -4,6 +4,7 @@ Owner: Geobench; borrowed from https://github.com/ServiceNow/geo-bench/
 """
 
 import json
+import math
 
 import geobench as gb
 import numpy as np
@@ -192,20 +193,28 @@ def plot_per_dataset(
     if datasets is None:
         datasets = sorted(df["dataset"].unique())
 
+    # Determine grid dimensions with up to 5 columns
+    max_cols = 5
+    num_cols = min(max_cols, len(datasets))
+    num_rows = math.ceil(len(datasets) / num_cols)
+    # Calculate figure size if not provided
     if fig_size is None:
-        fig_width = len(datasets) * 2
-        fig_size = (fig_width, 3)
-    fig, axes = plt.subplots(1, len(datasets), sharey=sharey, figsize=fig_size)
+        fig_width = num_cols * 2
+        fig_height = num_rows * 5  # increased height per row
+        fig_size = (fig_width, fig_height)
+    fig, axes = plt.subplots(nrows=num_rows, ncols=num_cols, sharey=sharey, figsize=fig_size)
+    axes = np.array(axes).flatten()
+    # Hide unused subplots
+    for ax in axes[len(datasets) :]:
+        ax.set_visible(False)
 
     if model_colors is None:
         colors = sns.color_palette("colorblind", n_colors=len(model_order))
         model_colors = dict(zip(model_order, colors))
 
-    for dataset, ax in zip(datasets, axes):
-        # sns.set_style("dark")
-        # sns.set_style("darkgrid")
-        # sns.set_style("dark", {"grid.color": "0.95"})
-
+    # Plot each dataset
+    for idx, (dataset, ax) in enumerate(zip(datasets, axes)):
+        # Extract data for this dataset
         sub_df = df[df["dataset"] == dataset]
         sns.violinplot(
             x="dataset",
@@ -215,7 +224,7 @@ def plot_per_dataset(
             hue_order=model_order,
             linewidth=0.5,
             saturation=1,
-            scale="count",
+            density_norm="count",
             inner=inner,
             palette=model_colors,
             ax=ax,
@@ -229,17 +238,41 @@ def plot_per_dataset(
             ax.set_facecolor("#cff6fc")
 
         ax.set(xlabel=None)
-
-        if dataset != datasets[int((len(datasets) - 1) / 2)]:
-            ax.get_legend().remove()
-        else:
-            ncols = int(np.ceil(len(model_order) / n_legend_rows))
-            sns.move_legend(ax, loc="lower center", bbox_to_anchor=(0.5, 1), ncol=ncols, title="")
-
-        if dataset != datasets[0]:
+        # Only show y-axis label on the first column of each row
+        col_idx = idx % num_cols
+        if col_idx != 0:
             ax.set(ylabel=None)
 
+    # Y-axis label on first column of each row
+    for row in range(num_rows):
+        axes[row * num_cols].set_ylabel(metric)
+
+    # Remove legends from individual subplots
+    for ax in axes:
+        legend = ax.get_legend()
+        if legend:
+            legend.remove()
+
+    # Single legend for the entire figure with increased size
+    handles, labels = axes[0].get_legend_handles_labels()
+    ncols_leg = int(np.ceil(len(model_order) / n_legend_rows))
+    # Create larger legend with more space above plot
+    legend = fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.07),
+        ncol=ncols_leg,
+        title="",
+        fontsize=14,
+        frameon=True,
+    )
+
+    # Tighter subplot spacing with minimal margins
     if sharey:
-        fig.subplots_adjust(wspace=0.02)
+        fig.subplots_adjust(wspace=0.02, hspace=0.15, left=0.05, right=0.95, top=0.9, bottom=0.05)
     else:
-        fig.subplots_adjust(wspace=0.3)
+        fig.subplots_adjust(wspace=0.2, hspace=0.15, left=0.05, right=0.95, top=0.9, bottom=0.05)
+
+    # Adjust layout to use figure space efficiently
+    plt.tight_layout()

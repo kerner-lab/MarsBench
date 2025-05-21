@@ -5,6 +5,7 @@ normalize metrics, and plot violin plots.
 """
 
 import json
+import math
 import os
 import sys
 import types
@@ -32,6 +33,7 @@ def main():
     csv_path = base_dir / "data" / "classification_filtered.csv"
     output_dir = base_dir / "data" / "classification_violin_output"
     output_dir.mkdir(exist_ok=True)
+    training_type = "feature_extraction"
 
     # Load and rename columns
     if os.path.exists(csv_path):
@@ -41,7 +43,7 @@ def main():
             run_name="MarsBenchClassificationWithSeeds",
             columns=["model_name", "data_name", "test/F1Score_weighted", "training_type", "seed"],
         )
-        df = df[df["training_type"] == "feature_extraction"]
+        df = df[df["training_type"] == training_type]
         with open(base_dir / "mappings.json", "r") as f:
             mappings = json.load(f)
         df["model_name"] = df["model_name"].map(mappings["models"])
@@ -53,14 +55,15 @@ def main():
         df["partition name"] = "default"
         df.to_csv(csv_path, index=False)
 
-    datasets = ["aggregated"] + [
-        "mb-atmospheric_dust_cls_edr",
-        "mb-domars16k",
-        "mb-change_cls_hirise",
-        "mb-frost_cls",
-        "mb-surface_cls",
-        "mb-surface_multi_label_cls",
-    ]
+    # datasets = ["aggregated"] + [
+    #     "mb-atmospheric_dust_cls_edr",
+    #     "mb-domars16k",
+    #     "mb-change_cls_hirise",
+    #     "mb-frost_cls",
+    #     "mb-surface_cls",
+    #     "mb-surface_multi_label_cls",
+    # ]
+    datasets = ["aggregated"] + df["dataset"].unique().tolist()
 
     # Build normalizer and apply
     normalizer = make_normalizer(df, metrics=["test metric"], benchmark_name=None)
@@ -87,13 +90,19 @@ def main():
     model_colors = dict(zip(model_order, sns.color_palette("colorblind", len(model_order))))
 
     # Plot violin plots
+    # Compute dynamic figure size: up to 5 columns, 2 units width per column, 6 units height per row
+    num_datasets = len(combined["dataset"].unique())
+    max_cols = 5
+    num_cols = min(max_cols, num_datasets)
+    num_rows = math.ceil(num_datasets / num_cols)
+    fig_size = (num_cols * 3, num_rows * 3)  # moderate height per row
     plot_per_dataset(
         combined,
         model_order,
         metric=norm_col,
         model_colors=model_colors,
         datasets=datasets,
-        fig_size=(len(combined["dataset"].unique()) * 2, 3),
+        fig_size=fig_size,
         n_legend_rows=1,
     )
     # Rotate x-axis labels and adjust layout

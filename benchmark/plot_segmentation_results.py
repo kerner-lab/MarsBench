@@ -4,6 +4,7 @@ Process segmentation_filtered.csv to compute and save bootstrap IQM distribution
 normalize metrics, and plot violin plots for segmentation results.
 """
 import json
+import math
 import os
 import sys
 import types
@@ -31,6 +32,7 @@ def main():
     output_dir = base_dir / "data" / "segmentation_violin_output"
     output_dir.mkdir(exist_ok=True)
     plot_path = output_dir / "violin_plot.pdf"
+    training_type = "feature_extraction"
 
     # Load and rename columns
     if os.path.exists(csv_path):
@@ -40,7 +42,7 @@ def main():
             run_name="MarsBenchSegmentationWithSeeds",
             columns=["model_name", "data_name", "seed", "test/iou", "training_type"],
         )
-        df = df[df["training_type"] == "feature_extraction"]
+        df = df[df["training_type"] == training_type]
         with open(base_dir / "mappings.json", "r") as f:
             mappings = json.load(f)
         df["model_name"] = df["model_name"].map(mappings["models"])
@@ -50,14 +52,7 @@ def main():
         df["partition name"] = "default"
         df.to_csv(csv_path, index=False)
 
-    datasets = ["aggregated"] + [
-        "mb-boulder_seg",
-        "mb-conequest_seg",
-        "mb-crater_multi_seg",
-        "mb-mars_seg_msl",
-        "mb-mmls",
-        "mb-s5mars",
-    ]
+    datasets = ["aggregated"] + df["dataset"].unique().tolist()
 
     # Build normalizer and apply
     normalizer = make_normalizer(df, metrics=["test metric"], benchmark_name=None)
@@ -83,14 +78,18 @@ def main():
     model_order = list(df["model"].unique())
     model_colors = dict(zip(model_order, sns.color_palette("colorblind", len(model_order))))
 
-    # Plot violin plots
+    num_datasets = len(combined["dataset"].unique())
+    max_cols = 5
+    num_cols = min(max_cols, num_datasets)
+    num_rows = math.ceil(num_datasets / num_cols)
+    fig_size = (num_cols * 3, num_rows * 3)  # moderate height per row
     plot_per_dataset(
         combined,
         model_order,
         metric=norm_col,
         model_colors=model_colors,
         datasets=datasets,
-        fig_size=(len(combined["dataset"].unique()) * 2, 3),
+        fig_size=fig_size,
         n_legend_rows=1,
     )
     # Rotate x-axis labels and adjust layout

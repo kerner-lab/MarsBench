@@ -4,12 +4,14 @@ Process classification_partition_filtered.csv to compute and save bootstrap IQM 
 normalize metrics, and plot both violin and line plots across partitions.
 """
 import json
+import math
 import os
 import sys
 import types
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from get_data import get_data
@@ -61,14 +63,16 @@ def main():
         )
         df.to_csv(csv_path, index=False)
 
-    datasets = ["aggregated"] + [
-        "mb-boulder_seg",
-        "mb-conequest_seg",
-        "mb-crater_multi_seg",
-        "mb-mars_seg_msl",
-        "mb-mmls",
-        "mb-s5mars",
-    ]
+    # datasets = ["aggregated"] + [
+    #     "mb-boulder_seg",
+    #     "mb-conequest_seg",
+    #     "mb-crater_multi_seg",
+    #     "mb-mars_seg_msl",
+    #     "mb-mmls",
+    #     "mb-s5mars",
+    # ]
+
+    datasets = df["dataset"].unique().tolist()
     # df = df[df['dataset']==datasets[0]]
     normalizer = make_normalizer(df, metrics=["test metric"], benchmark_name=None)
     norm_col = normalizer.normalize_data_frame(df, "test metric")
@@ -82,42 +86,50 @@ def main():
     # Calculate mean and std per dataset, model, partition group
     stats_df = df.groupby(["dataset", "model", "partition name"])[norm_col].agg(["mean", "std", "count"]).reset_index()
 
-    # Calculate aggregated statistics across all datasets
-    # First, get the mean of normalized metrics per model/partition/seed combination
-    model_partition_means = df.groupby(["model", "partition name", "seed"])[norm_col].mean().reset_index()
+    # # Calculate aggregated statistics across all datasets
+    # # First, get the mean of normalized metrics per model/partition/seed combination
+    # model_partition_means = df.groupby(["model", "partition name", "seed"])[norm_col].mean().reset_index()
 
-    # Then calculate statistics on these means
-    aggregated_stats = (
-        model_partition_means.groupby(["model", "partition name"])["normalized test metric"]
-        .agg([("mean", "mean"), ("std", "std"), ("count", "count")])
-        .reset_index()
-    )
+    # # Then calculate statistics on these means
+    # aggregated_stats = (
+    #     model_partition_means.groupby(["model", "partition name"])["normalized test metric"]
+    #     .agg([("mean", "mean"), ("std", "std"), ("count", "count")])
+    #     .reset_index()
+    # )
 
-    # Add dataset column with 'aggregated' value
-    aggregated_stats["dataset"] = "aggregated"
+    # # Add dataset column with 'aggregated' value
+    # aggregated_stats["dataset"] = "aggregated"
 
-    # Reorder columns to match stats_df
-    aggregated_stats = aggregated_stats[["dataset", "model", "partition name", "mean", "std", "count"]]
+    # # Reorder columns to match stats_df
+    # aggregated_stats = aggregated_stats[["dataset", "model", "partition name", "mean", "std", "count"]]
 
-    # Combine per-dataset and aggregated stats
-    combined_stats = pd.concat([stats_df, aggregated_stats], ignore_index=True)
-
-    # Save processed stats for reference
+    # # Combine per-dataset and aggregated stats
+    # combined_stats = pd.concat([stats_df, aggregated_stats], ignore_index=True)
+    combined_stats = stats_df
+    # # Save processed stats for reference
     combined_stats.to_csv(output_dir / "partition_stats.csv", index=False)
 
-    # Convert partition_name to float for proper plotting
+    # # Convert partition_name to float for proper plotting
     combined_stats["partition_value"] = combined_stats["partition name"].astype(float)
 
-    # # Create a figure with one row of subplots - one for each dataset (including aggregated)
-    # datasets_to_plot = ['aggregated'] + [d for d in combined_stats['dataset'].unique() if d != 'aggregated']
-    # num_plots = len(datasets_to_plot)
-
     # Create figure with one row of subplots
-    fig, axes = plt.subplots(1, len(datasets), figsize=(len(datasets) * 3, 4), sharey=True)
+    # Create grid layout with maximum 5 columns
+    max_cols = 5
+    num_cols = min(max_cols, len(datasets))
+    num_rows = math.ceil(len(datasets) / num_cols)
+    fig_size = (num_cols * 3, num_rows * 4)
+    fig, axes = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=fig_size, sharey=True)
+
+    # Flatten axes array for easier iteration
+    axes = np.array(axes).flatten()
+
+    # Hide unused subplots
+    for ax in axes[len(datasets) :]:
+        ax.set_visible(False)
 
     # Process each dataset in its own subplot
     for i, dataset in enumerate(datasets):
-        ax = axes[i] if len(datasets) > 1 else axes  # Handle single subplot case
+        ax = axes[i]  # Use flattened axes array
         if dataset == "aggregated":
             ax.set_facecolor("#cff6fc")
 
@@ -152,8 +164,8 @@ def main():
         ax.grid(True, linestyle="--", axis="y", alpha=0.7)
         ax.set_xlabel(dataset, fontsize=14)
 
-        # Only set ylabel on first subplot
-        if i == 0:
+        # Set ylabel on first subplot of each row
+        if i % num_cols == 0:  # First subplot in each row
             ax.set_ylabel("normalized test metric", fontsize=14)
 
         # Remove legend from all but the last subplot
@@ -198,7 +210,9 @@ def main():
     )
 
     # Adjust layout and save
-    plt.subplots_adjust(wspace=0.1)
+    # Adjust spacing in the grid layout
+    plt.subplots_adjust(wspace=0.2, hspace=0.3)
+    plt.tight_layout()
     # plt.tight_layout(rect=[0, 0.1, 1, 0.95])  # Make room for legend
     plt.savefig(plot_path, dpi=300, bbox_inches="tight")
     print(f"Saved plots in {plot_path}")
