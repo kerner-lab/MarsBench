@@ -29,6 +29,8 @@ dependencies = [
     "tensorboard>=2.15.0",
     "rasterio>=1.4.3",
     "opencv-python>=4.10",
+    "tifffile>=2025.3.30",
+    "transformers>=4.51.3",
 ]
 
 [tool.setuptools]

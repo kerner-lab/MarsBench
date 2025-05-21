@@ -17,6 +17,9 @@ model_name: resnet101        # Name of the model architecture
 training_type: feature_extraction  # 'scratch_training', 'feature_extraction', 'transfer_learning'
 checkpoint_path: null        # Path to a .ckpt file to resume training
 
+# detection model settings
+detection_confidence_threshold: 0.3
+
 # Output settings
 output_path: outputs         # Directory for outputs (models, logs, metrics)
 prediction_output_path: null # Directory for prediction outputs; defaults to output_path/predictions

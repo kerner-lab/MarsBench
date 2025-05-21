@@ -71,9 +71,14 @@ class BaseDetectionModel(pl.LightningModule, ABC):
 
         self._log_metrics("val", total_loss)
 
+    def on_validation_epoch_start(self):
+        self.metrics.reset()
+
+    def on_test_epoch_start(self):
+        self.metrics.reset()
+
     def test_step(self, batch, batch_idx):
         images, targets = batch
-        images = images.to(self.device)
         outputs = self(images)
 
         if self.metrics:
@@ -130,6 +135,23 @@ class BaseDetectionModel(pl.LightningModule, ABC):
             "object_precision_mean": round(float(object_precision_mean), 6),
             "object_recall_mean": round(float(object_recall_mean), 6),
         }
+
+        prefix = "detect/test"
+        self.log_dict(
+            {f"{prefix}/confidence_threshold": self.cfg.detection_confidence_threshold},
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
+        self.log_dict({f"{prefix}/mAP": final_map["map"]}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict({f"{prefix}/object_iou_mean": object_iou_mean}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict(
+            {f"{prefix}/object_accuracy_mean": object_accuracy_mean}, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log_dict(
+            {f"{prefix}/object_precision_mean": object_precision_mean}, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log_dict({f"{prefix}/object_recall_mean": object_recall_mean}, on_step=False, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
         optimizer_name = self.cfg.training.optimizer.name
