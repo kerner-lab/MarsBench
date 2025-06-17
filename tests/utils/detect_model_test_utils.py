@@ -51,64 +51,6 @@ def verify_detection_output_properties(output, model_name: str) -> None:
         print(f"{model_name}: Detection output properties verified successfully.")
 
 
-def verify_detr_output_properties(output: dict, model_name: str) -> None:
-    """
-    DETR typically returns a dict with 'pred_logits' and 'pred_boxes' of shape:
-    (batch_size, num_queries, num_classes) and (batch_size, num_queries, 4).
-    """
-
-    assert isinstance(output, dict), f"{model_name}: Output should be a dictionary."
-    for key in ["pred_logits", "pred_boxes"]:
-        assert key in output, f"{model_name}: Missing key '{key}' in output."
-
-    pred_logits = output["pred_logits"]
-    pred_boxes = output["pred_boxes"]
-    assert isinstance(pred_logits, torch.Tensor), f"{model_name}: 'pred_logits' should be a tensor."
-    assert isinstance(pred_boxes, torch.Tensor), f"{model_name}: 'pred_boxes' should be a tensor."
-
-    # Check shapes
-    assert pred_logits.ndim == 3, f"{model_name}: 'pred_logits' should have 3 dimensions, got {pred_logits.ndim}."
-    assert pred_boxes.ndim == 3, f"{model_name}: 'pred_boxes' should have 3 dimensions, got {pred_boxes.ndim}."
-
-    # Check for invalid values
-    for tensor, name in [(pred_logits, "pred_logits"), (pred_boxes, "pred_boxes")]:
-        assert not torch.isnan(tensor).any(), f"{model_name}: {name} has NaNs."
-        assert not torch.isinf(tensor).any(), f"{model_name}: {name} has Infs."
-
-    # DETR typically returns normalized boxes.
-    if not torch.all((pred_boxes >= 0) & (pred_boxes <= 1)):
-        raise AssertionError(f"{model_name}: 'pred_boxes' values must be between 0 and 1.")
-
-    # Softmax over the last dimension of pred_logits -> sum = 1
-    pred_probs = torch.softmax(pred_logits, dim=-1)
-    sums = pred_probs.sum(dim=-1)
-    if not torch.allclose(sums, torch.ones_like(sums), atol=1e-5):
-        raise AssertionError(f"{model_name}: Softmax along classes != 1.")
-
-    print(
-        f"{model_name}: DETR output properties verified successfully. "
-        f"pred_logits shape: {pred_logits.shape}, pred_boxes shape: {pred_boxes.shape}"
-    )
-
-
-def verify_efficientdet_output_properties(detections, model_name: str) -> None:
-    """Verify model output properties for EfficientDet."""
-    assert isinstance(detections, torch.Tensor), f"{model_name}: Detections should be a tensor, got {type(detections)}"
-    assert (
-        detections.ndim == 3 and detections.shape[-1] == 6
-    ), f"{model_name}: Detections should have shape (batch, num_detections, 6), got {detections.shape}."
-
-    # Unpack the detection tensor.
-    x1, y1, x2, y2, score, cls = detections.unbind(-1)
-
-    # Check bboxes and score are valid.
-    assert torch.all(x1 < x2), f"{model_name}: Not all detections satisfy x1 < x2."
-    assert torch.all(y1 < y2), f"{model_name}: Not all detections satisfy y1 < y2."
-    assert torch.all((score >= 0) & (score <= 1)), f"{model_name}: Some detection scores are not in [0, 1]."
-
-    print(f"{model_name}: EfficientDet detections verified successfully. Detections shape: {detections.shape}")
-
-
 def verify_backward_pass_detection(model, loss_dict, model_name) -> None:
     """Verify model backward pass for standard detection models."""
 
@@ -123,80 +65,22 @@ def verify_backward_pass_detection(model, loss_dict, model_name) -> None:
     print(f"{model_name}: Backward pass verified successfully, total grad norm: {grad_norm}")
 
 
-def verify_backward_pass_detection_detr(model, output, target, model_name) -> None:
-    """Verify model backward pass for DETR."""
-    criterion = model.criterion
-    weight_dict = criterion.weight_dict
-    loss_dict = criterion(output, target)
-    total_loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
-
-    total_loss.backward()
-    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
-    assert grad_norm > 0, f"{model_name}: Gradients are not computed during backward pass (grad norm: {grad_norm})."
-
-    print(f"{model_name}: Backward pass verified successfully, total grad norm: {grad_norm}")
-
-
-def verify_backward_pass_detection_efficientdet(model, loss, model_name) -> None:
-    """Verify model backward pass for EfficientDET."""
-    loss.backward()
-    grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
-    assert grad_norm > 0, f"{model_name}: Gradients not computed (grad norm: {grad_norm})."
-    print(f"{model_name}: Backward pass verified successfully with grad norm: {grad_norm}")
-
-
 def verify_detection_model_output_and_backward_pass(model, model_name, dummy_input, dummy_target, cfg):
     device = next(model.parameters()).device
     training_mode = model.training
     dummy_target = [{k: v.to(device) for k, v in t.items()} for t in dummy_target]
 
-    if model_name.lower() == "detr":
-        dummy_input = dummy_input.detach()
-        dummy_input = dummy_input.to(device)
+    dummy_input = dummy_input.to(device)
 
+    model.eval()
+    with torch.no_grad():
         output = model(dummy_input)
+    model.train(training_mode)
 
-        verify_detr_output_properties(output, model_name)
-        verify_backward_pass_detection_detr(model, output, dummy_target, model_name)
+    verify_detection_output_properties(output, model_name)
 
-    elif model_name.lower() == "efficientdet":
-        dummy_input = dummy_input.to(device)
-
-        dummy_target = {
-            "bbox": [target["boxes"] for target in dummy_target],
-            "cls": [target["labels"] for target in dummy_target],
-            "img_size": torch.stack([target["img_size"] for target in dummy_target]),
-            "img_scale": torch.tensor([target["img_scale"] for target in dummy_target]),
-        }
-
-        model.eval()
-        with torch.no_grad():
-            output = model(dummy_input, dummy_target)
-        model.train(training_mode)
-
-        expected_eval_keys = {"loss", "class_loss", "box_loss", "detections"}
-        assert expected_eval_keys.issubset(
-            output.keys()
-        ), f"{model_name}: Evaluation output missing keys. Expected {expected_eval_keys}, got {output.keys()}"
-
-        detections = output["detections"]
-        verify_efficientdet_output_properties(detections, model_name)
-
-        loss_dict = model(dummy_input, dummy_target)
-        verify_backward_pass_detection_efficientdet(model, loss_dict["loss"], model_name)
-
-    else:
-        dummy_input = dummy_input.to(device)
-
-        model.eval()
-        with torch.no_grad():
-            output = model(dummy_input)
-        model.train(training_mode)
-
-        verify_detection_output_properties(output, model_name)
-
-        loss_dict = model(dummy_input, dummy_target)
-        verify_backward_pass_detection(model, loss_dict, model_name)
+    loss_dict = model(dummy_input, dummy_target)
+    verify_backward_pass_detection(model, loss_dict, model_name)
 
 
 def run_detection_model_tests(cfg, model, model_class, model_name, input_size, batch_size):

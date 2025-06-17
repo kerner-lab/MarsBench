@@ -108,9 +108,6 @@ def create_test_data(
             else:
                 labels = torch.ones((num_boxes,), dtype=torch.long)
 
-            if model_name.lower() == "efficientdet":
-                boxes = boxes[:, [1, 0, 3, 2]]  # yxyx
-
             dummy_target.append(
                 {
                     "boxes": boxes,
@@ -159,24 +156,6 @@ def detection_collate_fn(batch):
     return images, targets
 
 
-def detection_collate_fn_v2(batch):
-    images, targets = tuple(zip(*batch))
-    images = torch.stack(images, dim=0)
-
-    boxes = [target["boxes"][:, [1, 0, 3, 2]] for target in targets]
-    labels = [target["labels"] for target in targets]
-    img_sizes = torch.stack([target["img_size"] for target in targets])
-    img_scales = torch.tensor([target["img_scale"] for target in targets])
-
-    annotations = {
-        "bbox": boxes,
-        "cls": labels,
-        "img_size": img_sizes,
-        "img_scale": img_scales,
-    }
-    return images, annotations
-
-
 def setup_training(
     model: torch.nn.Module,
     input_size: Tuple[int, ...],
@@ -195,10 +174,7 @@ def setup_training(
             class_idx_offset = 0
         else:
             class_idx_offset = 1
-        if model_name.lower() == "efficientdet":
-            collate_fn = detection_collate_fn_v2
-        else:
-            collate_fn = detection_collate_fn
+        collate_fn = detection_collate_fn
     else:
         collate_fn = None
 

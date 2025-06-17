@@ -1,8 +1,0 @@
-name: EfficientDET
-class_path: marsbench.models.detection.EfficientDET
-bbox_format: pascal_voc
-prediction_confidence_threshold: 0.2
-wbf_iou_threshold: 0.44
-architecture: "efficientdet_d0"
-status: test
-input_size: [3, 512, 512]
