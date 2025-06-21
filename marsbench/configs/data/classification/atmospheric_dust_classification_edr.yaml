@@ -2,6 +2,8 @@ name: Atmospheric_Dust_Classification_EDR
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/atmospheric_dust_classification_edr/
 annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/atmospheric_dust_classification_edr/annotation.csv
+few_shot_csv: ${oc.decode:${oc.select:dataset_path, .}}/atmospheric_dust_classification_edr/few_shot/${oc.select:few_shot, 1}_shot.csv
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/atmospheric_dust_classification_edr/partitions/${oc.select:partition, 0.01}x_partition.csv
 num_classes: 1
 image_type: rgb
 subtask: binary  # Supported: binary, multiclass, multilabel

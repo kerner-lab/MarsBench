@@ -24,10 +24,10 @@ class MarsDataModule(pl.LightningDataModule):
         self.test_dataset: Optional[Dataset] = None
         self.image_processor = None
 
-        sys_worker = os.environ.get("SLURM_CPUS_PER_TASK", 1) if "SLURM_JOB_ID" in os.environ else os.cpu_count() // 2
-        req_workers = self.cfg.training.get("num_workers", -1)
-        sys_worker = int(sys_worker)
-        req_workers = int(req_workers)
+        sys_worker = (
+            int(os.environ.get("SLURM_CPUS_PER_TASK", 1)) if "SLURM_JOB_ID" in os.environ else os.cpu_count() // 2
+        )
+        req_workers = int(self.cfg.training.get("num_workers", -1))
         self.num_workers = min(sys_worker, req_workers) if req_workers > 0 else sys_worker
 
     def prepare_data(self):

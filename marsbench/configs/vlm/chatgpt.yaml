@@ -1,0 +1,6 @@
+name: chatgpt
+model_name: gpt-4o  # or your preferred model
+temperature: 0.7
+max_batches: 2  # set null to process all batches
+image_size: [256, 256]  # optional: downsize image to reduce token size
+jpeg_quality: 50        # optional: compress image for token reduction

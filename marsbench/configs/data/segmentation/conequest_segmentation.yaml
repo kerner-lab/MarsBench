@@ -1,6 +1,7 @@
 name: ConeQuest_Segmentation
 status: test
 data_dir: ${oc.decode:${oc.select:dataset_path, .}}/conequest_segmentation/
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/conequest_segmentation/partitions/${oc.select:partition, 0.01}x_partition.csv
 num_classes: 2  # Background + 1 class
 image_type: rgb
 task: segmentation

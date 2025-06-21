@@ -3,6 +3,7 @@ Dataset loading and preprocessing utilities for MarsBench.
 """
 
 import logging
+import os
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -74,8 +75,36 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, 
         "transform": transform,
         "split": split,
     }
-    if cfg.task == "classification":
-        common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
+    partition_support = ["classification", "segmentation", "detection"]
+    few_shot_support = ["classification"]
+    if (cfg.partition is not None and cfg.task in partition_support) or (
+        cfg.few_shot is not None and cfg.task in few_shot_support
+    ):
+        if cfg.few_shot is not None and cfg.partition is not None:
+            msg = "At most one of cfg.few_shot or cfg.partition may be set; both cannot be non-None"
+            logger.error(msg)
+            raise ValueError(msg)
+        if cfg.few_shot is not None:
+            annot_csv = cfg.data.few_shot_csv
+        elif cfg.partition is not None:
+            annot_csv = cfg.data.partition_csv
+            if cfg.partition >= 0.1:
+                annot_csv_partition = annot_csv.split("/")[-1]
+                annot_csv_partition_val = annot_csv_partition.split("x_")[0]
+                new_val = f"{cfg.partition:.2f}"
+                logger.info(f"Old annotation csv path is: {annot_csv}")
+                annot_csv = annot_csv.replace(f"{annot_csv_partition_val}x_", f"{new_val}x_")
+                logger.info(f"Updated annotation csv path is: {annot_csv}")
+    elif cfg.partition is not None:
+        logger.warning(f"Task: {cfg.task} does not support partition. Using whole data.")
+    elif cfg.few_shot is not None:
+        logger.warning(f"Task: {cfg.task} does not support few shot. Using whole data.")
+
+    if annot_csv is not None and not os.path.exists(annot_csv):
+        logger.error(f"Annotation csv path does not exist: {annot_csv}")
+        raise ValueError(f"Annotation csv path does not exist: {annot_csv}")
+
+    common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
     if cfg.task == "detection":
         common_args["bbox_format"] = bbox_format
     return dataset_class(**common_args)
@@ -128,226 +157,3 @@ def get_dataset(
         train_dataset = Subset(train_dataset, indices)
 
     return train_dataset, val_dataset, test_dataset
-
-    # # Classification datasets
-    # if cfg.task == "classification":
-    #     if cfg.data.name == "DoMars16k":
-    #         train_dataset = DoMars16k(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="train",
-    #         )
-    #         val_dataset = DoMars16k(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="val",
-    #         )
-    #         test_dataset = DoMars16k(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="test",
-    #         )
-    #     elif cfg.data.name == "DeepMars_Landmark":
-    #         train_dataset = DeepMars_Landmark(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="train",
-    #         )
-    #         val_dataset = DeepMars_Landmark(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="val",
-    #         )
-    #         test_dataset = DeepMars_Landmark(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="test",
-    #         )
-    #     elif cfg.data.name == "DeepMars_Surface":
-    #         train_dataset = DeepMars_Surface(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="train",
-    #         )
-    #         val_dataset = DeepMars_Surface(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="val",
-    #         )
-    #         test_dataset = DeepMars_Surface(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="test",
-    #         )
-    #     elif cfg.data.name == "HiRISENet":
-    #         train_dataset = HiRISENet(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="train",
-    #         )
-    #         val_dataset = HiRISENet(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="val",
-    #         )
-    #         test_dataset = HiRISENet(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="test",
-    #         )
-    #     elif cfg.data.name == "MartianFrost":
-    #         train_dataset = MartianFrost(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="train",
-    #         )
-    #         val_dataset = MartianFrost(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="val",
-    #         )
-    #         test_dataset = MartianFrost(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="test",
-    #         )
-    #     elif cfg.data.name == "MSLNet":
-    #         train_dataset = MSLNet(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="train",
-    #         )
-    #         val_dataset = MSLNet(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="val",
-    #         )
-    #         test_dataset = MSLNet(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             annot_csv=cfg.data.annot_csv,
-    #             split="test",
-    #         )
-    #     else:
-    #         raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}")
-
-    # # Segmentation datasets
-    # elif cfg.task == "segmentation":
-    #     if cfg.data.name == "ConeQuest":
-    #         train_dataset = ConeQuest(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             split="train",
-    #         )
-    #         val_dataset = ConeQuest(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             split="val",
-    #         )
-    #         test_dataset = ConeQuest(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             split="test",
-    #         )
-    #     else:
-    #         raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}")
-
-    # # Detection datasets
-    # elif cfg.task == "detection":
-    #     if cfg.data.name == "ConeQuest":
-    #         train_dataset = ConeQuestDetection(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             bbox_format=bbox_format,
-    #             split="train",
-    #         )
-    #         val_dataset = ConeQuestDetection(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             bbox_format=bbox_format,
-    #             split="val",
-    #         )
-    #         test_dataset = ConeQuestDetection(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             bbox_format=bbox_format,
-    #             split="test",
-    #         )
-    #     elif cfg.data.name == "Mars_Dust_Devil":
-    #         train_dataset = Mars_Dust_Devil(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[0],
-    #             bbox_format=bbox_format,
-    #             split="train",
-    #         )
-    #         val_dataset = Mars_Dust_Devil(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             bbox_format=bbox_format,
-    #             split="val",
-    #         )
-    #         test_dataset = Mars_Dust_Devil(
-    #             cfg=cfg,
-    #             data_dir=cfg.data.data_dir,
-    #             transform=transforms[1],
-    #             bbox_format=bbox_format,
-    #             split="test",
-    #         )
-    #     else:
-    #         raise ValueError(f"Dataset not supported: {cfg.data.name} for {cfg.task}")
-
-    # else:
-    #     raise ValueError(f"Task not supported: {cfg.task}")
-
-    # # Apply subset if specified
-    # subset = cfg.data.subset if cfg.data.get("subset", None) is not None else subset
-    # if subset is not None and subset > 0:
-    #     train_dataset = Subset(
-    #         train_dataset,
-    #         torch.randperm(len(train_dataset))[:subset].tolist(),
-    #     )
-
-    # return train_dataset, val_dataset, test_dataset
