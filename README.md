@@ -108,8 +108,6 @@ python -m marsbench.main task=classification model_name=resnet18 data_name=domar
 - SegFormer
 
 ### Detection
-- DETR
-- EfficientDet
 - Faster R-CNN
 - RetinaNet
 - SSD

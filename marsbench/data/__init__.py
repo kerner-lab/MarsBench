@@ -104,7 +104,7 @@ def instantiate_dataset(dataset_class, cfg, transform, split, bbox_format=None, 
         logger.error(f"Annotation csv path does not exist: {annot_csv}")
         raise ValueError(f"Annotation csv path does not exist: {annot_csv}")
 
-    common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None else annot_csv
+    common_args["annot_csv"] = cfg.data.annot_csv if annot_csv is None and cfg.task != "detection" else annot_csv
     if cfg.task == "detection":
         common_args["bbox_format"] = bbox_format
     return dataset_class(**common_args)

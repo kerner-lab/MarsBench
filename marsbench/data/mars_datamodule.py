@@ -60,24 +60,6 @@ class MarsDataModule(pl.LightningDataModule):
         images = torch.stack(images, dim=0)
         return images, targets
 
-    @staticmethod
-    def detection_collate_fn_v2(batch):
-        images, targets = tuple(zip(*batch))
-        images = torch.stack(images, dim=0)
-
-        boxes = [target["bbox"] for target in targets]
-        labels = [target["cls"] for target in targets]
-        img_sizes = torch.stack([target["img_size"] for target in targets])
-        img_scales = torch.tensor([target["img_scale"] for target in targets])
-
-        annotations = {
-            "bbox": boxes,
-            "cls": labels,
-            "img_size": img_sizes,
-            "img_scale": img_scales,
-        }
-        return images, annotations
-
     def mask2former_collate_fn(self, batch):
         inputs = list(zip(*batch))
         images = inputs[0]
@@ -98,10 +80,7 @@ class MarsDataModule(pl.LightningDataModule):
 
     def get_collate_fn(self):
         if self.cfg.task == "detection":
-            if self.cfg.model.name.lower() == "efficientdet":
-                return MarsDataModule.detection_collate_fn_v2
-            else:
-                return MarsDataModule.detection_collate_fn
+            return MarsDataModule.detection_collate_fn
         elif self.cfg.task == "segmentation":
             if self.cfg.model.name.lower() == "mask2former":
                 return self.mask2former_collate_fn
