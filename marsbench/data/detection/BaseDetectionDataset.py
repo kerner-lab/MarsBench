@@ -92,17 +92,9 @@ class BaseDetectionDataset(Dataset, ABC):
         bboxes = torch.tensor(bboxes, dtype=torch.float32)
         labels = torch.tensor(labels, dtype=torch.int64)
 
-        if self.cfg.model.name.lower() == "efficientdet":
-            bboxes = bboxes[:, [1, 0, 3, 2]]
-            bbox_label = "bbox"
-            class_label = "cls"
-        else:
-            bbox_label = "boxes"
-            class_label = "labels"
-
         target = {
-            bbox_label: bboxes,
-            class_label: labels,
+            "boxes": bboxes,
+            "labels": labels,
             "image_id": torch.tensor([idx]),
             "img_size": torch.tensor([img_height, img_width]),
             "img_scale": torch.tensor([1.0]),

@@ -21,7 +21,7 @@ checkpoint_path: null        # Path to a .ckpt file to resume training
 detection_confidence_threshold: 0.3
 
 # Output settings
-output_path: /scratch/vmalaviy/Marsbench/outputs         # Directory for outputs (models, logs, metrics)
+output_path: /scratch/vmaliviy/Marsbench/outputs         # Directory for outputs (models, logs, metrics)
 prediction_output_path: null # Directory for prediction outputs; defaults to output_path/predictions
 
 defaults:

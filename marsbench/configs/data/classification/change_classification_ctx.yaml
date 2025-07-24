@@ -1,9 +1,9 @@
 name: Change_Classification_CTX
 status: test
-data_dir: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_ctx/
-annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_ctx/annotation.csv
-few_shot_csv: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_ctx/few_shot/${oc.select:few_shot, 1}_shot.csv
-partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/change_classification_ctx/partitions/${oc.select:partition, 0.01}x_partition.csv
+data_dir: ${oc.decode:${oc.select:dataset_path, .}}/mb-change_cls_ctx/
+annot_csv: ${oc.decode:${oc.select:dataset_path, .}}/mb-change_cls_ctx/annotation.csv
+few_shot_csv: ${oc.decode:${oc.select:dataset_path, .}}/mb-change_cls_ctx/few_shot/${oc.select:few_shot, 1}_shot.csv
+partition_csv: ${oc.decode:${oc.select:dataset_path, .}}/mb-change_cls_ctx/partitions/${oc.select:partition, 0.01}x_partition.csv
 num_classes: 1
 image_type: rgb
 subtask: binary  # Supported: binary, multiclass, multilabel
